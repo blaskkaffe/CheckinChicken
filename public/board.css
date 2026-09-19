@@ -415,13 +415,25 @@ body { display: flex; flex-direction: column; }
    name (avatar/name/dots stay put on the left, the tag jumps the gap
    between them and the badge rather than sitting right after the name),
    and flush right on its own line when it wraps below, rather than
-   trailing directly behind the name/dots either way. */
+   trailing directly behind the name/dots either way.
+
+   Padding is capped the same way font-size already was - and the same
+   fix the badge's own padding just got (see .badge's comment): font-size
+   was the only capped part of this rule, so on a sparse board (cqw
+   values ballooning well past --scale's own ceiling) the text itself
+   stopped growing while the padding around it kept going, and the pill
+   quietly stopped scaling in step with its own text - lots of empty
+   padding around text that had already hit its ceiling. Same ratio
+   pattern as everywhere else (0.129 = 0.85/6.6, 0.273 = 1.8/6.6,
+   against the dept-name's reference 6.6cqw - see .board's --cap
+   comment) keeps padding and text growing together at every scale. */
 .tag {
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
   font-size: min(calc(4.2cqw * var(--scale)), calc(var(--cap) * 0.636));
-  padding: calc(0.85cqw * var(--scale)) calc(1.8cqw * var(--scale));
+  padding: min(calc(0.85cqw * var(--scale)), calc(var(--cap) * 0.129))
+    min(calc(1.8cqw * var(--scale)), calc(var(--cap) * 0.273));
   border-radius: 999px;
   color: #0b0e16;
   font-weight: 700;
