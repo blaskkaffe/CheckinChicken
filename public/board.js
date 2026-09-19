@@ -26,12 +26,14 @@
   // already gives lowercase weekday/month names, which is correct Swedish
   // style outside the start of a sentence.
   //
-  // Week format: "V" + the last digit of the (ISO week-)year + the ISO
-  // week number, e.g. week 45 of a year ending in 6 reads "V645" - the
-  // everyday shorthand ("v45") isn't ambiguous enough on its own for a
-  // wall display nobody's actively thinking about the date in front of, so
-  // this adds that one year digit to disambiguate late-December/
-  // early-January weeks without spelling out the full year.
+  // Week format: plain "V" + the ISO week number by default (e.g. "V45") -
+  // reads fastest at a glance from across a room, which is what a wall
+  // clock is for. Right at a year boundary that's technically ambiguous
+  // (is "V1" this week or next?), so there's an opt-in per-device setting
+  // (weekShowYear below, toggled from the board-settings popup - tap the
+  // clock - see boardsettings.js's renderWeekFormat) that adds the last
+  // digit of the ISO week-year in front of the week number instead, e.g.
+  // week 45 of a year ending in 6 reads "V645".
   //
   // Swedish week numbering follows ISO 8601 (Monday-start weeks, week 1 is
   // the one containing the year's first Thursday) - NOT the same as
@@ -54,14 +56,32 @@
     const week = 1 + Math.round((date - firstThursday) / (7 * 24 * 3600 * 1000));
     return { week, isoYear: date.getUTCFullYear() };
   }
+  // Per-device (localStorage), same pattern as locationFilter/
+  // manualScaleFactor further down: off (plain "V45") by default, and
+  // never touches the server - see the comment above for what it does.
+  const WEEK_SHOW_YEAR_KEY = 'checkin:weekShowYear';
+  let weekShowYear = false;
+
+  function loadWeekShowYear() {
+    try {
+      const saved = localStorage.getItem(WEEK_SHOW_YEAR_KEY);
+      if (saved !== null) weekShowYear = saved === '1';
+    } catch (e) { /* ignore - defaults to false */ }
+  }
+
+  function saveWeekShowYear() {
+    try { localStorage.setItem(WEEK_SHOW_YEAR_KEY, weekShowYear ? '1' : '0'); } catch (e) { /* ignore */ }
+  }
+
   function fmtClock() {
     const d = new Date();
     const datePart = d.toLocaleDateString('sv-SE', { weekday: 'long', day: 'numeric', month: 'long' });
     const timePart = d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
     const { week, isoYear } = isoWeekInfo(d);
-    const weekPart = `V${isoYear % 10}${week}`;
+    const weekPart = weekShowYear ? `V${isoYear % 10}${week}` : `V${week}`;
     document.getElementById('clock').textContent = `${datePart} · ${timePart} · ${weekPart}`;
   }
+  loadWeekShowYear();
   setInterval(fmtClock, 1000 * 15);
   fmtClock();
 
@@ -194,10 +214,11 @@
   // ---------------------------------------------- board-settings popup API
   // boardsettings.js (a separate script, loaded after this one - see
   // board.html) is the popup opened by tapping the clock: the coop
-  // filter, the manual size adjustment above, and (indirectly, via its own
-  // fetches) the theme/background pickers. It reads/writes THIS file's
-  // state through this one small object rather than each maintaining its
-  // own copy - same pattern as window.BoardPeople for statuspopup.js.
+  // filter, the manual size adjustment above, the clock's week-format
+  // toggle, and (indirectly, via its own fetches) the theme/background
+  // pickers. It reads/writes THIS file's state through this one small
+  // object rather than each maintaining its own copy - same pattern as
+  // window.BoardPeople for statuspopup.js.
   window.BoardSettings = {
     getLocations: allLocations,
     getFilter: () => locationFilter,
@@ -213,6 +234,12 @@
     resetManualScale() { setManualScale(1); },
     manualScaleAtMin: () => manualScaleFactor <= MANUAL_SCALE_MIN + 1e-9,
     manualScaleAtMax: () => manualScaleFactor >= MANUAL_SCALE_MAX - 1e-9,
+    getWeekShowYear: () => weekShowYear,
+    setWeekShowYear(show) {
+      weekShowYear = !!show;
+      saveWeekShowYear();
+      fmtClock(); // reflect immediately, don't wait for the 15s tick
+    },
   };
 
   // ------------------------------------------------------- click to edit -

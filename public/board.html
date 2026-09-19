@@ -96,8 +96,9 @@
        Deliberately CLIENT-SIDE ONLY: everything in here is a per-device
        setting that boardsettings.js keeps in this one browser's
        localStorage and never sends to the server (see board.js's
-       window.BoardSettings) - which coop this one screen shows, and a
-       manual nudge on this one screen's automatic sizing. Anything
+       window.BoardSettings) - which coop this one screen shows, a
+       manual nudge on this one screen's automatic sizing, and whether its
+       clock's week number includes the disambiguating year digit. Anything
        server-wide (theme, background picture, the roster, statuses, ...)
        is deliberately NOT here - that all stays admin-only, behind the
        "Adminsidan" button below and its passcode gate, so a passcode is
@@ -124,6 +125,12 @@
             <button type="button" class="bs-step" id="bsSizeUp" aria-label="Större">+</button>
             <button type="button" class="ghost-btn small" id="bsSizeReset">Auto</button>
           </div>
+        </section>
+
+        <section class="bs-section">
+          <h3>Veckonummer</h3>
+          <p class="bs-hint">Hur veckan visas i klockan uppe till höger.</p>
+          <div class="bs-choices" id="bsWeekFormat"></div>
         </section>
 
         <section class="bs-section bs-admin-section">

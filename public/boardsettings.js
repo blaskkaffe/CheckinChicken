@@ -1,19 +1,20 @@
 // boardsettings.js — the popup opened by tapping the clock on board.html:
-// which coop this screen shows, and a manual nudge on the board's
-// automatic sizing. Also has a button to the real admin page, doing
-// exactly what the old header gear icon used to.
+// which coop this screen shows, a manual nudge on the board's automatic
+// sizing, and whether the clock's week number includes the year digit.
+// Also has a button to the real admin page, doing exactly what the old
+// header gear icon used to.
 //
 // Deliberately CLIENT-SIDE ONLY, and deliberately reachable with NO
-// passcode. The coop filter and manual size nudge both live entirely
-// in this one browser's localStorage (see board.js's window.BoardSettings)
-// and never touch the server at all - so there is nothing here any other
-// screen could ever be affected by, which is what makes it safe to leave
-// unlocked. The only thing keeping a random person on the board from
-// opening this is not knowing to tap the clock in the first place, which
-// the README ("Screen settings") judges to be enough given this app's
-// threat model (a trusted, offline LAN - see server.js's safeEqual comment
-// for the same reasoning applied to the admin passcode's own timing
-// safety).
+// passcode. The coop filter, manual size nudge, and week-format choice all
+// live entirely in this one browser's localStorage (see board.js's
+// window.BoardSettings) and never touch the server at all - so there is
+// nothing here any other screen could ever be affected by, which is what
+// makes it safe to leave unlocked. The only thing keeping a random person
+// on the board from opening this is not knowing to tap the clock in the
+// first place, which the README ("Screen settings") judges to be enough
+// given this app's threat model (a trusted, offline LAN - see server.js's
+// safeEqual comment for the same reasoning applied to the admin
+// passcode's own timing safety).
 //
 // Everything server-wide - theme, background picture, roster, statuses,
 // ... - stays admin-only, behind admin.html's own passcode gate, on
@@ -62,6 +63,27 @@
     $('bsSizeUp').disabled = window.BoardSettings.manualScaleAtMax();
   }
 
+  // ------------------------------------------------------- week format --
+  // Same pill-button pattern as the coop picker above - see board.js's
+  // weekShowYear for what this actually changes (the clock's "V45" vs
+  // "V645").
+  function renderWeekFormat() {
+    const showYear = window.BoardSettings.getWeekShowYear();
+    const items = [
+      { value: false, label: 'Endast vecka' },
+      { value: true, label: 'Med årssiffra' },
+    ];
+    $('bsWeekFormat').innerHTML = items.map((it) =>
+      `<button type="button" class="bs-choice ${it.value === showYear ? 'active' : ''}" data-show="${it.value ? '1' : ''}">${esc(it.label)}</button>`
+    ).join('');
+    $('bsWeekFormat').querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        window.BoardSettings.setWeekShowYear(!!btn.dataset.show);
+        renderWeekFormat(); // reflect the new active choice immediately
+      });
+    });
+  }
+
   // -------------------------------------------------------------- version -
   // Fetched lazily (only once the info button is actually tapped, and only
   // the first time - cached in `versionText` after that) rather than up
@@ -88,11 +110,12 @@
   function open() {
     overlay.classList.add('visible');
     idleWatcher && idleWatcher.noteActivity();
-    // Both sections read straight out of localStorage (via
+    // All three sections read straight out of localStorage (via
     // window.BoardSettings) - no server round trip needed to open this,
     // unlike admin.js's panels.
     renderLocations();
     renderSize();
+    renderWeekFormat();
     // Collapsed again every time the popup reopens, same as any other
     // "reveal on demand" state - it's cheap to re-fetch (and re-cached in
     // versionText above) if tapped again.

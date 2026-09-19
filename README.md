@@ -294,10 +294,14 @@ board to actually overflow.
 ### Screen settings
 
 The clock itself (top-right of the board) reads e.g. "torsdag 18
-september · 14:32 · V638" — weekday, date, 24-hour time, and the current
-ISO 8601 week (`V` + the last digit of the ISO week-numbering year + the
-week number, same format used by the `Vecka` status kind — see
-[Statuses](#statuses-admin-statusar-tab) above).
+september · 14:32 · V45" — weekday, date, 24-hour time, and the current
+ISO 8601 week number. By default this is just the plain week number; it
+does **not** include the ISO week-numbering year by default (unlike the
+`Vecka` status kind's stored detail text, e.g. `V645`, which always does —
+see [Statuses](#statuses-admin-statusar-tab) above). Turn the year digit
+on for the clock too — reading e.g. `V645` — from the screen-settings
+popup below, for a display where the extra disambiguation right at a
+year boundary is worth it.
 
 Tap the clock to open a popup with:
 
@@ -305,15 +309,17 @@ Tap the clock to open a popup with:
   [Multiple coops](#multiple-coops) above.
 - **Storlek på tavlan** — the manual size nudge described under
   [Board layout](#board-layout) above.
+- **Veckonummer** — "Endast vecka" (default, e.g. `V45`) or "Med
+  årssiffra" (e.g. `V645`) for the clock's own week number, per-device.
 - A button to the real admin page (`admin.html`), which still has its own
   `adminPasscode` gate — this popup itself does not.
 - An **i** button next to the close button, top corner — reveals the
   running version (`GET /api/version`, sourced from `package.json`).
 
 Deliberately **client-side only, and deliberately reachable with no
-passcode**. Both settings above are per-device (`localStorage`) and never
-touch the server at all — there is no server-wide state this popup can
-change, which is what makes it safe to leave unlocked. There's no visible
+passcode**. All three settings above are per-device (`localStorage`) and
+never touch the server at all — there is no server-wide state this popup
+can change, which is what makes it safe to leave unlocked. There's no visible
 button for it any more either (the board's old header gear icon is gone);
 tapping the clock is the only way in, judged enough of a gate for
 per-device display settings given this app's threat model (a trusted,
