@@ -333,7 +333,14 @@
     }
 
     function wrapStep(key, dir) {
-      if (key === 'yyyy') { state.yyyy = Math.max(1970, Math.min(2999, state.yyyy + dir)); }
+      if (key === 'yyyy') {
+        state.yyyy = Math.max(1970, Math.min(2999, state.yyyy + dir));
+        // Stepping off a leap year's Feb 29 needs the same re-clamp the
+        // typed-input handlers below already do for 'yyyy' - otherwise the
+        // stepper buttons alone could leave state.dd on a day that no
+        // longer exists in the new year (e.g. Feb 29 -> a non-leap year).
+        clampDay();
+      }
       else if (key === 'dd') {
         const span = daysInMonth(state.yyyy, state.mo);
         state.dd = ((state.dd - 1 + dir + span) % span + span) % span + 1;
