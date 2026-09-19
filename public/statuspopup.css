@@ -83,12 +83,21 @@
 .phone-line { font-size: 1.05rem; }
 .person-header-current { font-size: 0.95rem; margin-top: 1vh; color: var(--text-dim); }
 
+/* 3 columns instead of 2 - with up to 16 secondary statuses (see
+   admin.html's own "max 16" note) plus IN/UTE, 2 columns could run
+   longer than this popup's max-height and need an internal scroll that
+   had no visual hint it was there (looked like the list was just cut
+   off). Three columns keeps every status on screen at once without
+   scrolling - this app already treats "tap a status" and "fill in its
+   time/date/note" as two separate screens (see .sp-screen), so nothing
+   here actually needs to scroll. overflow-y stays on as a safety net
+   only, not the primary way this is meant to be used. */
 .status-grid {
   width: 100%;
   max-width: 480px;
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: calc(1.1 * var(--gap-unit)) min(1vw, 6px);
+  grid-template-columns: repeat(3, 1fr);
+  gap: calc(0.9 * var(--gap-unit)) min(1vw, 6px);
   margin-bottom: 1vh;
   overflow-y: auto;
 }
@@ -96,15 +105,28 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: calc(1.6 * var(--gap-unit)) min(3vw, 19px);
+  padding: calc(0.8 * var(--gap-unit)) min(1.2vw, 8px);
   border-radius: 12px;
   background: var(--panel-2);
   border: 1px solid var(--border);
-  font-size: 1.15rem;
+  font-size: 0.95rem;
   font-weight: 600;
   color: var(--text);
   text-align: center;
-  min-height: 3.2em;
+  line-height: 1.15;
+  min-height: 2.6em;
+  /* Grid items default to min-width: auto, which floors a column at its
+     widest UNBREAKABLE word - some status labels are a single long word
+     with no space to wrap at ("Tjänsteresa", "Föräldraledig"), so at 3
+     columns on a narrow screen that floor could exceed the column's own
+     share of the card's width and push the whole popup wider than the
+     screen. min-width: 0 lets the column shrink below that, and
+     word-break lets a too-long single word break mid-word instead of
+     forcing the overflow - same trade either way (a long word wraps
+     that wouldn't at 2 columns), just contained instead of clipped. */
+  min-width: 0;
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 .status-btn:active { filter: brightness(1.12); }
 .status-btn.primary-in { border-color: var(--green); grid-column: 1 / -1; }
