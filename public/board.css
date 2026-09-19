@@ -180,11 +180,23 @@ body { display: flex; flex-direction: column; }
   container-type: inline-size;
 }
 
+/* One value, not calc(vh) calc(vw) - the same orientation problem
+   .board's own outer padding had (see its comment): a plain vh top/bottom
+   next to a plain vw left/right doesn't just balloon between
+   orientations, it also makes the FOUR SIDES OF ONE CARD uneven with
+   each other, since vh and vw are rarely equal to begin with - top/bottom
+   noticeably tighter than left/right on a landscape screen (vh < vw
+   there), and the reverse in portrait. --gap-unit (min(1vw, 1vh), see
+   .board's own definition of it) is already exactly "one distance that
+   reads the same regardless of which of vw/vh happens to be bigger" -
+   using it for every side here, as a single value rather than a
+   vertical/horizontal pair, is what actually makes all four sides of the
+   card match. */
 .dept {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: calc(1.3vh * var(--scale)) calc(1.3vw * var(--scale));
+  padding: calc(1.3 * var(--gap-unit) * var(--scale));
   min-width: 0;
 }
 
