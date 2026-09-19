@@ -656,6 +656,11 @@
   let activePopupIdle = null;
   function openPopupChrome(modalEl, onClose) {
     closePopupChrome();
+    // modalEl is a fixed, reused DOM node (the add/edit/status modal, or
+    // the login gate), not recreated per open - so without this, every
+    // open() stacks another close button on top of whichever one(s) a
+    // previous open() already appended and never cleaned up.
+    modalEl.querySelectorAll(':scope > .popup-close').forEach((btn) => btn.remove());
     modalEl.appendChild(window.createPopupCloseButton(onClose));
     activePopupIdle = window.watchPopupIdle(modalEl, () => modalEl.closest('.modal-backdrop').style.display !== 'none', onClose);
   }
