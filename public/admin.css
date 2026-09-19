@@ -228,11 +228,37 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
   position: relative;
   background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
-  padding: calc(3 * var(--gap-unit)) min(3vw, 14px); width: min(460px, 90vw); max-height: 90vh; overflow-y: auto;
-  display: flex; flex-direction: column; gap: 1.2vh;
+  /* Wide enough to pair short fields two-to-a-row (see .field-row below) -
+     a form this size stacked in a single 460px-wide column ran taller
+     than a 90vh modal could show on an ordinary screen even at max-height,
+     forcing a scrollbar for no real reason. Widening it so related short
+     fields sit side by side fixes that at the source, rather than just
+     raising max-height and hoping a given screen is tall enough - the
+     slightly tighter padding/gap below and the raised max-height are only
+     a second line of defense on top of that, for the longer add/edit
+     person form specifically. */
+  padding: calc(2.4 * var(--gap-unit)) min(3vw, 14px); width: min(640px, 92vw); max-height: 94vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 1vh;
 }
 .modal h2 { font-size: var(--fs-lg); }
+/* Every other direct child here (label, div) has no margin of its own, so
+   the flex `gap` above is the ONLY space between them - but a bare <p>
+   (the hint text under "Aktiv", #modalError/#statusModalError) still
+   carries the browser's default ~1em top+bottom margin, which used to
+   stack on top of that gap and left a visibly bigger space around each
+   <p> than anywhere else in the form (most noticeably the empty,
+   min-height-only #modalError right before the buttons). Zeroing it out
+   here makes every child's spacing come from the one gap value, so it
+   reads as one consistent rhythm top to bottom. */
+.modal p { margin: 0; }
 .modal label { display: flex; flex-direction: column; gap: 0.4vh; font-size: var(--fs-base); color: var(--text-dim); }
+/* Two related short fields side by side instead of each on its own full-
+   width row (Namn/Avdelning, Roll/Telefonnummer) - the biggest single
+   contributor to the add/edit modal's old height, since 460px is plenty
+   wide for two of these at once. min-width:0 lets a label shrink below
+   its input's natural width instead of overflowing the row. */
+.field-row { display: flex; gap: min(2vw, 14px); }
+.field-row > label { flex: 1; min-width: 0; }
 .modal input[type=text], .modal input[type=password], .modal input[type=tel] {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
   padding: calc(1 * var(--gap-unit)) min(1vw, 5px); color: var(--text); font-size: var(--fs-md);
@@ -246,7 +272,12 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
    visually unbalanced gap on the left side of these centered dialogs
    (unlike a full-width page form, where trailing right-aligned actions
    are the normal convention). */
-.modal-actions { display: flex; justify-content: center; gap: min(0.8vw, 4px); margin-top: 1vh; }
+/* No extra margin-top here - the parent .modal's own flex `gap` (plus the
+   preceding #modalError/#statusModalError's reserved min-height, even
+   empty) already puts consistent space above this row; stacking a margin
+   on top of that gap was leaving a visibly bigger gap here than between
+   any other two fields in the form. */
+.modal-actions { display: flex; justify-content: center; gap: min(0.8vw, 4px); }
 .ghost-btn.danger { color: var(--red); border-color: var(--red); }
 .ghost-btn.small { font-size: var(--fs-xs); padding: 0.4em 1em; }
 
@@ -312,47 +343,32 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
 }
 
 .field-label { font-size: var(--fs-base); color: var(--text-dim); margin-top: 0.4vh; }
-/* flex-wrap: the preview (fixed-size) plus the actions column (the native
-   file-input button can't shrink much) are too wide side-by-side on a
-   narrow phone-portrait screen - wrapping stacks the preview above the
-   actions instead of forcing the row (and the whole tab) wider than the
-   screen. Harmless anywhere both already fit side by side. */
+/* flex-wrap: the preview (fixed-size) plus the actions column are too wide
+   side-by-side on a narrow phone-portrait screen - wrapping stacks the
+   preview above the actions instead of forcing the row (and the whole
+   tab) wider than the screen. Harmless anywhere both already fit side by
+   side. */
 .photo-row { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 1em; }
 .avatar-preview { flex: none; }
-.photo-row-actions { display: flex; flex-direction: column; gap: 0.5em; align-items: flex-start; }
+/* Row, not column: both buttons are compact pills now (see .file-btn
+   below), so side by side they're still shorter than the avatar preview
+   next to them - stacking them vertically (the old layout, back when one
+   of them was a wide native file input that couldn't shrink) just added
+   unused height to every photo/background picker for no reason. */
+.photo-row-actions { display: flex; flex-direction: row; flex-wrap: wrap; gap: 0.6em; align-items: center; }
 
 /* A plain native <input type=file> renders as a stark, browser-chrome
-   "Choose File" button that matches nothing else on the page (and looks
-   especially jarring on the dark theme). ::file-selector-button is the
-   standard hook for restyling just that inner button - shaped and colored
-   like every other .ghost-btn on this page, so this reads as "another
-   button in this app" instead of an unstyled OS control. Applies
-   everywhere a file input shows up (both the person-photo picker in the
-   add/edit modal and the background-picture picker on Utseende), so both
-   already look the same rather than needing two separate rules. */
-input[type=file] {
-  color: var(--text-dim);
-  font-size: var(--fs-xs);
-  max-width: 100%;
-}
-input[type=file]::file-selector-button {
-  background: transparent;
-  color: var(--text-dim);
-  font-size: var(--fs-xs);
-  padding: 0.7em 1.4em;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  margin-right: 0.8em;
-  cursor: pointer;
-}
-input[type=file]::file-selector-button:hover { border-color: var(--accent); color: var(--text); }
-/* Wide enough for the pill-shaped ::file-selector-button above plus the
-   browser's own "No file chosen"/filename label text next to it without
-   the label getting clipped (Chromium truncates it mid-string, not with
-   a trailing ellipsis, if the input is too narrow for both - confirmed
-   by testing after the button above grew from a bare native button to a
-   padded pill). */
-.photo-row-actions input[type=file] { max-width: 280px; }
+   "Choose File"/"No file chosen" control - not just visually unstyled but
+   in whatever language the BROWSER (not this Swedish-language app) is
+   set to, which read as English on plenty of setups. The input itself is
+   visually hidden (.sr-only, in admin.html) but stays focusable/clickable
+   via its <label for>, which is styled to look and read like every other
+   .ghost-btn on this page instead - a real Swedish label under this
+   app's own control, and one less browser-chrome control breaking the
+   page's look. The selected file's preview (avatar/background swatch)
+   already shows what got picked, so there's no separate filename text to
+   replace. */
+.file-btn { cursor: pointer; display: inline-flex; align-items: center; }
 
 /* A labeled group of related settings - the Tema picker, the background
    picture picker, Popup-fönster, Systemklocka - each in its own bordered

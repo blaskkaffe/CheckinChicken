@@ -115,8 +115,8 @@
             <div class="photo-row">
               <div class="bg-preview" id="bgPreview"></div>
               <div class="photo-row-actions">
-                <label for="bgInput" class="sr-only">Välj bakgrundsbild</label>
-                <input id="bgInput" type="file" accept="image/*" />
+                <label for="bgInput" class="ghost-btn small file-btn">Välj bild</label>
+                <input id="bgInput" type="file" accept="image/*" class="sr-only" />
                 <button type="button" class="ghost-btn small" id="bgRemove">Ta bort bakgrundsbild</button>
               </div>
             </div>
@@ -167,16 +167,20 @@
         <div class="photo-row">
           <div class="avatar-preview" id="fPhotoPreview"></div>
           <div class="photo-row-actions">
-            <label for="fPhotoInput" class="sr-only">Välj fotofil</label>
-            <input id="fPhotoInput" type="file" accept="image/*" />
+            <label for="fPhotoInput" class="ghost-btn small file-btn">Välj foto</label>
+            <input id="fPhotoInput" type="file" accept="image/*" class="sr-only" />
             <button type="button" class="ghost-btn small" id="fPhotoRemove">Ta bort foto</button>
           </div>
         </div>
-        <label>Namn<input id="fName" type="text" /></label>
-        <label>Avdelning<input id="fDept" type="text" list="deptList" /></label>
-        <datalist id="deptList"></datalist>
-        <label>Roll<input id="fRole" type="text" /></label>
-        <label>Telefonnummer (valfritt)<input id="fPhone" type="tel" /></label>
+        <div class="field-row">
+          <label>Namn<input id="fName" type="text" /></label>
+          <label>Avdelning<input id="fDept" type="text" list="deptList" /></label>
+          <datalist id="deptList"></datalist>
+        </div>
+        <div class="field-row">
+          <label>Roll<input id="fRole" type="text" /></label>
+          <label>Telefonnummer (valfritt)<input id="fPhone" type="tel" /></label>
+        </div>
         <label class="checkbox-label"><input id="fActive" type="checkbox" checked /> Aktiv</label>
         <p class="dim small">Kryssa ur "Aktiv" och spara för att inaktivera - personen slutar visas på tavlan och kan inte längre checka in, men finns kvar i listan så du kan aktivera igen senare.</p>
         <label>Område (valfritt)<input id="fLocation" type="text" list="locationList" placeholder="t.ex. Område A" /></label>
