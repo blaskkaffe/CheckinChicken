@@ -12,7 +12,7 @@ screens and buildings connect to the same server.
 
 | Board | Status popup | Admin roster |
 |---|---|---|
-| ![Board view, grouped by building and department](docs/screenshots/board.png) | ![Status popup with all status options](docs/screenshots/status-popup.png) | ![Admin roster editor](docs/screenshots/admin-roster.png) |
+| ![Board view with a 70-person roster across three buildings, mixed IN/OUT and status pellets](docs/screenshots/board.png) | ![Status popup with all status options](docs/screenshots/status-popup.png) | ![Admin roster editor showing a large roster](docs/screenshots/admin-roster.png) |
 
 ## Requirements
 
