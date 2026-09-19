@@ -221,6 +221,21 @@ html, body {
   user-select: none;
   overflow: hidden;
   height: 100%;
+  /* Same "whichever of vw/vh is smaller, so it reads as the same
+     physical distance regardless of orientation" fix as board.css's own
+     --gap-unit (see its comment there) - defined here too, on the one
+     element every page that loads this shared stylesheet has in common,
+     specifically so shared, page-independent pieces like
+     .onscreen-keyboard below (appended straight to <body> by
+     keyboard.js, so it's a plain child of body on whichever page it's
+     used - not necessarily a descendant of that page's own more
+     specific wrapper, e.g. admin.css's .admin) always have it available
+     no matter which page they're attached to. board.css/admin.css each
+     also still define their own copy of the same value on a more
+     specific wrapper (body and .admin respectively) for their own
+     page-specific rules - harmless duplication, not a conflict, since
+     it's the exact same expression either way. */
+  --gap-unit: min(1vw, 1vh);
 }
 
 /* ------------------------------------------------------- background layer -
@@ -484,7 +499,10 @@ button {
   z-index: 500;
   background: var(--panel);
   border-top: 1px solid var(--border);
-  padding: 0.8vh 1vw calc(0.8vh + env(safe-area-inset-bottom, 0px)) 1vw;
+  /* Top/bottom padding uses --gap-unit (see html/body's own comment)
+     instead of a bare vh, same fix as everywhere else in the app -
+     left/right stays plain vw, same precedent. */
+  padding: calc(0.8 * var(--gap-unit)) 1vw calc(0.8 * var(--gap-unit) + env(safe-area-inset-bottom, 0px)) 1vw;
   box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.3);
 }
 /* Every row (including the space/Klar row) shares one max-width and is
