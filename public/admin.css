@@ -1,6 +1,19 @@
 html, body { height: 100%; overflow-y: auto; }
 
 .admin {
+  /* Same fix as board.css's --gap-unit (defined on body there, since
+     .hdr and .board are siblings needing to share it - see its own
+     comment): min(1vw, 1vh) is whichever of the two is smaller, so it
+     reads as the same physical distance regardless of orientation,
+     unlike a bare vh or vw value on its own (vh balloons in portrait,
+     vw balloons in landscape). Defined here on .admin, the one wrapper
+     every part of this page is a descendant of, and used below for
+     every top/bottom padding/gap that used to be a bare vh - this page
+     has several (the table cells, this rule's own padding, the settings
+     cards, the clock-stepper card). Left/right stays plain vw on
+     purpose throughout, same precedent as board.css - widening on a
+     landscape screen's extra horizontal room is fine, deliberate. */
+  --gap-unit: min(1vw, 1vh);
   /* Capped like the modal below (min(Npx, Nvw)) rather than a bare fixed
      1000px - a little extra breathing room on a wide screen so the
      roster/status tables have room to keep names/buildings on one line
@@ -8,7 +21,7 @@ html, body { height: 100%; overflow-y: auto; }
      still gets the full width it needs. */
   max-width: min(1180px, 96vw);
   margin: 0 auto;
-  padding: 3vh 3vw;
+  padding: calc(3 * var(--gap-unit)) 3vw;
 
   /* A small type scale, each step a vh-driven value with a readable
      floor and a sane ceiling (clamp: min, preferred, max) - the same
@@ -144,7 +157,7 @@ table.status-roster td:first-child { width: 1%; }
 table.roster { width: 100%; border-collapse: collapse; margin-top: 1.5vh; }
 table.roster th, table.roster td {
   text-align: left;
-  padding: 1.2vh 0.9vw;
+  padding: calc(1.2 * var(--gap-unit)) 0.9vw;
   border-bottom: 1px solid var(--border);
   font-size: var(--fs-base);
   /* Readable line spacing for a cell that wraps to two lines (a long
@@ -345,13 +358,13 @@ input[type=file]::file-selector-button:hover { border-color: var(--accent); colo
    fit within a normal window's height on anything but a narrow/portrait
    screen, where they fall back to stacking (flex-wrap) same as before. */
 .settings-card-row {
-  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 2vh 2vw; margin-top: 2vh;
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: calc(2 * var(--gap-unit)) 2vw; margin-top: 2vh;
 }
 .settings-card {
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 2.2vh 2.2vw;
+  padding: calc(2.2 * var(--gap-unit)) 2.2vw;
   flex: 1 1 380px;
   min-width: 0;
 }
@@ -424,7 +437,7 @@ input[type=file]::file-selector-button:hover { border-color: var(--accent); colo
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 1.3vh 1.2vw;
+  padding: calc(1.3 * var(--gap-unit)) 1.2vw;
 }
 .clock-field-label {
   font-size: var(--fs-xs);
