@@ -243,6 +243,17 @@ body { display: flex; flex-direction: column; }
      dept-name's 6.6cqw (see .board's --cap comment) - the avatar keeps
      the same size relationship to the rest of the card either way. */
   --avatar-size: min(calc(9.5cqw * var(--scale)), calc(var(--cap) * 1.439));
+  /* Shared floor for .badge's and .pellet's own min-width below, so
+     neither pill can ever render narrower than the other. Expressed as a
+     straight multiple of --avatar-size rather than its own cqw/cap
+     formula: every capped rule in this file uses the same ratio-to-cap
+     pattern (coefficient/6.6), which means any two of them stay
+     proportional to each other at every scale, cqw-driven or cap-driven
+     alike - so "1.815 × avatar-size" reproduces exactly what the badge's
+     own width already was (it used to be a bare 6.2ch, measured via
+     Playwright at 1.815-1.816× its height across landscape, portrait and
+     narrow layouts) without needing its own separate formula. */
+  --pill-min-width: calc(var(--avatar-size) * 1.815);
   padding: calc(0.45vh * var(--scale)) calc(0.7vw * var(--scale));
   border-radius: 8px;
   border-left: calc(0.35vw * var(--scale)) solid transparent;
@@ -327,9 +338,12 @@ body { display: flex; flex-direction: column; }
 .person-row.out .person-name { font-weight: 400; }
 
 /* .badge (INNE/UTE) and .pellet (colored secondary status) share the same
-   height and a fixed minimum width in "ch" (character) units, so both
-   read as the same visual size on the board regardless of which word is
-   longer - "INNE" and "UTE" land on identical-sized pills.
+   height and the same minimum width (`--pill-min-width`, set on
+   .person-row - see its own comment), so both read as the same visual
+   size on the board regardless of which word is longer - "INNE" and
+   "UTE" land on identical-sized pills, and a short pellet like "FYS"
+   is never narrower (and so never harder to read at a glance) than the
+   badge sitting right next to it.
 
    Height is `var(--avatar-size)` - the SAME custom property the profile
    photo's own diameter uses (see .person-row/.avatar-sm) - rather than
@@ -361,7 +375,7 @@ body { display: flex; flex-direction: column; }
   align-items: center;
   justify-content: center;
   height: var(--avatar-size);
-  min-width: 6.2ch;
+  min-width: var(--pill-min-width);
   gap: 0.3em;
   font-size: min(calc(5cqw * var(--scale)), calc(var(--cap) * 0.758));
   font-weight: 800;
@@ -429,18 +443,28 @@ body { display: flex; flex-direction: column; }
    landscape (or vice versa, depending on the board's own layout) instead
    of always matching. Sharing the one variable both already share for
    width-scaling purposes makes the mismatch impossible instead of
-   coincidental. Only horizontal padding remains, still capped the same
-   proportional way (0.273 = 1.8/6.6, against the dept-name's reference
-   6.6cqw - see .board's --cap comment) so the pellet's width still scales
-   with its own text at every board size. */
+   coincidental.
+
+   min-width is that same sharing trick applied to width: `--pill-min-width`
+   (set on .person-row, see its own comment) is what .badge's own minimum
+   width already reduces to, so a short pellet like "FYS" now has the
+   exact same floor the badge does - it can't render any narrower, or any
+   harder to read, no matter how short its label is.
+
+   Horizontal padding is a bit more generous than the badge's own (0.348 =
+   2.3/6.6, up from 0.273 = 1.8/6.6) - still capped the same proportional
+   way, against the dept-name's reference 6.6cqw (see .board's --cap
+   comment), so it keeps scaling with the pellet's own text at every board
+   size, just with a little more breathing room around it than before. */
 .pellet {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: var(--avatar-size);
+  min-width: var(--pill-min-width);
   gap: 0.3em;
   font-size: min(calc(4.2cqw * var(--scale)), calc(var(--cap) * 0.636));
-  padding: 0 min(calc(1.8cqw * var(--scale)), calc(var(--cap) * 0.273));
+  padding: 0 min(calc(2.3cqw * var(--scale)), calc(var(--cap) * 0.348));
   border-radius: 999px;
   color: #0b0e16;
   font-weight: 700;
