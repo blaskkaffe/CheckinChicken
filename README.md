@@ -1,8 +1,18 @@
+<p align="center">
+  <img src="docs/logo.jpg" alt="CheckinChicken logo" width="200">
+</p>
+
 # CheckinChicken
 
 Offline, LAN-only check-in board. One Node.js server, no external
 dependencies, no database, no internet access required. Any number of
 screens and buildings connect to the same server.
+
+## Screenshots
+
+| Board | Status popup | Admin roster |
+|---|---|---|
+| ![Board view, grouped by building and department](docs/screenshots/board.png) | ![Status popup with all status options](docs/screenshots/status-popup.png) | ![Admin roster editor](docs/screenshots/admin-roster.png) |
 
 ## Requirements
 
