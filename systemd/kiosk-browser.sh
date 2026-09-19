@@ -19,15 +19,17 @@
 #   ./kiosk-browser.sh 192.168.1.20:8080 off   # this device: display only
 #   ./kiosk-browser.sh 192.168.1.20:8080 on    # this device: always touchable
 #
-# Optional third argument: pin this device to always show one specific
-# coop, regardless of what's remembered locally in the browser (see
-# README's "Multiple coops") - handy for a wall-mounted
-# screen you always want showing e.g. just "Område A". Leave it out to
-# let the board's own on-page coop picker decide, as normal. Spell it
-# EXACTLY as it appears on the admin page - stick to letters, numbers,
-# spaces and hyphens (this gets used as-is in a URL, so avoid characters
-# like & or # that mean something there).
+# Optional third argument: pin this device to always show one or a few
+# specific coops together, regardless of what's remembered locally in the
+# browser (see README's "Multiple coops") - handy for a wall-mounted
+# screen you always want showing e.g. just "Område A", or two coops at
+# once (comma-separated, no space after the comma: "Område A,Område B").
+# Leave it out to let the board's own on-page coop picker decide, as
+# normal. Spell each one EXACTLY as it appears on the admin page - stick
+# to letters, numbers, spaces and hyphens (this gets used as-is in a URL,
+# so avoid characters like & or # that mean something there).
 #   ./kiosk-browser.sh 192.168.1.20:8080 off "Område A"
+#   ./kiosk-browser.sh 192.168.1.20:8080 off "Område A,Område B"
 #
 # Optional fourth argument: give this device its own header title instead
 # of the server's shared locationName (see README's "Screen settings") -

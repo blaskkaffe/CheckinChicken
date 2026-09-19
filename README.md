@@ -146,7 +146,8 @@ Same URL for every screen, in every coop. For an unattended kiosk
 
 - `?input=off` / `?input=on` — force this one screen non-touch / touch,
   overriding `config.json`'s `boardClickToEdit`.
-- `?location=<coop name>` — pin this screen to one coop (see
+- `?location=<coop name>` (or `?location=<name1>,<name2>` for more than
+  one) — pin this screen to one or a few coops (see
   [Multiple coops](#multiple-coops)).
 - `?title=<text>` — give this one screen its own header title instead of
   the server's `locationName` (see [Screen settings](#screen-settings)).
@@ -216,16 +217,23 @@ screen-settings popup.
   from the admin page or CSV import. Blank = no coop.
 - **Sort order**: coop → department → role → name, on both the board
   and the admin roster table.
-- **Board filter**: "Alla områden" (all) or one coop, picked from
+- **Board filter**: "Alla områden" (all), or any number of individual
+  coops toggled on together — each one is its own independent pill in
   the board's screen-settings popup (tap the clock — see
-  [Screen settings](#screen-settings)). Persisted per-device in
-  `localStorage` (`checkin:locationFilter`). Hidden there if fewer than 2
-  coops are in use. Overridable with `?location=<name>` in the URL
-  (also saves to that device).
+  [Screen settings](#screen-settings)), so a screen can show e.g. two
+  specific coops side by side without showing every other one too.
+  "Alla områden" is a separate toggle, not just "everything else
+  deselected": tapping it clears any individual picks outright, and (unlike
+  manually selecting every coop that exists today) automatically also
+  covers any coop added later. Persisted per-device in `localStorage`
+  (`checkin:locationFilter`, comma-separated). Hidden there if fewer than
+  2 coops are in use. Overridable with `?location=<name>` — or
+  `?location=<name1>,<name2>` for more than one — in the URL (also saves
+  to that device).
 - **`restrictToLocation`** checkbox (admin page, per person, labeled
   "Visa bara i sitt eget område"): when set, this person is shown only
-  when their own coop is the selected filter — hidden from every other
-  coop's view and from "Alla områden". Unset (default): shown
+  when their own coop is one of the selected coops — hidden from every
+  other coop's view and from "Alla områden". Unset (default): shown
   everywhere, grouped under their coop.
 
 ### Statuses (admin "Statusar" tab)

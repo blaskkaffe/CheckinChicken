@@ -4,11 +4,13 @@
   let people = new Map(); // id -> person
   let cfg = {};
   let boardClickToEdit = true;
-  // '' = "Alla områden" (all coops, no filter); otherwise an exact
-  // match against a person's `location` field. See loadLocationFilter()
-  // below and window.BoardSettings (read/written by the board-settings
-  // popup - boardsettings.js).
-  let locationFilter = '';
+  // Empty Set = "Alla områden" (all coops, no filter); otherwise the
+  // exact `location` values currently selected - any number of them, not
+  // just one, so a screen can show e.g. two specific coops together
+  // without showing every other one too. See loadLocationFilter() below
+  // and window.BoardSettings (read/written by the board-settings popup -
+  // boardsettings.js).
+  let locationFilter = new Set();
 
   const boardEl = document.getElementById('board');
   const connPill = document.getElementById('connPill');
@@ -123,30 +125,43 @@
   }
 
   // --------------------------------------------------- coop filter ---
-  // Which coop this ONE screen shows - "" (Alla områden) by default,
-  // or one exact `location` value to show just that coop. This is a
-  // per-DEVICE choice, not a server setting: it's remembered locally (so a
-  // kiosk tab keeps showing what it was last set to across reloads) and
-  // can be overridden for one tab via ?location=<name> in the URL (handy
-  // for a wall-mounted screen you always want pinned to one coop - see
-  // README's "Multiple coops").
+  // Which coop(s) this ONE screen shows - empty Set (Alla områden) by
+  // default, or any number of exact `location` values to show just those
+  // coops together. This is a per-DEVICE choice, not a server setting:
+  // it's remembered locally (so a kiosk tab keeps showing what it was
+  // last set to across reloads) and can be overridden for one tab via
+  // ?location=<name> (or ?location=<name1>,<name2> for more than one) in
+  // the URL (handy for a wall-mounted screen you always want pinned to
+  // one or a few coops - see README's "Multiple coops").
   const LOCATION_FILTER_KEY = 'checkin:locationFilter';
+
+  // Both the URL param and the localStorage value use the same plain
+  // comma-separated format, so an old single-location value (no comma)
+  // from before multi-select still parses as a one-item set with no
+  // migration needed.
+  function parseLocationFilter(raw) {
+    return new Set(raw.split(',').map((s) => s.trim()).filter(Boolean));
+  }
+
+  function formatLocationFilter(set) {
+    return [...set].join(',');
+  }
 
   function loadLocationFilter() {
     const urlLoc = new URLSearchParams(window.location.search).get('location');
     if (urlLoc !== null) {
-      locationFilter = urlLoc;
+      locationFilter = parseLocationFilter(urlLoc);
       try { localStorage.setItem(LOCATION_FILTER_KEY, urlLoc); } catch (e) { /* private-browsing etc - just not remembered */ }
       return;
     }
     try {
       const saved = localStorage.getItem(LOCATION_FILTER_KEY);
-      if (saved !== null) locationFilter = saved;
-    } catch (e) { /* ignore - defaults to "" (all coops) */ }
+      if (saved !== null) locationFilter = parseLocationFilter(saved);
+    } catch (e) { /* ignore - defaults to empty (all coops) */ }
   }
 
   function saveLocationFilter() {
-    try { localStorage.setItem(LOCATION_FILTER_KEY, locationFilter); } catch (e) { /* ignore */ }
+    try { localStorage.setItem(LOCATION_FILTER_KEY, formatLocationFilter(locationFilter)); } catch (e) { /* ignore */ }
   }
 
   // Distinct, non-blank `location` values currently among ACTIVE people,
@@ -163,17 +178,24 @@
     return [...set].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
   }
 
-  // If a previously-picked coop no longer exists (renamed/removed),
-  // fall back to "all" rather than silently filtering everyone out. Used
-  // to live inside the header dropdown's own render function; now that the
-  // picker itself lives in the board-settings popup (boardsettings.js -
-  // see window.BoardSettings below), this is just plain bookkeeping run
-  // once per render() rather than DOM upkeep.
+  // Drop any previously-picked coop that no longer exists (renamed/
+  // removed) rather than silently filtering everyone out against a name
+  // nothing matches any more. Pruning individual entries (rather than
+  // resetting the whole selection to "all" the moment ANY one of them
+  // goes stale, like the old single-select version did) keeps the rest
+  // of a multi-coop selection intact. Used to live inside the header
+  // dropdown's own render function; now that the picker itself lives in
+  // the board-settings popup (boardsettings.js - see window.BoardSettings
+  // below), this is just plain bookkeeping run once per render() rather
+  // than DOM upkeep.
   function ensureValidLocationFilter() {
-    if (locationFilter && !allLocations().includes(locationFilter)) {
-      locationFilter = '';
-      saveLocationFilter();
+    if (locationFilter.size === 0) return;
+    const valid = new Set(allLocations());
+    let changed = false;
+    for (const loc of locationFilter) {
+      if (!valid.has(loc)) { locationFilter.delete(loc); changed = true; }
     }
+    if (changed) saveLocationFilter();
   }
 
   // --------------------------------------------------- screen title ---
@@ -259,9 +281,16 @@
   // statuspopup.js.
   window.BoardSettings = {
     getLocations: allLocations,
-    getFilter: () => locationFilter,
-    setFilter(loc) {
-      locationFilter = loc;
+    isFilterAll: () => locationFilter.size === 0,
+    isFilterSelected: (loc) => locationFilter.has(loc),
+    toggleFilter(loc) {
+      if (locationFilter.has(loc)) locationFilter.delete(loc);
+      else locationFilter.add(loc);
+      saveLocationFilter();
+      render();
+    },
+    setFilterAll() {
+      locationFilter.clear();
       saveLocationFilter();
       render();
     },
@@ -504,20 +533,23 @@
   }
 
   // Whether `p` shows up on THIS screen, given the current coop filter
-  // (locationFilter - "" means "Alla områden"/no filter):
+  // (locationFilter - an empty Set means "Alla områden"/no filter,
+  // otherwise any number of selected coops):
   //  - Normally (restrictToLocation off, the default): shown whenever the
-  //    filter is "all", or matches their own `location`.
+  //    filter is "all", or their own `location` is one of the selected
+  //    coops.
   //  - restrictToLocation on (the admin page's "Visa bara i sitt eget
-  //    område" checkbox): shown ONLY when the filter is their own exact
-  //    coop - never under "Alla områden", never under a different
-  //    coop's filter. This is for someone who'd otherwise just be
+  //    område" checkbox): shown ONLY when their own exact coop is
+  //    selected - never under "Alla områden", never under a filter that
+  //    doesn't include it. This is for someone who'd otherwise just be
   //    noise on the combined view (e.g. a warehouse-only role) - they
   //    still show normally on their own coop's screens.
   function visible(p) {
     if (p.active === false) return false;
     const loc = (p.location || '').trim();
-    if (p.restrictToLocation) return !!loc && loc === locationFilter;
-    return !locationFilter || loc === locationFilter;
+    const isAll = locationFilter.size === 0;
+    if (p.restrictToLocation) return !!loc && !isAll && locationFilter.has(loc);
+    return isAll || locationFilter.has(loc);
   }
 
   function render() {
@@ -531,12 +563,14 @@
     }
 
     // Show a small "which coop" label on each card, above the
-    // department name, only when it actually adds information: several
-    // coops are in play AND this view spans more than one of them
-    // (i.e. "Alla områden" is selected). Filtered to one specific
-    // coop, every card would show that exact same label - pure noise,
-    // so it's left off, same as today's single-coop look.
-    const showLocationLabels = !locationFilter && allLocations().length > 1;
+    // department name, only when it actually adds information: this view
+    // spans more than one coop, whether that's "Alla områden" (every
+    // coop in use) or a multi-coop selection. Filtered down to a single
+    // coop, every card would show that exact same label - pure noise, so
+    // it's left off, same as today's single-coop look.
+    const isAllCoops = locationFilter.size === 0;
+    const shownCoopCount = isAllCoops ? allLocations().length : locationFilter.size;
+    const showLocationLabels = shownCoopCount > 1;
 
     // Cards are grouped by (location, department) rather than department
     // alone, so two coops that happen to share a department name (e.g.

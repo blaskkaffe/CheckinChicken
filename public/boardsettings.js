@@ -31,9 +31,16 @@
   const clockBtn = document.getElementById('clock');
 
   // ----------------------------------------------------- coop filter -
+  // Each coop pill toggles independently (any number can be selected at
+  // once, shown together - see board.js's visible()), rather than the
+  // old single-select radio-style picker. "Alla områden" is its own
+  // separate toggle, not just "nothing else selected": tapping it clears
+  // every individual selection outright (so it also covers any coop
+  // added later, unlike manually selecting all of today's coops one by
+  // one - a real difference, so this app never derives one state from
+  // the other).
   function renderLocations() {
     const locations = window.BoardSettings.getLocations();
-    const filter = window.BoardSettings.getFilter();
     // Same "nothing to pick between yet" case the old header dropdown used
     // to hide itself for - see board.js's ensureValidLocationFilter.
     if (locations.length < 2) {
@@ -41,14 +48,19 @@
       return;
     }
     $('bsLocationSection').style.display = '';
-    const items = [{ value: '', label: 'Alla områden' }, ...locations.map((l) => ({ value: l, label: l }))];
+    const isAll = window.BoardSettings.isFilterAll();
+    const items = [
+      { value: '', label: 'Alla områden', all: true, active: isAll },
+      ...locations.map((l) => ({ value: l, label: l, all: false, active: !isAll && window.BoardSettings.isFilterSelected(l) })),
+    ];
     $('bsLocations').innerHTML = items.map((it) =>
-      `<button type="button" class="bs-choice ${it.value === filter ? 'active' : ''}" data-loc="${esc(it.value)}">${esc(it.label)}</button>`
+      `<button type="button" class="bs-choice ${it.active ? 'active' : ''}" data-loc="${esc(it.value)}" data-all="${it.all ? '1' : ''}">${esc(it.label)}</button>`
     ).join('');
     $('bsLocations').querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => {
-        window.BoardSettings.setFilter(btn.dataset.loc);
-        renderLocations(); // reflect the new active choice immediately
+        if (btn.dataset.all) window.BoardSettings.setFilterAll();
+        else window.BoardSettings.toggleFilter(btn.dataset.loc);
+        renderLocations(); // reflect the new active choice(s) immediately
       });
     });
   }
