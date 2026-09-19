@@ -305,14 +305,20 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
   background: var(--accent);
   border-color: var(--accent);
 }
+/* The checkmark's own bounding box (as an unrotated rectangle, before the
+   rotate() below) isn't the same as its visible position once rotated -
+   left/top/width/height here were tuned by eye against the actual
+   rendered checkbox (not derived from the box's raw geometry) so the
+   checkmark's visual center lands on the box's actual center instead of
+   looking pushed toward the bottom-right corner. */
 .checkbox-label input[type=checkbox]:checked::after {
   content: '';
   position: absolute;
-  left: 28%; top: 20%;
-  width: 40%; height: 65%;
+  left: 26%; top: 22%;
+  width: 26%; height: 50%;
   border-right: 2px solid #06101f;
   border-bottom: 2px solid #06101f;
-  transform: rotate(40deg);
+  transform: rotate(45deg);
 }
 .checkbox-label input[type=checkbox]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -474,10 +480,19 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
   letter-spacing: 0.02em;
   color: var(--text-dim);
 }
+/* Pill-shaped (border-radius 999px) like every other button in the app
+   (.ghost-btn, .bs-choice, ...) - this used to be a barely-rounded
+   rectangle, the only button shape that didn't match. Fixed width
+   regardless of which field it belongs to (no separate
+   .clock-step.clock-field-wide override any more) - the year field's own
+   number box is wider to hold 4 digits (.clock-num.clock-field-wide
+   below), but its +/- buttons don't need to be, and letting them match
+   the number's width made every +/- button a different size depending on
+   which field it stepped. */
 .clock-step {
   width: var(--sz-reorder);
   height: calc(var(--sz-reorder) * 0.6);
-  border-radius: 8px;
+  border-radius: 999px;
   background: var(--panel-2);
   border: 1px solid var(--border);
   color: var(--text-dim);
@@ -516,7 +531,6 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
    +/number/- elements - there's no per-field wrapper any more for it to
    go on instead, see .clock-group above). */
 .clock-num.clock-field-wide { width: calc(var(--sz-reorder) * 2.3); }
-.clock-step.clock-field-wide { width: calc(var(--sz-reorder) * 2.3); }
 .clock-sep {
   grid-row: span 4;
   align-self: center;

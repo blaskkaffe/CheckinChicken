@@ -383,8 +383,12 @@
       captionEl.textContent = label;
       captionEl.setAttribute('aria-hidden', 'true');
 
+      // wideClass only goes on the number input below, not these +/-
+      // buttons - every clock-step button is the same fixed size
+      // regardless of field (see admin.css's .clock-step), so the year
+      // field's own wider number box doesn't stretch its buttons too.
       const plus = document.createElement('button');
-      plus.type = 'button'; plus.className = 'clock-step' + wideClass; plus.textContent = '+';
+      plus.type = 'button'; plus.className = 'clock-step'; plus.textContent = '+';
       plus.setAttribute('aria-label', `Öka ${label.toLowerCase()}`);
 
       const input = document.createElement('input');
@@ -392,7 +396,7 @@
       input.setAttribute('aria-label', label);
 
       const minus = document.createElement('button');
-      minus.type = 'button'; minus.className = 'clock-step' + wideClass; minus.textContent = '−';
+      minus.type = 'button'; minus.className = 'clock-step'; minus.textContent = '−';
       minus.setAttribute('aria-label', `Minska ${label.toLowerCase()}`);
 
       plus.addEventListener('click', () => { wrapStep(key, 1); syncInputs(); fire(); });

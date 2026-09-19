@@ -22,7 +22,9 @@
 
   // ------------------------------------------------------------- clock ---
   // Swedish convention: weekday and date spelled out, 24-hour time, plus
-  // the current week - e.g. "torsdag 18 september · 14:32 · V638". sv-SE
+  // the current week - e.g. "torsdag 18 september 14:32 V638", plain
+  // spaces rather than a "·" between the three parts (tried, but read as
+  // visual clutter on a wall display rather than adding clarity). sv-SE
   // already gives lowercase weekday/month names, which is correct Swedish
   // style outside the start of a sentence.
   //
@@ -79,7 +81,7 @@
     const timePart = d.toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' });
     const { week, isoYear } = isoWeekInfo(d);
     const weekPart = weekShowYear ? `V${isoYear % 10}${week}` : `V${week}`;
-    document.getElementById('clock').textContent = `${datePart} · ${timePart} · ${weekPart}`;
+    document.getElementById('clock').textContent = `${datePart}  ${timePart}  ${weekPart}`;
   }
   loadWeekShowYear();
   setInterval(fmtClock, 1000 * 15);

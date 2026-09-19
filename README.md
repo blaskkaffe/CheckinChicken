@@ -300,7 +300,7 @@ board to actually overflow.
 ### Screen settings
 
 The clock itself (top-right of the board) reads e.g. "torsdag 18
-september · 14:32 · V45" — weekday, date, 24-hour time, and the current
+september 14:32 V45" — weekday, date, 24-hour time, and the current
 ISO 8601 week number. By default this is just the plain week number; it
 does **not** include the ISO week-numbering year by default (unlike the
 `Vecka` status kind's stored detail text, e.g. `V645`, which always does —
