@@ -237,14 +237,11 @@ body { display: flex; flex-direction: column; }
    own line underneath, indented to line up under the name. A name is
    never sacrificed to make room for a tag. */
 .person-row {
-  /* Shared by .avatar-sm and .person-row-tag below (both descendants of
-     this row, so the custom property inherits into both) - the avatar's
-     own capped size, computed once here rather than separately in each
-     place, so the tag's indent always lines up under the name exactly
-     regardless of whether the cqw size or the cap is what's currently in
-     effect. 1.439 is 9.5cqw's own ratio to the dept-name's 6.6cqw (see
-     .board's --cap comment) - the avatar keeps the same size relationship
-     to the rest of the card either way. */
+  /* Shared by .avatar-sm below (a descendant of this row, so the custom
+     property inherits into it) - the avatar's own capped size, computed
+     once here rather than separately. 1.439 is 9.5cqw's own ratio to the
+     dept-name's 6.6cqw (see .board's --cap comment) - the avatar keeps
+     the same size relationship to the rest of the card either way. */
   --avatar-size: min(calc(9.5cqw * var(--scale)), calc(var(--cap) * 1.439));
   padding: calc(0.45vh * var(--scale)) calc(0.7vw * var(--scale));
   border-radius: 8px;
@@ -264,14 +261,32 @@ body { display: flex; flex-direction: column; }
   font-size: min(calc(3.6cqw * var(--scale)), calc(var(--cap) * 0.545));
 }
 
+/* avatar, name, the plupp dots, the INNE/UTE badge, and (when there's a
+   status set) the tag are all just items in this one flex-wrap row now -
+   nothing here decides where the tag goes, that falls out of ordinary
+   flex wrapping given each row's actual rendered width (see .badge's
+   margin-left:auto and .person-name's own comment below for how). A
+   short row with room to spare wraps nothing - the tag lands right after
+   the badge, on the same line. A tight row (a long name, or a narrow
+   column) wraps the tag alone onto its own line underneath, same as
+   before - the row-gap half of `gap` below is what used to be
+   .person-row-tag's own margin-top. */
 .person-row-top {
   display: flex;
   align-items: center;
-  gap: calc(1.8cqw * var(--scale));
+  flex-wrap: wrap;
+  gap: calc(0.35vh * var(--scale)) calc(1.8cqw * var(--scale));
 }
 
+/* No longer flex:1 - that used to force the name to always fill every
+   last pixel between the avatar and the badge, which is exactly what left
+   no room for a tag to ever sit inline next to the badge. Sized to its
+   own content instead (flex-grow:0), so a short name leaves real spare
+   space on the line for the badge - and the tag, wrapped or not - to use;
+   a long name still shrinks (flex-shrink:1) and ellipsizes exactly as
+   before once the row actually runs out of room. */
 .person-name {
-  flex: 1;
+  flex: 0 1 auto;
   min-width: 0;
   font-size: min(calc(6cqw * var(--scale)), calc(var(--cap) * 0.909));
   font-weight: 600;
@@ -283,10 +298,6 @@ body { display: flex; flex-direction: column; }
    here stands out at a glance even before reading the IN/OUT badge. */
 .person-row.in .person-name { font-weight: 800; }
 .person-row.out .person-name { font-weight: 400; }
-
-.person-row-tag {
-  margin: calc(0.35vh * var(--scale)) 0 0 calc(var(--avatar-size) + 1.8cqw * var(--scale));
-}
 
 /* .badge (INNE/UTE) and .tag (colored secondary status) share the same
    height and a fixed minimum width in "ch" (character) units, so both
@@ -305,6 +316,14 @@ body { display: flex; flex-direction: column; }
   border-radius: 999px;
   white-space: nowrap;
   flex: none;
+  /* Pins the badge (and, when there's room for it too, the tag right
+     after it - see .person-row-top's comment) to the right edge of
+     whichever flex LINE it ends up on: with the name no longer forcing
+     itself to fill the whole row (see .person-name), this is what still
+     keeps INNE/UTE flush right, exactly as before, on a short name with
+     no tag. auto margins only ever soak up space on their OWN line, so
+     this still works correctly whether the tag wrapped away or not. */
+  margin-left: auto;
 }
 .badge.in { background: var(--green); color: #06170e; }
 .badge.out { background: var(--badge-out-bg); color: var(--badge-out-fg); }
@@ -323,8 +342,9 @@ body { display: flex; flex-direction: column; }
 .person-row, .badge { cursor: pointer; }
 
 /* PLUPP1/PLUPP2's red dots (see board.js's PLUPP_DOTS) - sit between the
-   name and the INNE/UTE badge, alongside the normal colored tag underneath
-   rather than replacing it. */
+   name and the INNE/UTE badge, alongside the normal colored tag (inline
+   or wrapped below - see .person-row-top's comment) rather than
+   replacing it. */
 .plupp-dots {
   flex: none;
   color: var(--red);
@@ -333,6 +353,10 @@ body { display: flex; flex-direction: column; }
   line-height: 1;
 }
 
+/* flex:none (rather than the flex item default of 0 1 auto) so it never
+   tries to shrink below its own text - a tag either fits on the badge's
+   line in full, or wraps to its own line in full (see .person-row-top's
+   comment), never a half-squeezed in-between. */
 .tag {
   display: inline-flex;
   align-items: center;
@@ -343,6 +367,7 @@ body { display: flex; flex-direction: column; }
   color: #0b0e16;
   font-weight: 700;
   white-space: nowrap;
+  flex: none;
 }
 .tag .detail { font-weight: 600; opacity: 0.85; }
 

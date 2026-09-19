@@ -336,7 +336,46 @@
     return (def ? def.label : (code === 'IN' ? 'Inne' : 'Ute')).toUpperCase();
   }
 
-  function personRowHtml(p) {
+  // The single widest tag this server could ever show - the longest
+  // label, plus a representative detail string for whichever kind of
+  // detail that status takes (a time, a date/week, or a note), among all
+  // currently configured secondary statuses. Used only to stand in for
+  // "no status set" when MEASURING how much room to give each row (see
+  // personRowHtml's `forMeasurement` and renderBalancedColumns/
+  // fitToScreen below) - never actually shown. Picking the single widest
+  // one rather than, say, an average, means the measurement never
+  // UNDERESTIMATES a row's worst-case width - the real tag actually
+  // shown later (if any) is always this wide or narrower, so basing
+  // layout decisions on it is safe in the "never overflow" direction.
+  // Recomputed fresh each call (statusDefs.secondary is at most a
+  // few dozen entries - cheap) so it stays current if the admin page
+  // edits the status list.
+  function measurementTagHtml() {
+    if (!statusDefs.secondary.length) return '';
+    let best = null;
+    let bestLen = -1;
+    for (const def of statusDefs.secondary) {
+      const detailPlaceholder = def.needsTime ? '00:00'
+        : def.needsDate ? '00/00'
+        : def.needsNote ? 'Lång kommentar här'
+        : '';
+      const detail = def.detailPrefix && detailPlaceholder ? `${def.detailPrefix} ${detailPlaceholder}` : detailPlaceholder;
+      const len = def.label.length + (detail ? detail.length + 2 : 0);
+      if (len > bestLen) { bestLen = len; best = { def, detail }; }
+    }
+    const { def, detail } = best;
+    const textColor = readableTextOn(def.color);
+    return `<span class="tag" style="background:${def.color};color:${textColor}">${esc(def.label)}${detail ? `<span class="detail">· ${esc(detail)}</span>` : ''}</span>`;
+  }
+
+  // `forMeasurement`: used only by the sizing pass (see renderBalancedColumns/
+  // fitToScreen) to stand in a representative tag for anyone who doesn't
+  // currently have a status set, so the board is sized as if every row
+  // might carry one - see measurementTagHtml's own comment for why. The
+  // actually-displayed HTML (forMeasurement left off/false) is completely
+  // unaffected - someone with no status set still shows no tag.
+  function personRowHtml(p, opts) {
+    const forMeasurement = !!(opts && opts.forMeasurement);
     const checkedIn = !!p.status?.checkedIn;
     const primaryBadge = checkedIn
       ? `<span class="badge in" style="color:${inBadgeTextColor()}">${esc(primaryLabel('IN'))}</span>`
@@ -359,19 +398,28 @@
       const detail = p.status.detail || p.status.note || '';
       const textColor = readableTextOn(statusDef.color);
       tagHtml = `<span class="tag" style="background:${statusDef.color};color:${textColor}">${esc(statusDef.label)}${detail ? `<span class="detail">· ${esc(detail)}</span>` : ''}</span>`;
+    } else if (forMeasurement) {
+      tagHtml = measurementTagHtml();
     }
 
     // The whole row - not just the small badge - tints by IN/OUT (see
     // .person-row.in / .person-row.out in board.css), so status reads at a
     // glance from across a room without having to find and read the pill.
+    //
+    // The tag is now just the LAST item in person-row-top itself, not a
+    // separate line below - board.css's flex-wrap lays it out right next
+    // to the INNE/UTE badge when there's room on that line, or wraps it
+    // down to its own line (still indented under the same row) when
+    // there isn't. No JS decides which; it falls out of ordinary flex
+    // wrapping given each row's actual rendered width.
     return `<div class="person-row ${checkedIn ? 'in' : 'out'}" data-id="${esc(p.id)}">
       <div class="person-row-top">
         ${window.avatarHtml(p, 'avatar-sm')}
         <span class="person-name">${esc(p.name)}</span>
         ${pluppHtml}
         ${primaryBadge}
+        ${tagHtml}
       </div>
-      ${tagHtml ? `<div class="person-row-tag">${tagHtml}</div>` : ''}
     </div>`;
   }
 
@@ -430,7 +478,17 @@
 
     const groupKeys = [...groups.keys()].sort((a, b) => a.localeCompare(b, 'sv'));
 
-    const groupHtml = new Map(groupKeys.map((key) => {
+    // Two parallel versions of each department card's HTML: `groupHtml`
+    // (real - only people who actually have a status set show a tag) is
+    // what actually gets displayed. `groupHtmlForMeasurement` stands a
+    // representative tag (see measurementTagHtml) in for EVERYONE who
+    // doesn't currently have one, and is used ONLY to decide how much
+    // room to give the board (see renderBalancedColumns/fitToScreen) -
+    // sizing the board as if every row might carry a status, rather than
+    // however many happen to right now, keeps the layout from swinging
+    // wildly (or leaving the board looking sparsely filled) as people's
+    // statuses come and go through the day.
+    const groupEntries = groupKeys.map((key) => {
       const { location, dept, members: raw } = groups.get(key);
       const members = raw.sort((a, b) =>
         (a.role || '').localeCompare(b.role || '', 'sv') || (a.order - b.order) || a.name.localeCompare(b.name, 'sv')
@@ -444,29 +502,27 @@
         byRole.get(role).push(m);
       }
 
-      const roleHtml = [...byRole.entries()].map(([role, members2]) => `
+      const buildRoleHtml = (forMeasurement) => [...byRole.entries()].map(([role, members2]) => `
         <div class="role-group">
           <div class="role-label">${esc(role)}</div>
-          ${members2.map(personRowHtml).join('')}
+          ${members2.map((m) => personRowHtml(m, { forMeasurement })).join('')}
         </div>
       `).join('');
 
       const locationHtml = showLocationLabels
         ? `<div class="dept-location">${esc(location || 'Ej tilldelad byggnad')}</div>`
         : '';
+      const headerHtml = `<h2><span class="dept-name">${esc(dept)}</span><span class="count">${inCount}/${members.length} inne</span></h2>`;
 
-      const html = `
-        <section class="dept">
-          ${locationHtml}
-          <h2><span class="dept-name">${esc(dept)}</span><span class="count">${inCount}/${members.length} inne</span></h2>
-          ${roleHtml}
-        </section>
-      `;
-      return [key, { html }];
-    }));
+      const html = `<section class="dept">${locationHtml}${headerHtml}${buildRoleHtml(false)}</section>`;
+      const htmlForMeasurement = `<section class="dept">${locationHtml}${headerHtml}${buildRoleHtml(true)}</section>`;
+      return [key, html, htmlForMeasurement];
+    });
+    const groupHtml = new Map(groupEntries.map(([key, html]) => [key, { html }]));
+    const groupHtmlForMeasurement = new Map(groupEntries.map(([key, , htmlForMeasurement]) => [key, { html: htmlForMeasurement }]));
 
-    renderBalancedColumns(groupKeys, groupHtml);
-    fitToScreen();
+    const best = renderBalancedColumns(groupKeys, groupHtmlForMeasurement);
+    fitToScreen(best.cols, groupHtml, groupHtmlForMeasurement);
   }
 
   // ------------------------------------------------------- balanced columns
@@ -585,6 +641,15 @@
     return lo;
   }
 
+  // `deptHtml` is only ever used here to size things (both the weights
+  // below and every candidate's trial render) - it's meant to be the
+  // MEASUREMENT map (every row assumed to carry a representative status
+  // tag - see measurementTagHtml/personRowHtml's `forMeasurement`), not
+  // the real one, so the chosen column count and scale reflect a stable
+  // "as if everyone had a status" worst case rather than however many
+  // people happen to have one set right now. The caller (render(), via
+  // fitToScreen below) is the one that actually swaps in the real HTML
+  // for display, once a `cols` arrangement has been picked here.
   function renderBalancedColumns(deptNames, deptHtml) {
     const width = boardEl.clientWidth || window.innerWidth;
     // boardEl's own height comes from the surrounding flex layout (see
@@ -621,7 +686,13 @@
       }
     }
 
-    boardEl.innerHTML = buildColumnsHtml(best.cols, deptHtml);
+    // No final real-content render here any more - fitToScreen() (below)
+    // re-measures against this same `cols` arrangement (still using the
+    // measurement map, for the same "as if everyone had a status" reason)
+    // and is the one that ends up swapping in the real HTML once it's
+    // settled on a final scale, so writing real content here would just
+    // be thrown away immediately.
+    return best;
   }
 
   // -------------------------------------------------------- fit to screen
@@ -684,8 +755,21 @@
     return max + padV;
   }
 
-  function fitToScreen() {
+  // `cols` is the column arrangement renderBalancedColumns already settled
+  // on. `measureHtml` is the same "as if everyone had a status" map it
+  // used to pick that arrangement (see its own comment) - phase 1 below
+  // reuses it so the FINAL scale is decided against that same stable,
+  // representative worst case, not however many people happen to have a
+  // status set right now. `deptHtml` is the real, actually-displayed
+  // content, swapped in for phase 2 once the scale is settled.
+  function fitToScreen(cols, deptHtml, measureHtml) {
+    // ---- phase 1: converge --scale against the MEASUREMENT content ----
     boardEl.style.setProperty('--scale', '1');
+    boardEl.innerHTML = buildColumnsHtml(cols, measureHtml);
+    // boardEl's own height comes from the surrounding flex layout, not
+    // from whatever's currently inside it (see renderBalancedColumns'
+    // comment), so measuring it once here stays valid through both
+    // phases even though the content inside gets swapped out below.
     const available = boardEl.clientHeight;
     let scale = 1;
     // One damped, converging loop that shrinks OR grows toward whatever
@@ -705,8 +789,8 @@
       scale = next;
       boardEl.style.setProperty('--scale', String(scale));
     }
-    // Final safety pass: never leave it actually overflowing, even if the
-    // loop above ran out of iterations mid-convergence.
+    // Safety pass: never leave it actually overflowing, even if the loop
+    // above ran out of iterations mid-convergence.
     for (let i = 0; i < 3; i++) {
       const needed = measureNeeded();
       if (needed <= available || scale <= MIN_SCALE) break;
@@ -722,6 +806,23 @@
     // real screen space for no reason (the two methods disagreeing was
     // also what made column-count selection unreliable - see
     // findWidthSafeScale's own comment).
+    scale = findWidthSafeScale(scale);
+
+    // ---- phase 2: swap in the REAL content at that scale ----
+    // A representative measurement tag is always at least as wide as any
+    // real one (see measurementTagHtml), so this is normally just a
+    // straight swap with nothing left to correct - but the same safety
+    // passes run again anyway, against the real content this time, so an
+    // unusually long hand-typed note (server.js allows up to 200
+    // characters) still can never leave the board actually overflowing.
+    boardEl.innerHTML = buildColumnsHtml(cols, deptHtml);
+    boardEl.style.setProperty('--scale', String(scale));
+    for (let i = 0; i < 3; i++) {
+      const needed = measureNeeded();
+      if (needed <= available || scale <= MIN_SCALE) break;
+      scale = Math.max(MIN_SCALE, scale * (available / needed) * 0.99);
+      boardEl.style.setProperty('--scale', String(scale));
+    }
     scale = findWidthSafeScale(scale);
     boardEl.style.setProperty('--scale', String(scale));
   }
