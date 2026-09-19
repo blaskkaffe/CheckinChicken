@@ -183,6 +183,9 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
    the same physical size as the system-clock steppers below, rather
    than each picking its own one-off number. */
 .reorder-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background: transparent;
   color: var(--text-dim);
   font-size: var(--fs-md);
@@ -305,20 +308,25 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
   background: var(--accent);
   border-color: var(--accent);
 }
-/* The checkmark's own bounding box (as an unrotated rectangle, before the
-   rotate() below) isn't the same as its visible position once rotated -
-   left/top/width/height here were tuned by eye against the actual
-   rendered checkbox (not derived from the box's raw geometry) so the
-   checkmark's visual center lands on the box's actual center instead of
-   looking pushed toward the bottom-right corner. */
+/* An SVG checkmark centered via background-position, not a rotated-
+   border shape positioned with hand-tuned left/top/width/height percentages
+   - the rotated-border version never quite centered right (its own
+   bounding box, before rotate(), isn't where the visible checkmark ends
+   up, so there was no way to derive the right numbers, only eyeball
+   them). background-position:center on inset:0 centers the actual
+   rendered glyph exactly, regardless of the checkbox's own size - the
+   same geometry-agnostic centering as every icon button elsewhere in
+   the app (see .clock-step/.reorder-btn's own comments), just reached
+   through background-position instead of flex since this has no text
+   content to lay out. */
 .checkbox-label input[type=checkbox]:checked::after {
   content: '';
   position: absolute;
-  left: 26%; top: 22%;
-  width: 26%; height: 50%;
-  border-right: 2px solid #06101f;
-  border-bottom: 2px solid #06101f;
-  transform: rotate(45deg);
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath d='M5 13l5 5L19 7' fill='none' stroke='%2306101f' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: 65% 65%;
 }
 .checkbox-label input[type=checkbox]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
@@ -489,7 +497,20 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
    below), but its +/- buttons don't need to be, and letting them match
    the number's width made every +/- button a different size depending on
    which field it stepped. */
+/* display:flex + align-items/justify-content:center, not line-height, is
+   what actually centers a single glyph in a box shorter/taller than its
+   natural line box - a grid item (this button is a direct child of
+   .clock-group's grid) is "blockified" regardless of its own display
+   value, so the button's text otherwise lays out as a top-aligned block
+   line box, with the leftover height (box taller than one line) showing
+   as visibly more empty space below the glyph than above it. Same fix as
+   every other icon-button in the app (.bs-step, .icon-btn, .popup-close,
+   .cal-nav-btn) already uses - this and .reorder-btn below were the two
+   that had fallen out of step with that pattern. */
 .clock-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: var(--sz-reorder);
   height: calc(var(--sz-reorder) * 0.6);
   border-radius: 999px;
@@ -531,9 +552,19 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
    +/number/- elements - there's no per-field wrapper any more for it to
    go on instead, see .clock-group above). */
 .clock-num.clock-field-wide { width: calc(var(--sz-reorder) * 2.3); }
+/* display:flex here rather than just align-self:center on the bare text -
+   align-self:center centers this item's own (content-sized) box within
+   its 4-row span, but doesn't touch where the glyph sits WITHIN that
+   box, which is down to the font's own ascent/descent metrics for ":"/
+   "-" and isn't reliably centered on its own. Stretching to fill the
+   full span (align-self:stretch, the grid default - dropping the old
+   align-self:center) and then flex-centering the text inside that full
+   height sidesteps the font-metrics question entirely. */
 .clock-sep {
   grid-row: span 4;
-  align-self: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   font-size: var(--fs-lg);
   font-weight: 700;
   color: var(--text-dim);
