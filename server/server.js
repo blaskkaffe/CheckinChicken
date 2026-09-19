@@ -5,7 +5,7 @@
 //
 // One server, one roster, any number of screens/browsers pointed at it -
 // including screens in more than one coop, distinguished by each
-// person's own `location` field (see the admin page's "Coop" field and
+// person's own `location` field (see the admin page's "Område" field and
 // board.js's visible()/render()) rather than by running a separate server
 // per coop.
 
@@ -453,7 +453,7 @@ const server = http.createServer(async (req, res) => {
         // then name). Blank by default; a blank person just doesn't show
         // up when a screen is filtered to one specific coop (see
         // "restrictToLocation" below and board.js's visible()), but still
-        // shows under "Alla Coops".
+        // shows under "Alla områden".
         const location = body.location !== undefined ? String(body.location).trim() : (existing.location ?? '');
         // restrictToLocation = "only ever show this person on their OWN
         // coop's filtered board view - hide them from every other
@@ -487,7 +487,7 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 400, { error: 'phone number looks too long' });
         }
         if (record.location && record.location.length > 60) {
-          return sendJson(res, 400, { error: 'coopens namn ser för långt ut' });
+          return sendJson(res, 400, { error: 'områdets namn ser för långt ut' });
         }
         store.applyLocal(id, record);
         return sendJson(res, 200, store.getById(id));

@@ -62,7 +62,7 @@
         <div class="table-scroll">
           <table class="roster">
             <thead>
-              <tr><th></th><th></th><th>Namn</th><th>Coop</th><th>Avdelning</th><th>Roll</th><th>Status</th><th></th></tr>
+              <tr><th></th><th></th><th>Namn</th><th>Område</th><th>Avdelning</th><th>Roll</th><th>Status</th><th></th></tr>
             </thead>
             <tbody id="rosterBody"></tbody>
           </table>
@@ -98,7 +98,7 @@
         <p class="dim small">
           Väljer utseendet för tavlan och den här adminsidan på
           <b id="aThemeLocationName">den här platsen</b> - ett delat tema för
-          alla skärmar, i alla coops. Ändringen gäller direkt på alla
+          alla skärmar, i alla områden. Ändringen gäller direkt på alla
           redan öppna sidor, ingen omladdning behövs.
         </p>
 
@@ -134,7 +134,7 @@
             <label>Stäng automatiskt efter (minuter)<input id="sIdleMinutes" type="number" min="1" max="60" step="1" /></label>
             <label class="checkbox-label"><input id="sOnscreenKbAdmin" type="checkbox" /> Visa skärmtangentbord även på den här adminsidan (annars: fysiskt tangentbord antas)</label>
             <p class="dim small">
-              Tryck på klockan uppe till höger på tavlan för att öppna skärminställningar - coop att visa och tavlans storlek, utan adminkod. Allt annat, inklusive tema och bakgrundsbild, ändras bara härifrån med adminkoden som vanligt.
+              Tryck på klockan uppe till höger på tavlan för att öppna skärminställningar - område att visa och tavlans storlek, utan adminkod. Allt annat, inklusive tema och bakgrundsbild, ändras bara härifrån med adminkoden som vanligt.
             </p>
             <button class="primary-btn" id="settingsSave">Spara</button>
             <p id="settingsError" class="error"></p>
@@ -179,9 +179,9 @@
         <label>Telefonnummer (valfritt)<input id="fPhone" type="tel" /></label>
         <label class="checkbox-label"><input id="fActive" type="checkbox" checked /> Aktiv</label>
         <p class="dim small">Kryssa ur "Aktiv" och spara för att inaktivera - personen slutar visas på tavlan och kan inte längre checka in, men finns kvar i listan så du kan aktivera igen senare.</p>
-        <label>Coop (valfritt)<input id="fLocation" type="text" list="locationList" placeholder="t.ex. Coop A" /></label>
+        <label>Område (valfritt)<input id="fLocation" type="text" list="locationList" placeholder="t.ex. Område A" /></label>
         <datalist id="locationList"></datalist>
-        <label class="checkbox-label"><input id="fRestrict" type="checkbox" /> Visa bara i sin egen coop (annars: syns i alla coops)</label>
+        <label class="checkbox-label"><input id="fRestrict" type="checkbox" /> Visa bara i sitt eget område (annars: syns i alla områden)</label>
         <p id="modalError" class="error"></p>
         <div class="modal-actions">
           <button class="ghost-btn" id="modalCancel">Avbryt</button>

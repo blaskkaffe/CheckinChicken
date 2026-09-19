@@ -3,11 +3,11 @@
 #
 # name, department: required.
 # role, phone: optional, shown on the board / status popup.
-# location: optional - coop name (e.g. "Coop A"). Blank = no
-#   coop. See README's "Multiple coops".
+# location: optional - area name (e.g. "Område A"). Blank = no
+#   area. See README's "Multiple coops".
 # restrictToLocation: optional - 1/true/yes/ja/x = only show this person
-#   when their own coop is the selected board filter (hidden from
-#   every other coop and from "all coops"). Blank = shows
+#   when their own area is the selected board filter (hidden from
+#   every other area and from "all areas"). Blank = shows
 #   everywhere.
 #
 # Re-running this import is safe - matches existing people by name +
@@ -17,11 +17,11 @@
 # it after importing, or later admin-page edits will overwrite your
 # import.
 name,department,role,phone,location,restrictToLocation
-Anna Svensson,Kök,Kökschef,070-123 45 67,Coop A,
-Erik Lindqvist,Kök,Kock,,Coop A,
-Maria Johansson,Kök,Köksbiträde,,Coop A,
-Johan Karlsson,Servering,Chef,070-234 56 78,Coop A,
-Sara Nilsson,Servering,Servitör,,Coop A,
-Oskar Berg,Servering,Servitör,,Coop A,
-Lena Petersson,Lager,Lagerchef,,Coop B,
-David Olsson,Lager,Truckförare,,Coop B,
+Anna Svensson,Kök,Kökschef,070-123 45 67,Område A,
+Erik Lindqvist,Kök,Kock,,Område A,
+Maria Johansson,Kök,Köksbiträde,,Område A,
+Johan Karlsson,Servering,Chef,070-234 56 78,Område A,
+Sara Nilsson,Servering,Servitör,,Område A,
+Oskar Berg,Servering,Servitör,,Område A,
+Lena Petersson,Lager,Lagerchef,,Område B,
+David Olsson,Lager,Truckförare,,Område B,

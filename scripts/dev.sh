@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # dev.sh — run ONE CheckinChicken server locally, pre-loaded with a sample
 # roster spread across two sample coops, so you can try out the board
-# (including the "Alla Coops" / one-coop filter, and grouping by
+# (including the "Alla områden" / one-coop filter, and grouping by
 # coop) before you have real people or a real machine set up.
 #
 # Usage:
@@ -45,8 +45,8 @@ fi
 cat << MSG
 
 Starting a test server, pre-loaded with a sample roster split across two
-sample coops ("Coop A" and "Coop B") so you can see the board's
-coop filter/grouping in action:
+sample areas ("Område A" and "Område B") so you can see the board's
+area filter/grouping in action:
 
   board:  http://localhost:9100/board.html
   admin:  http://localhost:9100/admin.html   (passcode: 1234)
@@ -54,7 +54,7 @@ coop filter/grouping in action:
 Tap Anna Svensson's INNE/UTE badge on the board to toggle it instantly, or
 tap anywhere else on her row to open her full status popup (every status
 button, one screen). Open the admin page to add/edit people, including
-their Coop field and the "Visa bara i sin egen coop"
+their Område field and the "Visa bara i sitt eget område"
 checkbox.
 
 Press Ctrl+C to stop.

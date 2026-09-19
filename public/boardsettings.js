@@ -40,7 +40,7 @@
       return;
     }
     $('bsLocationSection').style.display = '';
-    const items = [{ value: '', label: 'Alla Coops' }, ...locations.map((l) => ({ value: l, label: l }))];
+    const items = [{ value: '', label: 'Alla områden' }, ...locations.map((l) => ({ value: l, label: l }))];
     $('bsLocations').innerHTML = items.map((it) =>
       `<button type="button" class="bs-choice ${it.value === filter ? 'active' : ''}" data-loc="${esc(it.value)}">${esc(it.label)}</button>`
     ).join('');

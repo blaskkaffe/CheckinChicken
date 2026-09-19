@@ -167,7 +167,7 @@ table.roster th, table.roster td {
   border-bottom: 1px solid var(--border);
   font-size: var(--fs-base);
   /* Readable line spacing for a cell that wraps to two lines (a long
-     name, or "Coop B") - single-line cells are unaffected, but a
+     name, or "Område B") - single-line cells are unaffected, but a
      wrapped one no longer reads as two cramped lines touching each
      other. */
   line-height: 1.4;

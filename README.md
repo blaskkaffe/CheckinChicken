@@ -88,9 +88,10 @@ Edit `server/people.template.csv`. Columns:
 name,department,role,phone,location,restrictToLocation
 ```
 
-`name` and `department` are required. `location` is the coop name
-(free text, e.g. `Coop A`) — see [Multiple coops](#multiple-coops) for
-what a "coop" can represent; leave blank if unused.
+`name` and `department` are required. `location` is the coop name, shown
+in the UI as "Område" (free text, e.g. `Område A`) — see [Multiple
+coops](#multiple-coops) for what a "coop" can represent; leave blank if
+unused.
 `restrictToLocation`: `1`/`true`/`yes`/`ja`/`x` = checked, anything else =
 unchecked.
 
@@ -200,27 +201,30 @@ to a small square before upload. No photo → colored circle with initials.
 
 ### Multiple coops
 
-"Coop" is just this app's name for whatever top-level group you're
-splitting people into above department — a building, a floor, a site,
-or any other physical location. Use whichever fits: a school might use
-one coop per floor, a company with several offices one coop per office,
-a single-site team none at all.
+"Coop" is just this app's own (code-level) name for whatever top-level
+group you're splitting people into above department — a building, a
+floor, a site, or any other physical location. Use whichever fits: a
+school might use one coop per floor, a company with several offices one
+coop per office, a single-site team none at all. The UI itself never
+says "coop" — the on-screen Swedish label is **Område** ("area"), in the
+admin roster's column, the person edit form, and the board's
+screen-settings popup.
 
-- **Field**: `location` (free text, e.g. `Coop A`) on each person, set
+- **Field**: `location` (free text, e.g. `Område A`) on each person, set
   from the admin page or CSV import. Blank = no coop.
 - **Sort order**: coop → department → role → name, on both the board
   and the admin roster table.
-- **Board filter**: "Alla Coops" (all) or one coop, picked from
+- **Board filter**: "Alla områden" (all) or one coop, picked from
   the board's screen-settings popup (tap the clock — see
   [Screen settings](#screen-settings)). Persisted per-device in
   `localStorage` (`checkin:locationFilter`). Hidden there if fewer than 2
   coops are in use. Overridable with `?location=<name>` in the URL
   (also saves to that device).
-- **`restrictToLocation`** checkbox (admin page, per person): when set,
-  this person is shown only when their own coop is the selected
-  filter — hidden from every other coop's view and from "Alla
-  Coops". Unset (default): shown everywhere, grouped under their
-  coop.
+- **`restrictToLocation`** checkbox (admin page, per person, labeled
+  "Visa bara i sitt eget område"): when set, this person is shown only
+  when their own coop is the selected filter — hidden from every other
+  coop's view and from "Alla områden". Unset (default): shown
+  everywhere, grouped under their coop.
 
 ### Statuses (admin "Statusar" tab)
 
@@ -305,7 +309,7 @@ year boundary is worth it.
 
 Tap the clock to open a popup with:
 
-- **Coop** — same coop filter described under
+- **Område** — same coop filter described under
   [Multiple coops](#multiple-coops) above.
 - **Storlek på tavlan** — the manual size nudge described under
   [Board layout](#board-layout) above.

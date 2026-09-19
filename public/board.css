@@ -224,7 +224,7 @@ body {
 }
 
 /* Which coop this card belongs to - only rendered at all when "Alla
-   Coops" is selected AND more than one coop is actually in use
+   områden" is selected AND more than one coop is actually in use
    (see board.js's render()/showLocationLabels), so a single-coop
    install/view looks exactly like it always has, no empty label line. One
    level "louder" than .role-label below it (accent color, not just dim

@@ -92,7 +92,7 @@
   }
 
   // Distinct, non-blank `location` values currently in the roster - fills
-  // the "Coop" field's datalist suggestions (fLocation/locationList),
+  // the "Område" field's datalist suggestions (fLocation/locationList),
   // same idea as the existing department datalist just below.
   function locationOptions() {
     return [...new Set(roster.map((p) => p.location).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv'));
@@ -258,7 +258,7 @@
     // Swap `order` with whichever neighbor is adjacent WITHIN THE SAME
     // COOP + DEPARTMENT in the currently-sorted table - moving someone
     // across that boundary isn't what these arrows are for (edit their
-    // Coop/Avdelning fields directly for that).
+    // Område/Avdelning fields directly for that).
     const rows = sortedRoster();
     const i = rows.findIndex((p) => p.id === id);
     const j = i + direction;
@@ -310,7 +310,7 @@
           <button type="button" class="reorder-btn" data-dir="1" ${canDown ? '' : 'disabled'} title="Flytta ner">&#9660;</button>
         </td>
         <td>${window.avatarHtml(p, 'avatar-xs')}</td>
-        <td>${esc(p.name)}${p.restrictToLocation ? ` <span class="pill-inactive" title="Visas bara i ${esc(p.location || 'sin coop')}">bara ${esc(p.location || 'egen coop')}</span>` : ''}</td>
+        <td>${esc(p.name)}${p.restrictToLocation ? ` <span class="pill-inactive" title="Visas bara i ${esc(p.location || 'sitt område')}">bara ${esc(p.location || 'eget område')}</span>` : ''}</td>
         <td>${esc(p.location || '')}</td>
         <td>${esc(p.department)}</td>
         <td>${esc(p.role)}</td>
@@ -372,7 +372,7 @@
 
     if (!name) return ($('modalError').textContent = 'Namn krävs.');
     if (phone.length > 40) return ($('modalError').textContent = 'Telefonnumret ser för långt ut.');
-    if (location.length > 60) return ($('modalError').textContent = 'Coopens namn ser för långt ut.');
+    if (location.length > 60) return ($('modalError').textContent = 'Områdets namn ser för långt ut.');
     const payload = { id: editingId, name, department, role, phone, active, location, restrictToLocation };
     if (pendingPhoto !== undefined) payload.photo = pendingPhoto;
 

@@ -22,12 +22,12 @@
 # Optional third argument: pin this device to always show one specific
 # coop, regardless of what's remembered locally in the browser (see
 # README's "Multiple coops") - handy for a wall-mounted
-# screen you always want showing e.g. just "Coop A". Leave it out to
+# screen you always want showing e.g. just "Område A". Leave it out to
 # let the board's own on-page coop picker decide, as normal. Spell it
 # EXACTLY as it appears on the admin page - stick to letters, numbers,
 # spaces and hyphens (this gets used as-is in a URL, so avoid characters
 # like & or # that mean something there).
-#   ./kiosk-browser.sh 192.168.1.20:8080 off "Coop A"
+#   ./kiosk-browser.sh 192.168.1.20:8080 off "Område A"
 #
 # Add this to your desktop autostart (see README.md) so it comes back up
 # automatically after a reboot or power cut.

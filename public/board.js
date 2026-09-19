@@ -4,7 +4,7 @@
   let people = new Map(); // id -> person
   let cfg = {};
   let boardClickToEdit = true;
-  // '' = "Alla Coops" (all coops, no filter); otherwise an exact
+  // '' = "Alla områden" (all coops, no filter); otherwise an exact
   // match against a person's `location` field. See loadLocationFilter()
   // below and window.BoardSettings (read/written by the board-settings
   // popup - boardsettings.js).
@@ -120,7 +120,7 @@
   }
 
   // --------------------------------------------------- coop filter ---
-  // Which coop this ONE screen shows - "" (Alla Coops) by default,
+  // Which coop this ONE screen shows - "" (Alla områden) by default,
   // or one exact `location` value to show just that coop. This is a
   // per-DEVICE choice, not a server setting: it's remembered locally (so a
   // kiosk tab keeps showing what it was last set to across reloads) and
@@ -459,12 +459,12 @@
   }
 
   // Whether `p` shows up on THIS screen, given the current coop filter
-  // (locationFilter - "" means "Alla Coops"/no filter):
+  // (locationFilter - "" means "Alla områden"/no filter):
   //  - Normally (restrictToLocation off, the default): shown whenever the
   //    filter is "all", or matches their own `location`.
-  //  - restrictToLocation on (the admin page's "Visa bara i sin egen
-  //    coop" checkbox): shown ONLY when the filter is their own exact
-  //    coop - never under "Alla Coops", never under a different
+  //  - restrictToLocation on (the admin page's "Visa bara i sitt eget
+  //    område" checkbox): shown ONLY when the filter is their own exact
+  //    coop - never under "Alla områden", never under a different
   //    coop's filter. This is for someone who'd otherwise just be
   //    noise on the combined view (e.g. a warehouse-only role) - they
   //    still show normally on their own coop's screens.
@@ -488,7 +488,7 @@
     // Show a small "which coop" label on each card, above the
     // department name, only when it actually adds information: several
     // coops are in play AND this view spans more than one of them
-    // (i.e. "Alla Coops" is selected). Filtered to one specific
+    // (i.e. "Alla områden" is selected). Filtered to one specific
     // coop, every card would show that exact same label - pure noise,
     // so it's left off, same as today's single-coop look.
     const showLocationLabels = !locationFilter && allLocations().length > 1;
@@ -545,7 +545,7 @@
       `).join('');
 
       const locationHtml = showLocationLabels
-        ? `<div class="dept-location">${esc(location || 'Ej tilldelad coop')}</div>`
+        ? `<div class="dept-location">${esc(location || 'Ej tilldelat område')}</div>`
         : '';
       const headerHtml = `<h2><span class="dept-name">${esc(dept)}</span><span class="count">${inCount}/${members.length} inne</span></h2>`;
 
