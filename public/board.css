@@ -301,7 +301,12 @@ body {
      Playwright at 1.815-1.816× its height across landscape, portrait and
      narrow layouts) without needing its own separate formula. */
   --pill-min-width: calc(var(--avatar-size) * 1.815);
-  padding: calc(0.45vh * var(--scale)) calc(0.7vw * var(--scale));
+  /* Top/bottom padding uses --gap-unit instead of a bare vh, same fix and
+     same reasoning as .hdr/.board (see body's own comment on --gap-unit) -
+     this is the single most-repeated element on the board, so a bare-vh
+     top/bottom that balloons in portrait was the most visible instance of
+     this bug. Left/right stays plain vw, same precedent as the other two. */
+  padding: calc(0.45 * var(--gap-unit) * var(--scale)) calc(0.7vw * var(--scale));
   border-radius: 8px;
   border-left: calc(0.35vw * var(--scale)) solid transparent;
 }
