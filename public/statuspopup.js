@@ -185,7 +185,18 @@
     Promise.all([
       fetch('/api/statuses').then((r) => r.json()),
       fetch('/api/config').then((r) => r.json()),
-    ]).then(([defs, c]) => { statusDefs = defs; cfg = c; });
+    ]).then(([defs, c]) => {
+      statusDefs = defs;
+      cfg = c;
+      // A tap fast enough to beat this initial fetch (e.g. right after
+      // board.html loads) would have already called open() -> renderMenu()
+      // against the still-empty defaults above, showing a status grid with
+      // no buttons at all. Re-render now that the real data is in, same as
+      // the checkin:statuses/checkin:config SSE handlers below already do
+      // for a later change - if the popup isn't open, or has since moved
+      // off the menu screen, this is a no-op.
+      if (person && state.screen === 'menu') renderMenu();
+    });
 
     card.appendChild(window.createPopupCloseButton(close));
     $('spDetailSkip').addEventListener('click', detailSubmit);
