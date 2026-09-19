@@ -133,6 +133,17 @@
                own passcode gate; this is just the shortcut there. -->
           <button type="button" class="ghost-btn" id="bsAdminBtn">Adminsidan →</button>
         </section>
+
+        <!-- Hidden until the "i" button (top corner, next to the close
+             button - see boardsettings.js) is tapped, which fills this in
+             from GET /api/version and reveals it. Not fetched up front -
+             this whole popup opens with no server round trip at all
+             otherwise (see the comment at the top of boardsettings.js),
+             and the version is the one thing here actually worth an
+             extra request for. -->
+        <section id="bsVersionSection" class="bs-section" hidden>
+          <p class="bs-hint" id="bsVersionText">Hämtar version …</p>
+        </section>
       </div>
     </div>
   </div>

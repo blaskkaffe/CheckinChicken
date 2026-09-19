@@ -23,6 +23,12 @@ const { THEMES } = require('./themes');
 const { SettingsStore } = require('./settings-store');
 const { BackgroundStore } = require('./background-store');
 
+// Read once at boot, straight from package.json, so the info button on the
+// board-settings popup (public/boardsettings.js, via GET /api/version
+// below) always shows exactly what's actually deployed on THIS server -
+// nothing to remember to keep in sync by hand.
+const PKG = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'));
+
 // ---------------------------------------------------------------- config --
 const CONFIG_PATH = process.env.CHECKIN_CONFIG || path.join(__dirname, '..', 'config.json');
 if (!fs.existsSync(CONFIG_PATH)) {
@@ -322,6 +328,16 @@ const server = http.createServer(async (req, res) => {
 
     if (method === 'GET' && pathname === '/api/statuses') {
       return sendJson(res, 200, statusStore.getAll());
+    }
+
+    // Version straight from package.json - see the info ("i") button on
+    // the board-settings popup (tap the clock). `name` is the proper-cased
+    // display name rather than PKG.name verbatim (npm package names have
+    // to stay lowercase, but there's no reason the popup should show it
+    // that way) - the version number is the one thing here actually worth
+    // reading live rather than just hardcoding both.
+    if (method === 'GET' && pathname === '/api/version') {
+      return sendJson(res, 200, { name: 'CheckinChicken', version: PKG.version });
     }
 
     // `options` is the full list from themes.js (id/label/snow) - sent

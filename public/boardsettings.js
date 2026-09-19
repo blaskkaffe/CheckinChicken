@@ -62,6 +62,25 @@
     $('bsSizeUp').disabled = window.BoardSettings.manualScaleAtMax();
   }
 
+  // -------------------------------------------------------------- version -
+  // Fetched lazily (only once the info button is actually tapped, and only
+  // the first time - cached in `versionText` after that) rather than up
+  // front on open(), so this popup keeps opening with zero server round
+  // trips unless someone actually wants to know the version.
+  let versionText = null;
+  function toggleVersion() {
+    const section = $('bsVersionSection');
+    if (!section.hidden) { section.hidden = true; return; }
+    section.hidden = false;
+    if (versionText) return; // already fetched this page load
+    fetch('/api/version').then((r) => r.json()).then((v) => {
+      versionText = `${v.name} v${v.version}`;
+      $('bsVersionText').textContent = versionText;
+    }).catch(() => {
+      $('bsVersionText').textContent = 'Kunde inte hämta versionsinformation.';
+    });
+  }
+
   // ------------------------------------------------------- open / close --
   let idleWatcher = null;
   function isOpen() { return overlay.classList.contains('visible'); }
@@ -74,12 +93,17 @@
     // unlike admin.js's panels.
     renderLocations();
     renderSize();
+    // Collapsed again every time the popup reopens, same as any other
+    // "reveal on demand" state - it's cheap to re-fetch (and re-cached in
+    // versionText above) if tapped again.
+    $('bsVersionSection').hidden = true;
   }
   function close() { overlay.classList.remove('visible'); }
   window.BoardSettingsPopup = { open, close, isOpen };
 
   clockBtn.addEventListener('click', open);
   card.appendChild(window.createPopupCloseButton(close));
+  card.appendChild(window.createPopupInfoButton(toggleVersion));
   overlay.querySelector('.popup-backdrop').addEventListener('click', close);
   idleWatcher = window.watchPopupIdle(overlay, isOpen, close);
 

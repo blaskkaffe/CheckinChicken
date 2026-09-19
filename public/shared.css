@@ -426,6 +426,49 @@ button {
 }
 .popup-close:active { filter: brightness(0.9); }
 
+/* The board-settings popup (tap the clock - see boardsettings.js/.html)
+   is the one popup with a second corner button, the version-info "i" -
+   same circle size as .popup-close, just a neutral color rather than the
+   close button's alarm red, and a monospace serif glyph (see
+   createPopupInfoButton). Sits at the actual top-right corner, with the
+   close button shifted one button-width + gap to its left, so reading
+   left to right it's "close, then info" - the info button is the one
+   closest to the corner. */
+.popup-info {
+  position: absolute;
+  top: 0.6em;
+  right: 0.6em;
+  width: 2.2em;
+  height: 2.2em;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  /* Same base font-size .popup-close sets explicitly (rather than
+     inheriting whatever ambient size this button happens to sit in) -
+     both buttons' 2.2em width/height is relative to THIS, so without it
+     the two circles quietly stop matching depending on where each one
+     gets placed. */
+  font-size: 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 20;
+}
+.popup-info span {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 1.15em;
+  font-weight: 700;
+  font-style: normal;
+  line-height: 1;
+}
+.popup-info:active { filter: brightness(1.12); }
+/* Only the board-settings card has a .popup-info sibling to make room
+   for - every other .popup-close (status popup, admin dialogs) stays
+   exactly where it's always been, flush in the corner. */
+#boardSettingsCard .popup-close { right: calc(0.6em + 2.2em + 0.5em); }
+
 /* ------------------------------------------------------- on-screen keyboard
    Shared Swedish QWERTY keyboard (see public/keyboard.js's
    attachOnscreenKeyboard) - docks at the bottom of the screen while a text

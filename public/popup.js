@@ -38,6 +38,24 @@
     return btn;
   };
 
+  // Same size/shape as the close button above (shared.css's .popup-info
+  // reuses .popup-close's own circle sizing), but a plain lowercase "i" in
+  // a monospace SERIF face (Courier is the one common typeface that's
+  // actually both at once - most "monospace" fonts are sans, most serif
+  // fonts aren't fixed-width) rather than the close button's X glyph.
+  // Currently only used by boardsettings.js (the popup opened by tapping
+  // the clock) to reveal the running version - see this button's own
+  // `onClick`.
+  window.createPopupInfoButton = function (onClick) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'popup-info';
+    btn.setAttribute('aria-label', 'Version');
+    btn.innerHTML = '<span aria-hidden="true">i</span>';
+    btn.addEventListener('click', onClick);
+    return btn;
+  };
+
   // Watches `rootEl` for activity and, whenever `isOpenFn()` is true and
   // `idleTimeoutMs` has passed since the last bit of activity, calls
   // `onIdleClose()` once. Returns a small controller:

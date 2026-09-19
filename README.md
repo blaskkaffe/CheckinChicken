@@ -290,6 +290,8 @@ Tap the clock to open a popup with:
   [Board layout](#board-layout) above.
 - A button to the real admin page (`admin.html`), which still has its own
   `adminPasscode` gate — this popup itself does not.
+- An **i** button next to the close button, top corner — reveals the
+  running version (`GET /api/version`, sourced from `package.json`).
 
 Deliberately **client-side only, and deliberately reachable with no
 passcode**. Both settings above are per-device (`localStorage`) and never

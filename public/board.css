@@ -302,17 +302,31 @@ body { display: flex; flex-direction: column; }
 /* .badge (INNE/UTE) and .tag (colored secondary status) share the same
    height and a fixed minimum width in "ch" (character) units, so both
    read as the same visual size on the board regardless of which word is
-   longer - "INNE" and "UTE" land on identical-sized pills. */
+   longer - "INNE" and "UTE" land on identical-sized pills.
+
+   Height is `var(--avatar-size)` - the SAME custom property the profile
+   photo's own diameter uses (see .person-row/.avatar-sm) - rather than
+   being left to fall out of font-size + padding the way it used to.
+   Those two used to only ever match by coincidence: the avatar's
+   diameter is capped directly against --cap, while the badge's old
+   vertical padding was plain cqw with no cap of its own, so above a
+   certain scale the avatar stopped growing while the badge's padding
+   (and so its height) kept going - same width-scaling, different
+   vertical behavior, which is exactly why they used to line up
+   horizontally but drift apart vertically. Sharing one variable for
+   BOTH makes that impossible - whatever height the avatar ends up at,
+   the pill is exactly that tall too, always. */
 .badge {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  height: var(--avatar-size);
   min-width: 6.2ch;
   gap: 0.3em;
   font-size: min(calc(5cqw * var(--scale)), calc(var(--cap) * 0.758));
   font-weight: 800;
   letter-spacing: 0.02em;
-  padding: calc(1.1cqw * var(--scale)) calc(2.2cqw * var(--scale));
+  padding: 0 calc(2.2cqw * var(--scale));
   border-radius: 999px;
   white-space: nowrap;
   flex: none;
