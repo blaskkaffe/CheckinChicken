@@ -430,9 +430,10 @@ button {
    is the one popup with a second corner button, the version-info "i" -
    same circle size as .popup-close, just a neutral color rather than the
    close button's alarm red, and a monospace serif glyph (see
-   createPopupInfoButton). Sits at the actual top-right corner, with the
-   close button shifted one button-width + gap to its left, so reading
-   left to right it's "close, then info" - the info button is the one
+   createPopupInfoButton). The close button stays in the actual top-right
+   corner (same spot every other popup's close button uses), with the
+   info button shifted one button-width + gap to its left, so reading
+   left to right it's "info, then close" - the close button is the one
    closest to the corner. */
 .popup-info {
   position: absolute;
@@ -467,7 +468,7 @@ button {
 /* Only the board-settings card has a .popup-info sibling to make room
    for - every other .popup-close (status popup, admin dialogs) stays
    exactly where it's always been, flush in the corner. */
-#boardSettingsCard .popup-close { right: calc(0.6em + 2.2em + 0.5em); }
+#boardSettingsCard .popup-info { right: calc(0.6em + 2.2em + 0.5em); }
 
 /* ------------------------------------------------------- on-screen keyboard
    Shared Swedish QWERTY keyboard (see public/keyboard.js's
