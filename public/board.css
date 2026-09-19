@@ -342,7 +342,20 @@ body { display: flex; flex-direction: column; }
    vertical behavior, which is exactly why they used to line up
    horizontally but drift apart vertically. Sharing one variable for
    BOTH makes that impossible - whatever height the avatar ends up at,
-   the pill is exactly that tall too, always. */
+   the pill is exactly that tall too, always.
+
+   The horizontal padding needs the same capping treatment, for the same
+   reason: a sparse board (few departments, few people - one wide column
+   instead of the many narrow ones a busy board splits into) drives cqw
+   values way up before --scale's own ceiling catches them, and height
+   stops growing first (capped, via --avatar-size above) while
+   uncapped cqw padding kept right on going - stretching the pill wider
+   without getting any taller, a visibly different width:height ratio
+   than the same badge on a normal, many-row board. Capping the padding
+   the same way (0.333 = 2.2/6.6, this rule's own coefficient against
+   the dept-name's reference 6.6cqw - see .board's --cap comment) keeps
+   the pill's proportions identical no matter how the board happens to
+   be laid out. */
 .badge {
   display: inline-flex;
   align-items: center;
@@ -353,7 +366,7 @@ body { display: flex; flex-direction: column; }
   font-size: min(calc(5cqw * var(--scale)), calc(var(--cap) * 0.758));
   font-weight: 800;
   letter-spacing: 0.02em;
-  padding: 0 calc(2.2cqw * var(--scale));
+  padding: 0 min(calc(2.2cqw * var(--scale)), calc(var(--cap) * 0.333));
   border-radius: 999px;
   white-space: nowrap;
   /* No margin-left:auto needed to pin this flush right any more - it's
@@ -395,7 +408,14 @@ body { display: flex; flex-direction: column; }
 /* flex:none (rather than the flex item default of 0 1 auto) so it never
    tries to shrink below its own text - a tag either fits on the badge's
    line in full, or wraps to its own line in full (see .person-row-top's
-   comment), never a half-squeezed in-between. */
+   comment), never a half-squeezed in-between.
+
+   margin-left:auto pushes the tag to the far right of whichever line
+   it's actually on - flush against the badge when it fits alongside the
+   name (avatar/name/dots stay put on the left, the tag jumps the gap
+   between them and the badge rather than sitting right after the name),
+   and flush right on its own line when it wraps below, rather than
+   trailing directly behind the name/dots either way. */
 .tag {
   display: inline-flex;
   align-items: center;
@@ -407,6 +427,7 @@ body { display: flex; flex-direction: column; }
   font-weight: 700;
   white-space: nowrap;
   flex: none;
+  margin-left: auto;
 }
 .tag .detail { font-weight: 600; opacity: 0.85; }
 
