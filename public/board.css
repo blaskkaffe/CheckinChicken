@@ -116,6 +116,25 @@ body { display: flex; flex-direction: column; }
      in landscape, and the reverse in portrait) even though both are
      meant to be "the same small gap between two cards". */
   --gap-unit: min(1vw, 1vh);
+  /* Ceiling for the single largest piece of board text (the department
+     name, .dept h2 .dept-name below) - the exact same expression as
+     .hdr h1's own font-size above, so the department name can never
+     render bigger than the header title itself. This is what was
+     missing from the cqw-based sizing below: cqw is % of a COLUMN's own
+     width (see .board-col's comment), which has no ceiling of its own -
+     with only one or two departments, renderBalancedColumns() hands out
+     a handful of very wide columns, --scale sits at its max, and cqw
+     values balloon right along with it, so names/avatars/badges got
+     "incredibly large" on a sparse board even though a busy board never
+     had the problem (many narrow columns keep cqw small there).
+     Every cqw-based font-size/avatar-size rule below is wrapped in
+     min(<its normal cqw size>, <this cap, scaled proportionally>) -
+     proportional so the existing visual hierarchy (dept name > person
+     name > badge > tag > ...) is preserved exactly, just squeezed down
+     together once the biggest of them would outgrow the header. A busy
+     board's cqw values already sit well under this cap, so nothing
+     changes there - this only ever kicks in for the sparse case. */
+  --cap: max(1.05rem, min(2.7vh, 1.7vw));
   flex: 1 1 auto;
   min-height: 0; /* let it actually shrink to the remaining space instead of the flex default of never going below its content's natural height */
   padding: calc(1.6vh * var(--scale)) calc(1.6vw * var(--scale));
@@ -165,7 +184,7 @@ body { display: flex; flex-direction: column; }
    text) since it's the top of the location → department → role → name
    hierarchy, not a peer of role. */
 .dept-location {
-  font-size: calc(3.6cqw * var(--scale));
+  font-size: min(calc(3.6cqw * var(--scale)), calc(var(--cap) * 0.545));
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--accent);
@@ -188,14 +207,14 @@ body { display: flex; flex-direction: column; }
    ever pushing the "x/y inne" count onto a wrapped second line - that's
    what caused "Servering2/5\ninne" to render as two broken lines. */
 .dept h2 .dept-name {
-  font-size: calc(6.6cqw * var(--scale));
+  font-size: min(calc(6.6cqw * var(--scale)), var(--cap));
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .dept h2 .count {
-  font-size: calc(4.4cqw * var(--scale));
+  font-size: min(calc(4.4cqw * var(--scale)), calc(var(--cap) * 0.667));
   color: var(--text-dim);
   font-weight: 400;
   white-space: nowrap;
@@ -204,7 +223,7 @@ body { display: flex; flex-direction: column; }
 
 .role-group + .role-group { margin-top: calc(0.9vh * var(--scale)); }
 .role-label {
-  font-size: calc(4cqw * var(--scale));
+  font-size: min(calc(4cqw * var(--scale)), calc(var(--cap) * 0.606));
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--text-dim);
@@ -218,6 +237,15 @@ body { display: flex; flex-direction: column; }
    own line underneath, indented to line up under the name. A name is
    never sacrificed to make room for a tag. */
 .person-row {
+  /* Shared by .avatar-sm and .person-row-tag below (both descendants of
+     this row, so the custom property inherits into both) - the avatar's
+     own capped size, computed once here rather than separately in each
+     place, so the tag's indent always lines up under the name exactly
+     regardless of whether the cqw size or the cap is what's currently in
+     effect. 1.439 is 9.5cqw's own ratio to the dept-name's 6.6cqw (see
+     .board's --cap comment) - the avatar keeps the same size relationship
+     to the rest of the card either way. */
+  --avatar-size: min(calc(9.5cqw * var(--scale)), calc(var(--cap) * 1.439));
   padding: calc(0.45vh * var(--scale)) calc(0.7vw * var(--scale));
   border-radius: 8px;
   border-left: calc(0.35vw * var(--scale)) solid transparent;
@@ -231,9 +259,9 @@ body { display: flex; flex-direction: column; }
 .person-row.in:nth-child(odd) { background: var(--badge-in-bg); }
 
 .avatar-sm {
-  width: calc(9.5cqw * var(--scale));
-  height: calc(9.5cqw * var(--scale));
-  font-size: calc(3.6cqw * var(--scale));
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  font-size: min(calc(3.6cqw * var(--scale)), calc(var(--cap) * 0.545));
 }
 
 .person-row-top {
@@ -245,7 +273,7 @@ body { display: flex; flex-direction: column; }
 .person-name {
   flex: 1;
   min-width: 0;
-  font-size: calc(6cqw * var(--scale));
+  font-size: min(calc(6cqw * var(--scale)), calc(var(--cap) * 0.909));
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -257,7 +285,7 @@ body { display: flex; flex-direction: column; }
 .person-row.out .person-name { font-weight: 400; }
 
 .person-row-tag {
-  margin: calc(0.35vh * var(--scale)) 0 0 calc(9.5cqw * var(--scale) + 1.8cqw * var(--scale));
+  margin: calc(0.35vh * var(--scale)) 0 0 calc(var(--avatar-size) + 1.8cqw * var(--scale));
 }
 
 /* .badge (INNE/UTE) and .tag (colored secondary status) share the same
@@ -270,7 +298,7 @@ body { display: flex; flex-direction: column; }
   justify-content: center;
   min-width: 6.2ch;
   gap: 0.3em;
-  font-size: calc(5cqw * var(--scale));
+  font-size: min(calc(5cqw * var(--scale)), calc(var(--cap) * 0.758));
   font-weight: 800;
   letter-spacing: 0.02em;
   padding: calc(1.1cqw * var(--scale)) calc(2.2cqw * var(--scale));
@@ -300,7 +328,7 @@ body { display: flex; flex-direction: column; }
 .plupp-dots {
   flex: none;
   color: var(--red);
-  font-size: calc(3.4cqw * var(--scale));
+  font-size: min(calc(3.4cqw * var(--scale)), calc(var(--cap) * 0.515));
   letter-spacing: calc(0.4cqw * var(--scale));
   line-height: 1;
 }
@@ -309,7 +337,7 @@ body { display: flex; flex-direction: column; }
   display: inline-flex;
   align-items: center;
   gap: 0.3em;
-  font-size: calc(4.2cqw * var(--scale));
+  font-size: min(calc(4.2cqw * var(--scale)), calc(var(--cap) * 0.636));
   padding: calc(0.85cqw * var(--scale)) calc(1.8cqw * var(--scale));
   border-radius: 999px;
   color: #0b0e16;
