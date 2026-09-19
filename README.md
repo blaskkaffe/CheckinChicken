@@ -1,4 +1,4 @@
-# Check-in System
+# CheckinChicken
 
 Offline, LAN-only check-in board. One Node.js server, no external
 dependencies, no database, no internet access required. Any number of
@@ -40,12 +40,12 @@ Only the server machine needs Node.js. Screens only need a browser.
 
 ### 2. Copy this folder onto the server machine
 
-E.g. to `/home/pi/checkin-system`.
+E.g. to `/home/pi/CheckinChicken`.
 
 ### 3. Configure
 
 ```bash
-cd checkin-system
+cd CheckinChicken
 cp config.example.json config.json
 ```
 
@@ -114,12 +114,12 @@ Output:
 To run as a service:
 
 ```bash
-sudo cp systemd/checkin-server.service /etc/systemd/system/
+sudo cp systemd/checkinchicken.service /etc/systemd/system/
 sudo systemctl daemon-reload
-sudo systemctl enable --now checkin-server
+sudo systemctl enable --now checkinchicken
 ```
 
-Edit the `WorkingDirectory`/`User` in `checkin-server.service` first.
+Edit the `WorkingDirectory`/`User` in `checkinchicken.service` first.
 
 ### 6. Point every screen at it
 
@@ -324,7 +324,7 @@ internet = no NTP), as six +/- stepper fields (HH:MM:SS, YYYY-MM-DD) plus
 a Spara button. It calls the server, which runs `date -s` — this only
 works if the server PROCESS has permission to change system time, which
 a plain `User=pi` systemd service (the default — see
-`systemd/checkin-server.service`) does NOT have. With no preparation,
+`systemd/checkinchicken.service`) does NOT have. With no preparation,
 saving fails with "Servern saknar behörighet…" — this is expected, not a
 bug, until one of the two options below is set up.
 
@@ -332,9 +332,9 @@ bug, until one of the two options below is set up.
 then has full root privileges, not just clock access:
 
 ```bash
-sudo sed -i 's/^User=.*/User=root/' /etc/systemd/system/checkin-server.service
+sudo sed -i 's/^User=.*/User=root/' /etc/systemd/system/checkinchicken.service
 sudo systemctl daemon-reload
-sudo systemctl restart checkin-server
+sudo systemctl restart checkinchicken
 ```
 
 (Or edit the file directly and remove/comment out the `User=` line
@@ -357,7 +357,7 @@ getcap "$(readlink -f "$(which date)")"
 # expect: .../date cap_sys_time=ep
 ```
 
-No change to `checkin-server.service` needed — the existing `User=pi` (or
+No change to `checkinchicken.service` needed — the existing `User=pi` (or
 whichever non-root user) keeps working once `date` itself has the
 capability. Trade-off: this grants the capability to `date` system-wide,
 so anything on the machine that runs `date -s` (not just this app) can

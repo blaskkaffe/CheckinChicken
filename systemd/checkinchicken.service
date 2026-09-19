@@ -1,0 +1,25 @@
+[Unit]
+Description=CheckinChicken server
+After=network.target
+
+[Service]
+Type=simple
+# EDIT this path to wherever you copied the CheckinChicken folder on THIS machine
+WorkingDirectory=/home/pi/CheckinChicken
+ExecStart=/usr/bin/node server/server.js
+Restart=always
+RestartSec=3
+User=pi
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target
+
+# --- Install ---
+#   sudo cp checkinchicken.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable --now checkinchicken
+#
+# --- Check on it ---
+#   systemctl status checkinchicken
+#   journalctl -u checkinchicken -f

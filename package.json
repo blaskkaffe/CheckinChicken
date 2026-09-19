@@ -1,7 +1,7 @@
 {
-  "name": "checkin-system",
-  "version": "1.0.0",
-  "description": "Offline LAN check-in board, one server for any number of screens and buildings, no external dependencies.",
+  "name": "checkinchicken",
+  "version": "1.1.0",
+  "description": "CheckinChicken - offline LAN check-in board, one server for any number of screens and buildings, no external dependencies.",
   "private": true,
   "main": "server/server.js",
   "scripts": {

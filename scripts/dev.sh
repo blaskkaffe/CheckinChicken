@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# dev.sh — run ONE checkin-system server locally, pre-loaded with a sample
+# dev.sh — run ONE CheckinChicken server locally, pre-loaded with a sample
 # roster spread across two sample buildings, so you can try out the board
 # (including the "Alla byggnader" / one-building filter, and grouping by
 # building) before you have real people or a real machine set up.

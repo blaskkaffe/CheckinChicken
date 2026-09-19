@@ -1,14 +1,14 @@
 [Desktop Entry]
 Type=Application
-Name=Check-in Board Browser
-Exec=/home/pi/checkin-system/systemd/kiosk-browser.sh
+Name=CheckinChicken Board Browser
+Exec=/home/pi/CheckinChicken/systemd/kiosk-browser.sh
 X-GNOME-Autostart-enabled=true
 
 # --- Install (Raspberry Pi OS / most Linux desktops) ---
 #   mkdir -p ~/.config/autostart
 #   cp checkin-kiosk-autostart.desktop ~/.config/autostart/
 #   Edit the Exec= line above:
-#     - fix the path to wherever you copied checkin-system
+#     - fix the path to wherever you copied CheckinChicken
 #     - if the server isn't on this same machine (e.g. this is a separate
 #       touch input device, or a display-only TV), add its address:
 #       .../kiosk-browser.sh 192.168.1.20:8080
