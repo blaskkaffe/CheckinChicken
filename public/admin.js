@@ -150,6 +150,12 @@
       $('aThemeLocationName').textContent = cfg.locationName || 'den här platsen';
       renderRoster();
       await loadStatuses();
+      // Re-render now that statusDefs is actually populated - the render
+      // just above ran against the still-empty default, so if IN/OUT has
+      // been renamed from "Inne"/"Ute" the Status column would otherwise
+      // show the wrong text until something else (e.g. a 'person' SSE
+      // event) happened to trigger another render.
+      renderRoster();
       await loadTheme();
       await loadBackgrounds();
       await loadSettings();
@@ -171,10 +177,15 @@
       try { roster = await api('/api/admin/people'); renderRoster(); } catch (e) {}
     });
     // Someone (maybe this same admin page in another tab) edited the
-    // status menu - keep this page's copy from going stale too.
+    // status menu - keep this page's copy from going stale too. Also
+    // re-renders the People roster, not just the Statusar tab itself -
+    // its own Status column reads the same IN/OUT labels (see
+    // primaryLabel), so a rename needs to reach both places, not just
+    // the tab it was made from.
     es.addEventListener('statuses', (e) => {
       statusDefs = JSON.parse(e.data);
       renderStatuses();
+      renderRoster();
     });
     // The theme was changed - possibly from this very picker in another
     // tab, possibly by someone else. window.applyTheme (theme.js) updates
@@ -253,6 +264,19 @@
     };
   }
 
+  // Mirrors board.js's own primaryLabel() (same fallback: the admin-set
+  // label if one's configured, else the hardcoded Swedish default) - read
+  // from statusDefs rather than hardcoded here too, so renaming IN/OUT on
+  // the Statusar tab actually shows up in this table instead of leaving
+  // it stuck on stale text. Lowercased (board.js's own version uppercases
+  // it instead, for its big wall-display badge) to match this table's own
+  // existing lowercase convention ("inaktiv", "redigera") rather than
+  // suddenly introducing all-caps into a quiet admin list.
+  function primaryLabel(code) {
+    const def = statusDefs.primary.find((s) => s.code === code);
+    return (def ? def.label : (code === 'IN' ? 'Inne' : 'Ute')).toLowerCase();
+  }
+
   function renderRoster() {
     const rows = sortedRoster();
     $('rosterBody').innerHTML = rows.map((p, i) => {
@@ -270,7 +294,7 @@
         <td>${esc(p.location || '')}</td>
         <td>${esc(p.department)}</td>
         <td>${esc(p.role)}</td>
-        <td>${p.active === false ? '<span class="pill-inactive">inaktiv</span>' : (p.status?.checkedIn ? 'inne' : 'ute')}</td>
+        <td>${p.active === false ? '<span class="pill-inactive">inaktiv</span>' : primaryLabel(p.status?.checkedIn ? 'IN' : 'OUT')}</td>
         <td>redigera</td>
       </tr>
     `;
