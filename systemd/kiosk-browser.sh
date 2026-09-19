@@ -29,12 +29,21 @@
 # like & or # that mean something there).
 #   ./kiosk-browser.sh 192.168.1.20:8080 off "Område A"
 #
+# Optional fourth argument: give this device its own header title instead
+# of the server's shared locationName (see README's "Screen settings") -
+# handy when the same server runs many screens (e.g. one per floor or
+# entrance) and each should read as its own place, not all show the same
+# generic name. Leave it out to just use the server's own locationName,
+# as normal.
+#   ./kiosk-browser.sh 192.168.1.20:8080 off "Område A" "Entré Nord"
+#
 # Add this to your desktop autostart (see README.md) so it comes back up
 # automatically after a reboot or power cut.
 
 HOST="${1:-localhost:8080}"
 INPUT_OVERRIDE="${2:-}"
 LOCATION_OVERRIDE="${3:-}"
+TITLE_OVERRIDE="${4:-}"
 URL="http://${HOST}/board.html"
 PARAMS=()
 if [ "$INPUT_OVERRIDE" = "off" ] || [ "$INPUT_OVERRIDE" = "on" ]; then
@@ -42,6 +51,9 @@ if [ "$INPUT_OVERRIDE" = "off" ] || [ "$INPUT_OVERRIDE" = "on" ]; then
 fi
 if [ -n "$LOCATION_OVERRIDE" ]; then
   PARAMS+=("location=${LOCATION_OVERRIDE// /+}")
+fi
+if [ -n "$TITLE_OVERRIDE" ]; then
+  PARAMS+=("title=${TITLE_OVERRIDE// /+}")
 fi
 if [ "${#PARAMS[@]}" -gt 0 ]; then
   URL="${URL}?$(IFS='&'; echo "${PARAMS[*]}")"

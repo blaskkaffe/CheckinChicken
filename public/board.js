@@ -96,7 +96,8 @@
       fetch('/api/people').then((r) => r.json()),
     ]);
     cfg = c;
-    document.getElementById('locationName').textContent = cfg.locationName + ' — Incheckning';
+    loadTitleOverride();
+    renderTitle();
     statusDefs = defs;
     secondaryByCode = new Map(defs.secondary.map((s) => [s.code, s]));
     people = new Map(ppl.map((p) => [p.id, p]));
@@ -157,7 +158,7 @@
       const loc = (p.location || '').trim();
       if (loc) set.add(loc);
     }
-    return [...set].sort((a, b) => a.localeCompare(b, 'sv'));
+    return [...set].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
   }
 
   // If a previously-picked coop no longer exists (renamed/removed),
@@ -171,6 +172,40 @@
       locationFilter = '';
       saveLocationFilter();
     }
+  }
+
+  // --------------------------------------------------- screen title ---
+  // The header text (top-left) is server-wide by default (config.json's
+  // `locationName`, same on every screen this server talks to - see
+  // server.js). Several screens sharing one server (e.g. one per floor or
+  // entrance) often want their OWN label there instead - "Entré A" rather
+  // than the server's generic name - so this is the exact same per-DEVICE
+  // override pattern as the coop filter above: remembered in localStorage,
+  // overridable for one tab via ?title=<text> in the URL (handy for a
+  // wall-mounted screen - see README's "Screen settings"), empty means
+  // "just use the server's own locationName", never sent to the server.
+  const TITLE_OVERRIDE_KEY = 'checkin:titleOverride';
+  let titleOverride = '';
+
+  function loadTitleOverride() {
+    const urlTitle = new URLSearchParams(window.location.search).get('title');
+    if (urlTitle !== null) {
+      titleOverride = urlTitle;
+      try { localStorage.setItem(TITLE_OVERRIDE_KEY, urlTitle); } catch (e) { /* private-browsing etc - just not remembered */ }
+      return;
+    }
+    try {
+      const saved = localStorage.getItem(TITLE_OVERRIDE_KEY);
+      if (saved !== null) titleOverride = saved;
+    } catch (e) { /* ignore - defaults to "" (server's own name) */ }
+  }
+
+  function saveTitleOverride() {
+    try { localStorage.setItem(TITLE_OVERRIDE_KEY, titleOverride); } catch (e) { /* ignore */ }
+  }
+
+  function renderTitle() {
+    document.getElementById('locationName').textContent = (titleOverride || cfg.locationName) + ' — Incheckning';
   }
 
   // ---------------------------------------------------------- board size -
@@ -215,10 +250,11 @@
   // boardsettings.js (a separate script, loaded after this one - see
   // board.html) is the popup opened by tapping the clock: the coop
   // filter, the manual size adjustment above, the clock's week-format
-  // toggle, and (indirectly, via its own fetches) the theme/background
-  // pickers. It reads/writes THIS file's state through this one small
-  // object rather than each maintaining its own copy - same pattern as
-  // window.BoardPeople for statuspopup.js.
+  // toggle, this screen's own title override, and (indirectly, via its
+  // own fetches) the theme/background pickers. It reads/writes THIS
+  // file's state through this one small object rather than each
+  // maintaining its own copy - same pattern as window.BoardPeople for
+  // statuspopup.js.
   window.BoardSettings = {
     getLocations: allLocations,
     getFilter: () => locationFilter,
@@ -239,6 +275,13 @@
       weekShowYear = !!show;
       saveWeekShowYear();
       fmtClock(); // reflect immediately, don't wait for the 15s tick
+    },
+    getTitleOverride: () => titleOverride,
+    getServerTitle: () => cfg.locationName,
+    setTitleOverride(title) {
+      titleOverride = String(title || '').trim();
+      saveTitleOverride();
+      renderTitle();
     },
   };
 
@@ -511,7 +554,7 @@
       groups.get(key).members.push(p);
     }
 
-    const groupKeys = [...groups.keys()].sort((a, b) => a.localeCompare(b, 'sv'));
+    const groupKeys = [...groups.keys()].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
 
     // Two parallel versions of each department card's HTML: `groupHtml`
     // (real - only people who actually have a status set show a pellet) is
@@ -526,7 +569,7 @@
     const groupEntries = groupKeys.map((key) => {
       const { location, dept, members: raw } = groups.get(key);
       const members = raw.sort((a, b) =>
-        (a.role || '').localeCompare(b.role || '', 'sv') || (a.order - b.order) || a.name.localeCompare(b.name, 'sv')
+        (a.role || '').localeCompare(b.role || '', 'sv', { numeric: true }) || (a.order - b.order) || a.name.localeCompare(b.name, 'sv', { numeric: true })
       );
       const inCount = members.filter((m) => m.status?.checkedIn).length;
 
@@ -642,7 +685,7 @@
   // reads naturally top-to-bottom.
   function buildColumnsHtml(cols, deptHtml) {
     return cols.map((col) => {
-      const deptsInOrder = [...col.depts].sort((a, b) => a.localeCompare(b, 'sv'));
+      const deptsInOrder = [...col.depts].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
       return `<div class="board-col">${deptsInOrder.map((d) => deptHtml.get(d).html).join('')}</div>`;
     }).join('');
   }

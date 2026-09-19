@@ -96,9 +96,10 @@
        Deliberately CLIENT-SIDE ONLY: everything in here is a per-device
        setting that boardsettings.js keeps in this one browser's
        localStorage and never sends to the server (see board.js's
-       window.BoardSettings) - which coop this one screen shows, a
-       manual nudge on this one screen's automatic sizing, and whether its
-       clock's week number includes the disambiguating year digit. Anything
+       window.BoardSettings) - this screen's own title override, which
+       coop this one screen shows, a manual nudge on this one screen's
+       automatic sizing, and whether its clock's week number includes the
+       disambiguating year digit. Anything
        server-wide (theme, background picture, the roster, statuses, ...)
        is deliberately NOT here - that all stays admin-only, behind the
        "Adminsidan" button below and its passcode gate, so a passcode is
@@ -109,6 +110,15 @@
     <div class="popup-card" id="boardSettingsCard">
       <div class="board-settings">
         <h2 class="bs-title">Skärminställningar</h2>
+
+        <section class="bs-section">
+          <h3>Skärmens namn</h3>
+          <p class="bs-hint">Namnet högst upp på den här skärmen, istället för serverns eget. Tomt = använd serverns namn.</p>
+          <div class="bs-title-row">
+            <input type="text" id="bsTitleInput" class="bs-title-input" maxlength="60" />
+            <button type="button" class="ghost-btn small" id="bsTitleReset">Återställ</button>
+          </div>
+        </section>
 
         <section id="bsLocationSection" class="bs-section">
           <h3>Område</h3>

@@ -26,6 +26,25 @@
 .bs-section h3 { margin: 0 0 0.3em 0; font-size: 1.05rem; font-weight: 700; }
 .bs-hint { margin: 0 0 1vh 0; font-size: 0.9rem; color: var(--text-dim); font-weight: 400; }
 
+/* Screen title override (board.js's titleOverride) - a plain text field
+   (free text, unlike every other choice in this popup) plus a reset
+   button to clear it back to the server's own locationName. Styled to
+   match the modal inputs on the admin page (same panel/border/radius)
+   even though this is a different stylesheet - board.html never needed a
+   text input before this. */
+.bs-title-row { display: flex; gap: 0.6em; align-items: center; }
+.bs-title-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 0.7em 1em;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.bs-title-input:focus { outline: none; border-color: var(--accent); }
+
 /* Coop picker: a row of pill buttons rather than a native <select> -
    this whole popup is reached and used by tapping (see the clock button
    that opens it), so touch-friendly buttons fit the rest of the app's

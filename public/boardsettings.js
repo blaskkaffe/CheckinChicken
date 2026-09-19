@@ -1,13 +1,14 @@
 // boardsettings.js — the popup opened by tapping the clock on board.html:
-// which coop this screen shows, a manual nudge on the board's automatic
-// sizing, and whether the clock's week number includes the year digit.
-// Also has a button to the real admin page, doing exactly what the old
-// header gear icon used to.
+// this screen's own title override, which coop it shows, a manual nudge
+// on the board's automatic sizing, and whether the clock's week number
+// includes the year digit. Also has a button to the real admin page,
+// doing exactly what the old header gear icon used to.
 //
 // Deliberately CLIENT-SIDE ONLY, and deliberately reachable with NO
-// passcode. The coop filter, manual size nudge, and week-format choice all
-// live entirely in this one browser's localStorage (see board.js's
-// window.BoardSettings) and never touch the server at all - so there is
+// passcode. The title override, coop filter, manual size nudge, and
+// week-format choice all live entirely in this one browser's localStorage
+// (see board.js's window.BoardSettings) and never touch the server at
+// all - so there is
 // nothing here any other screen could ever be affected by, which is what
 // makes it safe to leave unlocked. The only thing keeping a random person
 // on the board from opening this is not knowing to tap the clock in the
@@ -54,6 +55,19 @@
 
   function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  }
+
+  // -------------------------------------------------------- screen title --
+  // Unlike every other control here, this is a plain text field rather
+  // than a set of pill buttons - so it's a single persistent element (see
+  // board.html) with its own event listeners wired once, further down,
+  // instead of being rebuilt on every open() like renderLocations/
+  // renderWeekFormat above. This just fills in its current value each
+  // time the popup opens - the server's own name shown as the empty-
+  // field placeholder, so leaving it blank clearly reads as "use that".
+  function renderTitle() {
+    $('bsTitleInput').placeholder = window.BoardSettings.getServerTitle();
+    $('bsTitleInput').value = window.BoardSettings.getTitleOverride();
   }
 
   // --------------------------------------------------------- board size --
@@ -110,9 +124,10 @@
   function open() {
     overlay.classList.add('visible');
     idleWatcher && idleWatcher.noteActivity();
-    // All three sections read straight out of localStorage (via
+    // All sections read straight out of localStorage (via
     // window.BoardSettings) - no server round trip needed to open this,
     // unlike admin.js's panels.
+    renderTitle();
     renderLocations();
     renderSize();
     renderWeekFormat();
@@ -133,6 +148,19 @@
   $('bsSizeDown').addEventListener('click', () => { window.BoardSettings.adjustManualScale(-1); renderSize(); });
   $('bsSizeUp').addEventListener('click', () => { window.BoardSettings.adjustManualScale(1); renderSize(); });
   $('bsSizeReset').addEventListener('click', () => { window.BoardSettings.resetManualScale(); renderSize(); });
+
+  // 'change' (fires on blur/Enter), not 'input' - applying on every
+  // keystroke would rewrite the header text mid-typing for no benefit,
+  // since this is a per-device preference nobody else ever sees update
+  // live.
+  $('bsTitleInput').addEventListener('change', () => {
+    window.BoardSettings.setTitleOverride($('bsTitleInput').value);
+    renderTitle(); // re-normalizes (trimmed) value/placeholder into the field
+  });
+  $('bsTitleReset').addEventListener('click', () => {
+    window.BoardSettings.setTitleOverride('');
+    renderTitle();
+  });
 
   // Same navigation the old header gear icon did (theme.js's
   // initConfigButton) - admin.html has its own passcode gate, this is

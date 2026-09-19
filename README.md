@@ -63,7 +63,7 @@ Edit `config.json`. Fields:
 
 | Field | Default | Notes |
 |---|---|---|
-| `locationName` | — | Shown in the server's startup log, and as the board's own title. |
+| `locationName` | — | Shown in the server's startup log, and as the board's own title (unless a screen overrides it for itself — see [Screen settings](#screen-settings)). |
 | `port` | `8080` | |
 | `adminPasscode` | `0000` | Change this. Entered on an on-screen numpad. |
 | `allowNameBrowse` | `true` | Unused (reserved). |
@@ -148,6 +148,8 @@ Same URL for every screen, in every coop. For an unattended kiosk
   overriding `config.json`'s `boardClickToEdit`.
 - `?location=<coop name>` — pin this screen to one coop (see
   [Multiple coops](#multiple-coops)).
+- `?title=<text>` — give this one screen its own header title instead of
+  the server's `locationName` (see [Screen settings](#screen-settings)).
 
 ### 7. Manage people later
 
@@ -309,6 +311,16 @@ year boundary is worth it.
 
 Tap the clock to open a popup with:
 
+- **Skärmens namn** — overrides `locationName` in the header (top-left)
+  for just this one screen/browser, e.g. "Entré Nord" instead of the
+  server's generic name. Handy when several screens share one server
+  (see [Multiple coops](#multiple-coops)) and each should read as its own
+  place rather than all showing the same title. Blank (default) = use the
+  server's own `locationName`. Persisted per-device in `localStorage`
+  (`checkin:titleOverride`); overridable for one tab via `?title=<text>`
+  in the URL (also saves to that device, same as `?location=` above).
+  Doesn't affect `admin.html`'s own title, the server's startup log, or
+  any other screen.
 - **Område** — same coop filter described under
   [Multiple coops](#multiple-coops) above.
 - **Storlek på tavlan** — the manual size nudge described under
@@ -321,9 +333,10 @@ Tap the clock to open a popup with:
   running version (`GET /api/version`, sourced from `package.json`).
 
 Deliberately **client-side only, and deliberately reachable with no
-passcode**. All three settings above are per-device (`localStorage`) and
-never touch the server at all — there is no server-wide state this popup
-can change, which is what makes it safe to leave unlocked. There's no visible
+passcode**. Every setting above is per-device (`localStorage`) and
+never touches the server at all — there is no server-wide state this
+popup can change, which is what makes it safe to leave unlocked. There's
+no visible
 button for it any more either (the board's old header gear icon is gone);
 tapping the clock is the only way in, judged enough of a gate for
 per-device display settings given this app's threat model (a trusted,

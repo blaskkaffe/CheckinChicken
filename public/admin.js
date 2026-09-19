@@ -95,7 +95,7 @@
   // the "Område" field's datalist suggestions (fLocation/locationList),
   // same idea as the existing department datalist just below.
   function locationOptions() {
-    return [...new Set(roster.map((p) => p.location).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv'));
+    return [...new Set(roster.map((p) => p.location).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
   }
 
   // ------------------------------------------------------------- gate ----
@@ -247,10 +247,10 @@
   // board itself groups people in (see board.js's render()).
   function sortedRoster() {
     return [...roster].sort((a, b) =>
-      (a.location || '').localeCompare(b.location || '', 'sv') ||
-      (a.department || '').localeCompare(b.department || '', 'sv') ||
+      (a.location || '').localeCompare(b.location || '', 'sv', { numeric: true }) ||
+      (a.department || '').localeCompare(b.department || '', 'sv', { numeric: true }) ||
       (a.order || 0) - (b.order || 0) ||
-      a.name.localeCompare(b.name, 'sv')
+      a.name.localeCompare(b.name, 'sv', { numeric: true })
     );
   }
 
@@ -332,7 +332,7 @@
       });
     });
 
-    const depts = [...new Set(roster.map((p) => p.department).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv'));
+    const depts = [...new Set(roster.map((p) => p.department).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
     $('deptList').innerHTML = depts.map((d) => `<option value="${esc(d)}"></option>`).join('');
     $('locationList').innerHTML = locationOptions().map((l) => `<option value="${esc(l)}"></option>`).join('');
   }
