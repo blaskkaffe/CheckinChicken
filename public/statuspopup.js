@@ -76,16 +76,22 @@
     // shared.css's .phone-line. In 'hash'/'off' mode the server never even
     // sends the real number (see server.js's publicPerson()), so this is
     // just about what placeholder (if any) to show in its place.
+    //
+    // Only 'off' actually removes the row - that's a site-wide admin
+    // choice that phone numbers never appear here at all, for anyone.
+    // Otherwise the row always stays, even for a person with no phone on
+    // file (a non-breaking space keeps its line height so it still takes
+    // up its usual room) - so this header is always the same 4 lines in
+    // the same order (name, department/role, phone, current status) no
+    // matter which person's card is open, instead of the status line
+    // hopping up a row for anyone without a phone number.
     if (cfg.phoneVisibility === 'off') {
       $('spPhone').style.display = 'none';
-    } else if (cfg.phoneVisibility === 'hash') {
-      $('spPhone').style.display = '';
-      $('spPhone').textContent = 'Telefonnummer dolt';
-    } else if (person.phone) {
-      $('spPhone').style.display = '';
-      $('spPhone').textContent = `☎ ${person.phone}`;
     } else {
-      $('spPhone').style.display = 'none';
+      $('spPhone').style.display = '';
+      if (cfg.phoneVisibility === 'hash') $('spPhone').textContent = 'Telefonnummer dolt';
+      else if (person.phone) $('spPhone').textContent = `☎ ${person.phone}`;
+      else $('spPhone').textContent = ' ';
     }
     $('spCurrent').textContent = currentStatusLabel(person);
     renderStatusGrid($('spStatusGrid'), [...statusDefs.primary, ...statusDefs.secondary], onMenuChoice);
