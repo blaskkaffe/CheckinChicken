@@ -359,12 +359,18 @@ body {
    this box, so it's never a candidate to be pushed onto that second line
    itself. The row-gap half of `gap` below is what used to be
    .person-row-tag's own margin-top, from when the pellet was a separate
-   element below the row rather than just wrapping here. */
+   element below the row rather than just wrapping here - it's a single
+   cqw-based value now (matching column-gap) rather than a separate
+   vh-based one, so the vertical gap above a wrapped pellet and the
+   horizontal gap between avatar/name/dots stay the same physical
+   distance as each other at every column width/scale, instead of two
+   unrelated formulas (one tied to the viewport, one to the column) that
+   only ever matched by coincidence. */
 .person-row-main {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: calc(0.35vh * var(--scale)) calc(1.8cqw * var(--scale));
+  gap: calc(1.8cqw * var(--scale));
   flex: 1 1 auto;
   min-width: 0;
 }
