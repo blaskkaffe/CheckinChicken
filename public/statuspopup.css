@@ -40,12 +40,18 @@
    own width that its label had nowhere left to go and wrapped or
    vanished entirely. Capping each one at what it'd be at the card's own
    max width keeps it scaling down properly on a small/narrow screen
-   (unchanged there) while never overshooting the card's actual size. */
+   (unchanged there) while never overshooting the card's actual size.
+
+   The vertical (vh) side of these rules uses --gap-unit (min(1vw, 1vh),
+   defined on shared.css's html/body) instead of a bare vh, same reason
+   as the rest of the app's spacing fixes: a bare vh value balloons in
+   portrait, which on top of the horizontal cap above would make these
+   dialogs noticeably roomier top/bottom than side to side there. */
 .status-popup {
   display: flex;
   flex-direction: column;
   width: 100%;
-  padding: 4vh min(5vw, 32px) 3vh min(5vw, 32px);
+  padding: calc(4 * var(--gap-unit)) min(5vw, 32px) calc(3 * var(--gap-unit)) min(5vw, 32px);
   overflow: hidden;
 }
 
@@ -82,7 +88,7 @@
   max-width: 480px;
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1.1vh min(1vw, 6px);
+  gap: calc(1.1 * var(--gap-unit)) min(1vw, 6px);
   margin-bottom: 1vh;
   overflow-y: auto;
 }
@@ -90,7 +96,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.6vh min(3vw, 19px);
+  padding: calc(1.6 * var(--gap-unit)) min(3vw, 19px);
   border-radius: 12px;
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -198,7 +204,7 @@
    fill more than they need to. */
 #sp-screen-note .text-display { width: 100%; max-width: 480px; }
 .text-display {
-  padding: 1.2vh min(1vw, 6px);
+  padding: calc(1.2 * var(--gap-unit)) min(1vw, 6px);
   border-radius: var(--radius);
   background: var(--panel-2);
   border: 1px solid var(--border);

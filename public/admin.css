@@ -210,19 +210,26 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
    growing past 460px wide. Not as visibly broken here as the status
    popup was (there's no fixed-column button grid to squeeze), but the
    same fix keeps it from wasting steadily more space as pure padding on
-   a wide monitor for no benefit. */
+   a wide monitor for no benefit.
+
+   The vertical (vh) side of this and every other padding/gap below uses
+   --gap-unit (min(1vw, 1vh), defined on shared.css's html/body - see its
+   comment) instead of a bare vh, for the same reason as the rest of the
+   app's already-fixed spacing: a bare vh value balloons in portrait, so
+   without this these dialogs would be noticeably roomier top/bottom than
+   side to side there, on top of the already-capped horizontal side. */
 .modal {
   position: relative;
   background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
   box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
-  padding: 3vh min(3vw, 14px); width: min(460px, 90vw); max-height: 90vh; overflow-y: auto;
+  padding: calc(3 * var(--gap-unit)) min(3vw, 14px); width: min(460px, 90vw); max-height: 90vh; overflow-y: auto;
   display: flex; flex-direction: column; gap: 1.2vh;
 }
 .modal h2 { font-size: var(--fs-lg); }
 .modal label { display: flex; flex-direction: column; gap: 0.4vh; font-size: var(--fs-base); color: var(--text-dim); }
 .modal input[type=text], .modal input[type=password], .modal input[type=tel] {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
-  padding: 1vh min(1vw, 5px); color: var(--text); font-size: var(--fs-md);
+  padding: calc(1 * var(--gap-unit)) min(1vw, 5px); color: var(--text); font-size: var(--fs-md);
 }
 .modal input[type=text]:disabled { color: var(--text-dim); }
 .modal input[type=text]:focus, .modal input[type=tel]:focus, .modal select:focus {
@@ -295,7 +302,7 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
 .color-row input[type=text] { flex: 1; }
 .modal select {
   background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
-  padding: 1vh min(1vw, 5px); color: var(--text); font-size: var(--fs-md);
+  padding: calc(1 * var(--gap-unit)) min(1vw, 5px); color: var(--text); font-size: var(--fs-md);
 }
 
 .field-label { font-size: var(--fs-base); color: var(--text-dim); margin-top: 0.4vh; }
