@@ -19,7 +19,7 @@ body {
 
 /* Just three items now - the title, the clock (now a tappable button that
    opens the board-settings popup - see boardsettings.js/.css), and the
-   rarely-shown "reconnecting" pill. The building dropdown and the gear
+   rarely-shown "reconnecting" pill. The coop dropdown and the gear
    icon that both used to live here are gone - moved INTO that popup, along
    with the size/theme pickers it adds (see README's "Screen settings") -
    so there's far less competing for room than before, and the title/clock
@@ -223,9 +223,9 @@ body {
   min-width: 0;
 }
 
-/* Which building this card belongs to - only rendered at all when "Alla
-   byggnader" is selected AND more than one building is actually in use
-   (see board.js's render()/showLocationLabels), so a single-building
+/* Which coop this card belongs to - only rendered at all when "Alla
+   Coops" is selected AND more than one coop is actually in use
+   (see board.js's render()/showLocationLabels), so a single-coop
    install/view looks exactly like it always has, no empty label line. One
    level "louder" than .role-label below it (accent color, not just dim
    text) since it's the top of the location → department → role → name

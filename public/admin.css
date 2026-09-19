@@ -16,7 +16,7 @@ html, body { height: 100%; overflow-y: auto; }
   --gap-unit: min(1vw, 1vh);
   /* Capped like the modal below (min(Npx, Nvw)) rather than a bare fixed
      1000px - a little extra breathing room on a wide screen so the
-     roster/status tables have room to keep names/buildings on one line
+     roster/status tables have room to keep names/coops on one line
      instead of wrapping (see table.roster below), while a narrow screen
      still gets the full width it needs. */
   max-width: min(1180px, 96vw);
@@ -167,7 +167,7 @@ table.roster th, table.roster td {
   border-bottom: 1px solid var(--border);
   font-size: var(--fs-base);
   /* Readable line spacing for a cell that wraps to two lines (a long
-     name, or "Byggnad B") - single-line cells are unaffected, but a
+     name, or "Coop B") - single-line cells are unaffected, but a
      wrapped one no longer reads as two cramped lines touching each
      other. */
   line-height: 1.4;

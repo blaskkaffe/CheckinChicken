@@ -7,7 +7,7 @@
 // in people.json) since a full-screen picture is a lot bigger, and this
 // avoids bloating a JSON file that's rewritten on every save.
 //
-// One set of pictures, shared by every screen and building (same as
+// One set of pictures, shared by every screen and coop (same as
 // theme.js/statuses.js).
 
 const fs = require('fs');

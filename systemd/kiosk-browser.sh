@@ -3,8 +3,8 @@
 # machine's check-in board. There's only one page (board.html serves as
 # both the display and, if this device is touchable, the input too - see
 # README.md's "Setup") so this script just needs to know which server to
-# point at - the same one server for every screen, in every building
-# (see README's "Multiple buildings").
+# point at - the same one server for every screen, in every coop
+# (see README's "Multiple coops").
 #
 # Usage:
 #   ./kiosk-browser.sh                    # server on THIS machine, default port 8080
@@ -20,14 +20,14 @@
 #   ./kiosk-browser.sh 192.168.1.20:8080 on    # this device: always touchable
 #
 # Optional third argument: pin this device to always show one specific
-# building, regardless of what's remembered locally in the browser (see
-# README's "Multiple buildings") - handy for a wall-mounted
-# screen you always want showing e.g. just "Byggnad A". Leave it out to
-# let the board's own on-page building picker decide, as normal. Spell it
+# coop, regardless of what's remembered locally in the browser (see
+# README's "Multiple coops") - handy for a wall-mounted
+# screen you always want showing e.g. just "Coop A". Leave it out to
+# let the board's own on-page coop picker decide, as normal. Spell it
 # EXACTLY as it appears on the admin page - stick to letters, numbers,
 # spaces and hyphens (this gets used as-is in a URL, so avoid characters
 # like & or # that mean something there).
-#   ./kiosk-browser.sh 192.168.1.20:8080 off "Byggnad A"
+#   ./kiosk-browser.sh 192.168.1.20:8080 off "Coop A"
 #
 # Add this to your desktop autostart (see README.md) so it comes back up
 # automatically after a reboot or power cut.

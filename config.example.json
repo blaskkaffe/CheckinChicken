@@ -1,5 +1,5 @@
 {
-  "_comment": "Copy this file to config.json and edit the values below. One server handles every screen and every building - see README's 'Multiple buildings'.",
+  "_comment": "Copy this file to config.json and edit the values below. One server handles every screen and every coop - see README's 'Multiple coops'.",
 
   "locationName": "Huvudkontoret",
 

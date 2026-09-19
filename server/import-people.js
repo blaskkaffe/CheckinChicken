@@ -5,11 +5,11 @@
 //
 //   node server/import-people.js path/to/people.csv
 //
-// Existing people are matched by NAME + DEPARTMENT + LOCATION (building)
+// Existing people are matched by NAME + DEPARTMENT + LOCATION (coop)
 // and updated in place (their current status, photo, and check-in state
 // are kept). New people are added. Nothing is ever deleted by this
 // script. Run it again any time you add hires or move someone between
-// buildings - it's safe to re-run.
+// coops - it's safe to re-run.
 //
 // Lines starting with # (blank lines too) are ignored, so the template can
 // carry its own inline notes.
@@ -35,7 +35,7 @@ if (fs.existsSync(dataFile)) {
 // Stable identity: people are keyed on location + department + name, the
 // things a person filling in the CSV actually controls. If two different
 // people happen to share the exact same name within the same department
-// and building, they'll collide onto one id - rename one of them in the
+// and coop, they'll collide onto one id - rename one of them in the
 // CSV (e.g. add a last initial) to tell them apart.
 function slug(s) {
   return String(s || '')
@@ -51,7 +51,7 @@ const byKey = new Map(existing.map((r) => [slug(r.location) + '|' + slug(r.depar
 
 // A CSV boolean cell: "1"/"true"/"yes"/"x" (any case) count as checked,
 // anything else (including blank) is false - matches the admin page's
-// "Visa bara i sin egen byggnad" checkbox (restrictToLocation).
+// "Visa bara i sin egen coop" checkbox (restrictToLocation).
 function parseBool(s) {
   return ['1', 'true', 'yes', 'ja', 'x'].includes(String(s || '').trim().toLowerCase());
 }

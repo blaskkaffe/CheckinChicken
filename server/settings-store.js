@@ -3,7 +3,7 @@
 // from config.json the first time a server starts (same pattern as
 // theme-store.js/status-store.js) - after that this file is the source of
 // truth, so admin edits persist across restarts and code updates. Shared
-// by every screen and building.
+// by every screen and coop.
 
 const fs = require('fs');
 const path = require('path');

@@ -3,7 +3,7 @@
 // admin.html. Also owns the optional per-theme background picture (see
 // server/background-store.js) and the "open admin" gear button.
 //
-// The theme is a server-wide setting, shared by every screen and building
+// The theme is a server-wide setting, shared by every screen and coop
 // (set from the admin page's Utseende tab, or seeded once from
 // config.json's `theme` field - see server/theme-store.js) and pushed live
 // to every open tab over the existing SSE stream, the same way an edited

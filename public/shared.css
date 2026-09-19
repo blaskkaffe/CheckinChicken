@@ -3,7 +3,7 @@
    on <html> (see public/theme.js). This is a server-wide setting - picked
    from the admin page's Utseende tab, or seeded once from config.json's
    `theme` field - not a per-device preference, so it's the SAME on every
-   board/admin tab, in every building, and updates them live. See
+   board/admin tab, in every coop, and updates them live. See
    server/themes.js for the full list of theme ids and how
    to add a new one; each one needs a block below with a matching id.
    With no theme.json on disk yet (very first boot), :root's own values

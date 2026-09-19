@@ -4,10 +4,10 @@
 // stream for instant push updates to every open tab.
 //
 // One server, one roster, any number of screens/browsers pointed at it -
-// including screens in more than one building, distinguished by each
-// person's own `location` field (see the admin page's "Byggnad" field and
+// including screens in more than one coop, distinguished by each
+// person's own `location` field (see the admin page's "Coop" field and
 // board.js's visible()/render()) rather than by running a separate server
-// per building.
+// per coop.
 
 const http = require('http');
 const fs = require('fs');
@@ -447,17 +447,17 @@ const server = http.createServer(async (req, res) => {
         const body = await readBody(req);
         const id = body.id || nextId();
         const existing = store.getById(id) || {};
-        // location = which building/site this person belongs to - free
+        // location = which coop/site this person belongs to - free
         // text, same as department (see board.js's render(), which groups
         // and sorts the board by location, then department, then role,
         // then name). Blank by default; a blank person just doesn't show
-        // up when a screen is filtered to one specific building (see
+        // up when a screen is filtered to one specific coop (see
         // "restrictToLocation" below and board.js's visible()), but still
-        // shows under "Alla byggnader".
+        // shows under "Alla Coops".
         const location = body.location !== undefined ? String(body.location).trim() : (existing.location ?? '');
         // restrictToLocation = "only ever show this person on their OWN
-        // building's filtered board view - hide them from every other
-        // building's view AND from the combined 'all buildings' view too".
+        // coop's filtered board view - hide them from every other
+        // coop's view AND from the combined 'all coops' view too".
         // Off by default - everyone shows everywhere, same as before this
         // feature existed.
         const restrictToLocation = body.restrictToLocation !== undefined ? !!body.restrictToLocation : !!existing.restrictToLocation;
@@ -487,7 +487,7 @@ const server = http.createServer(async (req, res) => {
           return sendJson(res, 400, { error: 'phone number looks too long' });
         }
         if (record.location && record.location.length > 60) {
-          return sendJson(res, 400, { error: 'byggnadens namn ser för långt ut' });
+          return sendJson(res, 400, { error: 'coopens namn ser för långt ut' });
         }
         store.applyLocal(id, record);
         return sendJson(res, 200, store.getById(id));

@@ -4,7 +4,7 @@
 // the source of truth, so admin edits persist across restarts and code
 // updates.
 //
-// One status list, shared by every screen and building - edited from the
+// One status list, shared by every screen and coop - edited from the
 // admin page's "Statusar" tab. See README.md.
 //
 // Every status is a plain click/tap button on the status popup, all in one

@@ -1,10 +1,10 @@
 // boardsettings.js — the popup opened by tapping the clock on board.html:
-// which building this screen shows, and a manual nudge on the board's
+// which coop this screen shows, and a manual nudge on the board's
 // automatic sizing. Also has a button to the real admin page, doing
 // exactly what the old header gear icon used to.
 //
 // Deliberately CLIENT-SIDE ONLY, and deliberately reachable with NO
-// passcode. The building filter and manual size nudge both live entirely
+// passcode. The coop filter and manual size nudge both live entirely
 // in this one browser's localStorage (see board.js's window.BoardSettings)
 // and never touch the server at all - so there is nothing here any other
 // screen could ever be affected by, which is what makes it safe to leave
@@ -28,7 +28,7 @@
   const card = $('boardSettingsCard');
   const clockBtn = document.getElementById('clock');
 
-  // ----------------------------------------------------- building filter -
+  // ----------------------------------------------------- coop filter -
   function renderLocations() {
     const locations = window.BoardSettings.getLocations();
     const filter = window.BoardSettings.getFilter();
@@ -39,7 +39,7 @@
       return;
     }
     $('bsLocationSection').style.display = '';
-    const items = [{ value: '', label: 'Alla byggnader' }, ...locations.map((l) => ({ value: l, label: l }))];
+    const items = [{ value: '', label: 'Alla Coops' }, ...locations.map((l) => ({ value: l, label: l }))];
     $('bsLocations').innerHTML = items.map((it) =>
       `<button type="button" class="bs-choice ${it.value === filter ? 'active' : ''}" data-loc="${esc(it.value)}">${esc(it.label)}</button>`
     ).join('');

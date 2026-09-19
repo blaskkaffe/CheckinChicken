@@ -4,7 +4,7 @@
   let people = new Map(); // id -> person
   let cfg = {};
   let boardClickToEdit = true;
-  // '' = "Alla byggnader" (all buildings, no filter); otherwise an exact
+  // '' = "Alla Coops" (all coops, no filter); otherwise an exact
   // match against a person's `location` field. See loadLocationFilter()
   // below and window.BoardSettings (read/written by the board-settings
   // popup - boardsettings.js).
@@ -99,14 +99,14 @@
     document.dispatchEvent(new CustomEvent('checkin:config', { detail: cfg }));
   }
 
-  // --------------------------------------------------- building filter ---
-  // Which building this ONE screen shows - "" (Alla byggnader) by default,
-  // or one exact `location` value to show just that building. This is a
+  // --------------------------------------------------- coop filter ---
+  // Which coop this ONE screen shows - "" (Alla Coops) by default,
+  // or one exact `location` value to show just that coop. This is a
   // per-DEVICE choice, not a server setting: it's remembered locally (so a
   // kiosk tab keeps showing what it was last set to across reloads) and
   // can be overridden for one tab via ?location=<name> in the URL (handy
-  // for a wall-mounted screen you always want pinned to one building - see
-  // README's "Multiple buildings").
+  // for a wall-mounted screen you always want pinned to one coop - see
+  // README's "Multiple coops").
   const LOCATION_FILTER_KEY = 'checkin:locationFilter';
 
   function loadLocationFilter() {
@@ -119,7 +119,7 @@
     try {
       const saved = localStorage.getItem(LOCATION_FILTER_KEY);
       if (saved !== null) locationFilter = saved;
-    } catch (e) { /* ignore - defaults to "" (all buildings) */ }
+    } catch (e) { /* ignore - defaults to "" (all coops) */ }
   }
 
   function saveLocationFilter() {
@@ -127,7 +127,7 @@
   }
 
   // Distinct, non-blank `location` values currently among ACTIVE people,
-  // sorted - both what fills the board-settings popup's building list
+  // sorted - both what fills the board-settings popup's coop list
   // (boardsettings.js's renderLocations(), via window.BoardSettings below)
   // and what decides whether it's worth showing at all.
   function allLocations() {
@@ -140,7 +140,7 @@
     return [...set].sort((a, b) => a.localeCompare(b, 'sv'));
   }
 
-  // If a previously-picked building no longer exists (renamed/removed),
+  // If a previously-picked coop no longer exists (renamed/removed),
   // fall back to "all" rather than silently filtering everyone out. Used
   // to live inside the header dropdown's own render function; now that the
   // picker itself lives in the board-settings popup (boardsettings.js -
@@ -193,7 +193,7 @@
 
   // ---------------------------------------------- board-settings popup API
   // boardsettings.js (a separate script, loaded after this one - see
-  // board.html) is the popup opened by tapping the clock: the building
+  // board.html) is the popup opened by tapping the clock: the coop
   // filter, the manual size adjustment above, and (indirectly, via its own
   // fetches) the theme/background pickers. It reads/writes THIS file's
   // state through this one small object rather than each maintaining its
@@ -431,16 +431,16 @@
     </div>`;
   }
 
-  // Whether `p` shows up on THIS screen, given the current building filter
-  // (locationFilter - "" means "Alla byggnader"/no filter):
+  // Whether `p` shows up on THIS screen, given the current coop filter
+  // (locationFilter - "" means "Alla Coops"/no filter):
   //  - Normally (restrictToLocation off, the default): shown whenever the
   //    filter is "all", or matches their own `location`.
   //  - restrictToLocation on (the admin page's "Visa bara i sin egen
-  //    byggnad" checkbox): shown ONLY when the filter is their own exact
-  //    building - never under "Alla byggnader", never under a different
-  //    building's filter. This is for someone who'd otherwise just be
+  //    coop" checkbox): shown ONLY when the filter is their own exact
+  //    coop - never under "Alla Coops", never under a different
+  //    coop's filter. This is for someone who'd otherwise just be
   //    noise on the combined view (e.g. a warehouse-only role) - they
-  //    still show normally on their own building's screens.
+  //    still show normally on their own coop's screens.
   function visible(p) {
     if (p.active === false) return false;
     const loc = (p.location || '').trim();
@@ -458,18 +458,18 @@
       return;
     }
 
-    // Show a small "which building" label on each card, above the
+    // Show a small "which coop" label on each card, above the
     // department name, only when it actually adds information: several
-    // buildings are in play AND this view spans more than one of them
-    // (i.e. "Alla byggnader" is selected). Filtered to one specific
-    // building, every card would show that exact same label - pure noise,
-    // so it's left off, same as today's single-building look.
+    // coops are in play AND this view spans more than one of them
+    // (i.e. "Alla Coops" is selected). Filtered to one specific
+    // coop, every card would show that exact same label - pure noise,
+    // so it's left off, same as today's single-coop look.
     const showLocationLabels = !locationFilter && allLocations().length > 1;
 
     // Cards are grouped by (location, department) rather than department
-    // alone, so two buildings that happen to share a department name (e.g.
+    // alone, so two coops that happen to share a department name (e.g.
     // both have a "Reception") get their own separate cards rather than
-    // being merged - see README's "Multiple buildings".
+    // being merged - see README's "Multiple coops".
     const groups = new Map(); // "location\u0001department" -> { location, dept, members }
     for (const p of active) {
       const location = (p.location || '').trim();
@@ -518,7 +518,7 @@
       `).join('');
 
       const locationHtml = showLocationLabels
-        ? `<div class="dept-location">${esc(location || 'Ej tilldelad byggnad')}</div>`
+        ? `<div class="dept-location">${esc(location || 'Ej tilldelad coop')}</div>`
         : '';
       const headerHtml = `<h2><span class="dept-name">${esc(dept)}</span><span class="count">${inCount}/${members.length} inne</span></h2>`;
 
@@ -537,7 +537,7 @@
   // Cards are keyed by "location\u0001department" (see render() above) -
   // this function itself doesn't care what the keys mean, just their
   // rendered HTML and how to sort them for display, so a card being a
-  // building+department pair instead of a bare department "just works"
+  // coop+department pair instead of a bare department "just works"
   // here unchanged.
   //
   // Column COUNT is chosen by actually trying every count from 1 up to

@@ -14,7 +14,7 @@
 <body>
   <!-- No more standing gear icon here - tap the clock to open the
        board-settings popup below (see boardsettings.js), which the
-       building filter/board size live in - both per-device, never
+       coop filter/board size live in - both per-device, never
        touching the server (see board.js's window.BoardSettings) - plus a
        button to the real, passcode-gated admin page (the old gear icon's
        exact job), where every server-wide setting (theme, background,
@@ -96,7 +96,7 @@
        Deliberately CLIENT-SIDE ONLY: everything in here is a per-device
        setting that boardsettings.js keeps in this one browser's
        localStorage and never sends to the server (see board.js's
-       window.BoardSettings) - which building this one screen shows, and a
+       window.BoardSettings) - which coop this one screen shows, and a
        manual nudge on this one screen's automatic sizing. Anything
        server-wide (theme, background picture, the roster, statuses, ...)
        is deliberately NOT here - that all stays admin-only, behind the
@@ -110,8 +110,8 @@
         <h2 class="bs-title">Skärminställningar</h2>
 
         <section id="bsLocationSection" class="bs-section">
-          <h3>Byggnad</h3>
-          <p class="bs-hint">Vilken byggnad den här skärmen visar.</p>
+          <h3>Coop</h3>
+          <p class="bs-hint">Vilken coop den här skärmen visar.</p>
           <div class="bs-choices" id="bsLocations"></div>
         </section>
 

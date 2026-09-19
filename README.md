@@ -6,13 +6,13 @@
 
 Offline, LAN-only check-in board. One Node.js server, no external
 dependencies, no database, no internet access required. Any number of
-screens and buildings connect to the same server.
+screens and coops connect to the same server.
 
 ## Screenshots
 
 | Board | Status popup | Admin roster |
 |---|---|---|
-| ![Board view with a 70-person roster across three buildings, mixed IN/OUT and status pellets](docs/screenshots/board.png) | ![Status popup with all status options](docs/screenshots/status-popup.png) | ![Admin roster editor showing a large roster](docs/screenshots/admin-roster.png) |
+| ![Board view with a 70-person roster across three coops, mixed IN/OUT and status pellets](docs/screenshots/board.png) | ![Status popup with all status options](docs/screenshots/status-popup.png) | ![Admin roster editor showing a large roster](docs/screenshots/admin-roster.png) |
 
 ## Requirements
 
@@ -30,7 +30,7 @@ npm run dev
 
 Starts one server on `localhost:9100`, seeded from
 `server/people.template.csv` (sample roster split across two sample
-buildings). Admin passcode: `1234`. Data is written to `dev-data/`
+coops). Admin passcode: `1234`. Data is written to `dev-data/`
 (delete it to reset). `Ctrl+C` to stop.
 
 `board.html` — the board — and `admin.html` — roster/settings — are the
@@ -73,8 +73,8 @@ Edit `config.json`. Fields:
 | `popupIdleTimeoutMs` | `300000` | Seeds `data/settings.json` on first boot only. |
 | `onscreenKeyboardAdmin` | `false` | Seeds `data/settings.json` on first boot only. |
 
-Buildings are not configured here — see
-[Multiple buildings](#multiple-buildings).
+Coops are not configured here — see
+[Multiple coops](#multiple-coops).
 
 Config is read once, at startup. Changing `config.json` requires a
 restart (`theme`, `popupIdleTimeoutMs`, `onscreenKeyboardAdmin` are
@@ -88,8 +88,9 @@ Edit `server/people.template.csv`. Columns:
 name,department,role,phone,location,restrictToLocation
 ```
 
-`name` and `department` are required. `location` is the building name
-(free text, e.g. `Byggnad A`); leave blank if unused.
+`name` and `department` are required. `location` is the coop name
+(free text, e.g. `Coop A`) — see [Multiple coops](#multiple-coops) for
+what a "coop" can represent; leave blank if unused.
 `restrictToLocation`: `1`/`true`/`yes`/`ja`/`x` = checked, anything else =
 unchecked.
 
@@ -97,7 +98,7 @@ unchecked.
 node server/import-people.js server/people.template.csv
 ```
 
-Matches existing people by name + department + building; updates them in
+Matches existing people by name + department + coop; updates them in
 place (status and photo are kept). Never deletes anyone. Safe to re-run.
 
 This writes directly to `data/people.json`. **The running server does not
@@ -137,15 +138,15 @@ Edit the `WorkingDirectory`/`User` in `checkinchicken.service` first.
 http://<server-ip>:8080/board.html
 ```
 
-Same URL for every screen, in every building. For an unattended kiosk
+Same URL for every screen, in every coop. For an unattended kiosk
 (fullscreen, no address bar, restarts on reboot), use
 `systemd/kiosk-browser.sh` and `systemd/checkin-kiosk-autostart.desktop`
 (see comments in those files). Optional URL params:
 
 - `?input=off` / `?input=on` — force this one screen non-touch / touch,
   overriding `config.json`'s `boardClickToEdit`.
-- `?location=<building name>` — pin this screen to one building (see
-  [Multiple buildings](#multiple-buildings)).
+- `?location=<coop name>` — pin this screen to one coop (see
+  [Multiple coops](#multiple-coops)).
 
 ### 7. Manage people later
 
@@ -155,8 +156,8 @@ out, and can be reactivated). Edits apply to every open screen
 immediately — no restart needed (this path goes through the live server,
 unlike CSV import in step 4).
 
-Roster table sort order: building, department, `order`, name. ▲/▼
-reorders within the same building + department.
+Roster table sort order: coop, department, `order`, name. ▲/▼
+reorders within the same coop + department.
 
 Both the passcode screen and the admin page have a back-arrow button
 (top corner) that returns to the board.
@@ -167,7 +168,7 @@ Both the passcode screen and the admin page have a back-arrow button
 
 | File | Contents |
 |---|---|
-| `people.json` | Roster + live status, all buildings. |
+| `people.json` | Roster + live status, all coops. |
 | `statuses.json` | Status menu (admin "Statusar" tab). |
 | `theme.json` | Current appearance theme. |
 | `settings.json` | Popup idle timeout, admin on-screen-keyboard toggle. |
@@ -197,23 +198,29 @@ popup per `phoneVisibility`:
 Optional per-person field, set from the admin page. Resized client-side
 to a small square before upload. No photo → colored circle with initials.
 
-### Multiple buildings
+### Multiple coops
 
-- **Field**: `location` (free text, e.g. `Byggnad A`) on each person, set
-  from the admin page or CSV import. Blank = no building.
-- **Sort order**: building → department → role → name, on both the board
+"Coop" is just this app's name for whatever top-level group you're
+splitting people into above department — a building, a floor, a site,
+or any other physical location. Use whichever fits: a school might use
+one coop per floor, a company with several offices one coop per office,
+a single-site team none at all.
+
+- **Field**: `location` (free text, e.g. `Coop A`) on each person, set
+  from the admin page or CSV import. Blank = no coop.
+- **Sort order**: coop → department → role → name, on both the board
   and the admin roster table.
-- **Board filter**: "Alla byggnader" (all) or one building, picked from
+- **Board filter**: "Alla Coops" (all) or one coop, picked from
   the board's screen-settings popup (tap the clock — see
   [Screen settings](#screen-settings)). Persisted per-device in
   `localStorage` (`checkin:locationFilter`). Hidden there if fewer than 2
-  buildings are in use. Overridable with `?location=<name>` in the URL
+  coops are in use. Overridable with `?location=<name>` in the URL
   (also saves to that device).
 - **`restrictToLocation`** checkbox (admin page, per person): when set,
-  this person is shown only when their own building is the selected
-  filter — hidden from every other building's view and from "Alla
-  byggnader". Unset (default): shown everywhere, grouped under their
-  building.
+  this person is shown only when their own coop is the selected
+  filter — hidden from every other coop's view and from "Alla
+  Coops". Unset (default): shown everywhere, grouped under their
+  coop.
 
 ### Statuses (admin "Statusar" tab)
 
@@ -239,12 +246,12 @@ to a small square before upload. No photo → colored circle with initials.
 - A status can't be deleted while assigned to someone.
 - Internal code is generated from the label at creation and does not
   change on rename.
-- Shared across every screen and building; no per-location copy.
+- Shared across every screen and coop; no per-location copy.
 - `server/statuses.js` seeds `data/statuses.json` on first boot only.
 
 ### Appearance theme (admin "Utseende" tab)
 
-Shared across every screen and building. Built in: `dark` (Mörkt,
+Shared across every screen and coop. Built in: `dark` (Mörkt,
 default), `light` (Ljust), `christmas` (Jul, includes a snow effect).
 `config.json`'s `theme` field only seeds `data/theme.json` on first boot.
 
@@ -294,8 +301,8 @@ week number, same format used by the `Vecka` status kind — see
 
 Tap the clock to open a popup with:
 
-- **Byggnad** — same building filter described under
-  [Multiple buildings](#multiple-buildings) above.
+- **Coop** — same coop filter described under
+  [Multiple coops](#multiple-coops) above.
 - **Storlek på tavlan** — the manual size nudge described under
   [Board layout](#board-layout) above.
 - A button to the real admin page (`admin.html`), which still has its own

@@ -1,7 +1,7 @@
 // theme-store.js — which appearance theme every board/admin page currently
 // shows. Backed by data/theme.json, the same "plain JSON file this one
 // server writes to" pattern as store.js (people) and status-store.js
-// (statuses). One value, shared by every screen and building - see
+// (statuses). One value, shared by every screen and coop - see
 // README's "Appearance theme".
 
 const fs = require('fs');
