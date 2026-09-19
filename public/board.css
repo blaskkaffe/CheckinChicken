@@ -3,7 +3,19 @@
    didn't use, however tall the header actually renders (see the .board
    comment below for why that used to be guessed instead of measured). */
 html, body { height: 100%; }
-body { display: flex; flex-direction: column; }
+/* --gap-unit lives here (on body), not on .board below, specifically so
+   .hdr can use it too - .hdr and .board are SIBLINGS (both direct
+   children of body, per the comment just below), so a custom property
+   defined only inside .board's own rule would never inherit into .hdr.
+   See .board's own comment on --gap-unit for what it actually does and
+   why (the short version: min(1vw, 1vh) is "whichever of the two is
+   smaller", which reads as the same physical distance regardless of
+   orientation, unlike a bare vh or vw value on its own). */
+body {
+  display: flex;
+  flex-direction: column;
+  --gap-unit: min(1vw, 1vh);
+}
 
 /* Just three items now - the title, the clock (now a tappable button that
    opens the board-settings popup - see boardsettings.js/.css), and the
@@ -40,11 +52,19 @@ body { display: flex; flex-direction: column; }
 .hdr {
   display: flex;
   align-items: center;
-  padding: 1.2vh 2vw;
+  /* Top/bottom padding and row-gap use --gap-unit (min(1vw, 1vh), see
+     body's own comment) instead of a bare vh - the exact same "a bare vh
+     value looks fine in landscape but balloons in portrait" problem this
+     rule's own comment above already explains for the title/clock font
+     sizes, just not yet applied to the header's own padding. Left/right
+     padding and column-gap stay plain vw on purpose, same as .board's
+     own padding - it's fine, even desirable, for those to widen on a
+     landscape screen's extra horizontal room. */
+  padding: calc(1.2 * var(--gap-unit)) 2vw;
   border-bottom: 1px solid var(--border);
   background: var(--panel);
   flex-wrap: nowrap;
-  gap: 0.6vh 1.2vw;
+  gap: calc(0.6 * var(--gap-unit)) 1.2vw;
   flex: none; /* always its own natural height, never stretched or squeezed by the flex column above */
 }
 .hdr h1 {
@@ -106,8 +126,12 @@ body { display: flex; flex-direction: column; }
    (flex: 1 1 auto) - always exactly right, however tall the header is. */
 .board {
   --scale: 1;
-  /* The gap BETWEEN department cards (column-to-column here, card-to-card
-     in .board-col below) is deliberately the same physical distance in
+  /* --gap-unit itself is defined on body now, not here (see body's own
+     comment) - so it can be shared with .hdr, a sibling of .board rather
+     than a descendant of it. Everywhere below still just uses it via
+     var(--gap-unit), inherited down from body same as before - the gap
+     BETWEEN department cards (column-to-column here, card-to-card in
+     .board-col below) is deliberately the same physical distance in
      both directions - min(1vw, 1vh) is whichever of the two is smaller,
      so on a wide/landscape screen (vw > vh) it's vh-sized, and on a
      tall/portrait screen (vh > vw) it's vw-sized. Without this, a plain
@@ -115,7 +139,6 @@ body { display: flex; flex-direction: column; }
      on orientation (much wider gaps between columns than between cards
      in landscape, and the reverse in portrait) even though both are
      meant to be "the same small gap between two cards". */
-  --gap-unit: min(1vw, 1vh);
   /* Ceiling for the single largest piece of board text (the department
      name, .dept h2 .dept-name below) - the exact same expression as
      .hdr h1's own font-size above, so the department name can never
