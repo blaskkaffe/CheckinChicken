@@ -253,7 +253,17 @@ body { display: flex; flex-direction: column; }
    left plain (not tinted red/grey - "not here" shouldn't read as
    "something's wrong", just as the default, unhighlighted state). */
 .person-row.in { background: var(--badge-in-bg); border-left-color: var(--green); }
-.person-row.in:nth-child(odd) { background: var(--badge-in-bg); }
+/* Same odd/even alternation as the plain rows above, just layered ON TOP
+   of the green tint instead of replacing it: --row-alt is already a
+   subtle, theme-aware translucent wash designed to sit over any
+   background, so stacking it as a second background layer over
+   --badge-in-bg nudges odd checked-in rows a little lighter/darker than
+   even ones, the same small amount neighboring plain rows already differ
+   by - rather than leaving every checked-in row exactly the same flat
+   green with no alternation at all. */
+.person-row.in:nth-child(odd) {
+  background: linear-gradient(var(--row-alt), var(--row-alt)), var(--badge-in-bg);
+}
 
 .avatar-sm {
   width: var(--avatar-size);
@@ -261,30 +271,47 @@ body { display: flex; flex-direction: column; }
   font-size: min(calc(3.6cqw * var(--scale)), calc(var(--cap) * 0.545));
 }
 
-/* avatar, name, the plupp dots, the INNE/UTE badge, and (when there's a
-   status set) the tag are all just items in this one flex-wrap row now -
-   nothing here decides where the tag goes, that falls out of ordinary
-   flex wrapping given each row's actual rendered width (see .badge's
-   margin-left:auto and .person-name's own comment below for how). A
-   short row with room to spare wraps nothing - the tag lands right after
-   the badge, on the same line. A tight row (a long name, or a narrow
-   column) wraps the tag alone onto its own line underneath, same as
-   before - the row-gap half of `gap` below is what used to be
-   .person-row-tag's own margin-top. */
+/* Two flex ITEMS, not one wrapping row: .person-row-main (below) on the
+   left, and the badge on the right - see personRowHtml's own comment for
+   why splitting them like this is what keeps the badge pinned in place.
+   align-items:flex-start (not center) is what pins the badge to the TOP
+   - i.e. the same line as the avatar/name - rather than letting it drift
+   toward the vertical center once .person-row-main wraps onto a second
+   line for the tag; .person-row-main's own line(s) are already exactly
+   avatar-size tall (nothing in it is ever taller than the avatar), so
+   this looks identical to plain centering whenever there's no second
+   line to speak of. */
 .person-row-top {
+  display: flex;
+  align-items: flex-start;
+  gap: calc(1.8cqw * var(--scale));
+}
+
+/* avatar, name, the plupp dots, and (when there's a status set) the tag -
+   this is the part that's allowed to wrap. flex:1 1 auto claims whatever
+   width the OUTER row (.person-row-top) doesn't give to the badge, which
+   is exactly the space this needs to lay itself out and decide, on its
+   own, whether the tag fits after the name on line one or has to wrap
+   to a line two underneath - the badge is a sibling, entirely outside
+   this box, so it's never a candidate to be pushed onto that second line
+   itself. The row-gap half of `gap` below is what used to be
+   .person-row-tag's own margin-top, from when the tag was a separate
+   element below the row rather than just wrapping here. */
+.person-row-main {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
   gap: calc(0.35vh * var(--scale)) calc(1.8cqw * var(--scale));
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 /* No longer flex:1 - that used to force the name to always fill every
-   last pixel between the avatar and the badge, which is exactly what left
-   no room for a tag to ever sit inline next to the badge. Sized to its
-   own content instead (flex-grow:0), so a short name leaves real spare
-   space on the line for the badge - and the tag, wrapped or not - to use;
-   a long name still shrinks (flex-shrink:1) and ellipsizes exactly as
-   before once the row actually runs out of room. */
+   last pixel of .person-row-main, which is exactly what left no room for
+   a tag to ever sit inline next to it. Sized to its own content instead
+   (flex-grow:0), so a short name leaves real spare space on the line for
+   the tag to use; a long name still shrinks (flex-shrink:1) and
+   ellipsizes exactly as before once the row actually runs out of room. */
 .person-name {
   flex: 0 1 auto;
   min-width: 0;
@@ -329,15 +356,13 @@ body { display: flex; flex-direction: column; }
   padding: 0 calc(2.2cqw * var(--scale));
   border-radius: 999px;
   white-space: nowrap;
+  /* No margin-left:auto needed to pin this flush right any more - it's
+     simply the second (non-growing) flex item in .person-row-top, next
+     to .person-row-main which claims all the rest of the width (see
+     .person-row-top's own comment). That's also what makes it immovable:
+     there's no flex-wrap on .person-row-top itself for this to ever drop
+     out of. */
   flex: none;
-  /* Pins the badge (and, when there's room for it too, the tag right
-     after it - see .person-row-top's comment) to the right edge of
-     whichever flex LINE it ends up on: with the name no longer forcing
-     itself to fill the whole row (see .person-name), this is what still
-     keeps INNE/UTE flush right, exactly as before, on a short name with
-     no tag. auto margins only ever soak up space on their OWN line, so
-     this still works correctly whether the tag wrapped away or not. */
-  margin-left: auto;
 }
 .badge.in { background: var(--green); color: #06170e; }
 .badge.out { background: var(--badge-out-bg); color: var(--badge-out-fg); }

@@ -406,19 +406,27 @@
     // .person-row.in / .person-row.out in board.css), so status reads at a
     // glance from across a room without having to find and read the pill.
     //
-    // The tag is now just the LAST item in person-row-top itself, not a
-    // separate line below - board.css's flex-wrap lays it out right next
-    // to the INNE/UTE badge when there's room on that line, or wraps it
-    // down to its own line (still indented under the same row) when
-    // there isn't. No JS decides which; it falls out of ordinary flex
-    // wrapping given each row's actual rendered width.
+    // .person-row-top is TWO flex items, not one wrapping row: the badge
+    // on its own, and everything else (avatar, name, dots, tag) boxed up
+    // in .person-row-main next to it. Because the badge sits OUTSIDE
+    // .person-row-main's own flex-wrap, it can never be pushed down onto
+    // a second line the way a plain "everything in one wrapping row"
+    // layout would - it always stays put, pinned top-right, exactly where
+    // it's always been. The tag is the last thing inside .person-row-main,
+    // so it lands right before the badge (same line) when there's room, or
+    // wraps to its own line underneath - alongside avatar/name, never
+    // alongside the badge - when there isn't. No JS decides which; it
+    // falls out of ordinary flex wrapping given each row's actual
+    // rendered width (see board.css for both pieces).
     return `<div class="person-row ${checkedIn ? 'in' : 'out'}" data-id="${esc(p.id)}">
       <div class="person-row-top">
-        ${window.avatarHtml(p, 'avatar-sm')}
-        <span class="person-name">${esc(p.name)}</span>
-        ${pluppHtml}
+        <div class="person-row-main">
+          ${window.avatarHtml(p, 'avatar-sm')}
+          <span class="person-name">${esc(p.name)}</span>
+          ${pluppHtml}
+          ${tagHtml}
+        </div>
         ${primaryBadge}
-        ${tagHtml}
       </div>
     </div>`;
   }
