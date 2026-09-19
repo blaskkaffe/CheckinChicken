@@ -224,7 +224,7 @@ to a small square before upload. No photo → colored circle with initials.
   board's own clock — see [Screen settings](#screen-settings) below.
 - **Prefix** (time/date only, optional): prepended to the entered value,
   e.g. `Semester` with prefix `tillbaka` and week `V645` reads "Semester
-  · tillbaka V645" on the popup and the board tag (or "tillbaka 24/12" if
+  · tillbaka V645" on the popup and the board pellet (or "tillbaka 24/12" if
   a day was picked instead).
 - A status can't be deleted while assigned to someone.
 - Internal code is generated from the label at creation and does not

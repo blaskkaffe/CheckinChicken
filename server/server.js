@@ -420,7 +420,7 @@ const server = http.createServer(async (req, res) => {
       // `secondaryCode` that isn't one this server actually knows about
       // (rather than silently storing arbitrary text a stale tab, or a
       // hand-crafted request, happened to send - it would just show as a
-      // blank tag forever, per the `if (def)` guards in board.js/
+      // blank pellet forever, per the `if (def)` guards in board.js/
       // statuspopup.js, which is confusing and needless), and cap
       // `detail`/`note` to a sane length so a bad client can't slowly
       // bloat data/people.json (see the similar `phone` length cap and

@@ -218,7 +218,7 @@
   // ------------------------------------------------------- click to edit -
   // Tap a person's INNE/UTE badge to toggle it directly - the single most
   // common action, one tap, no menu. Tap anywhere else in their row (name,
-  // photo, the secondary status tag, or just blank space in the row) opens
+  // photo, the secondary status pellet, or just blank space in the row) opens
   // their full status popup (statuspopup.js) - the whole row is one big
   // tap target, not just the name/photo, so it's easy to hit on a
   // touchscreen. Only truly blank space outside any row (the empty-board
@@ -336,7 +336,7 @@
     return (def ? def.label : (code === 'IN' ? 'Inne' : 'Ute')).toUpperCase();
   }
 
-  // The single widest tag this server could ever show - the longest
+  // The single widest pellet this server could ever show - the longest
   // label, plus a representative detail string for whichever kind of
   // detail that status takes (a time, a date/week, or a note), among all
   // currently configured secondary statuses. Used only to stand in for
@@ -344,13 +344,13 @@
   // personRowHtml's `forMeasurement` and renderBalancedColumns/
   // fitToScreen below) - never actually shown. Picking the single widest
   // one rather than, say, an average, means the measurement never
-  // UNDERESTIMATES a row's worst-case width - the real tag actually
+  // UNDERESTIMATES a row's worst-case width - the real pellet actually
   // shown later (if any) is always this wide or narrower, so basing
   // layout decisions on it is safe in the "never overflow" direction.
   // Recomputed fresh each call (statusDefs.secondary is at most a
   // few dozen entries - cheap) so it stays current if the admin page
   // edits the status list.
-  function measurementTagHtml() {
+  function measurementPelletHtml() {
     if (!statusDefs.secondary.length) return '';
     let best = null;
     let bestLen = -1;
@@ -365,15 +365,15 @@
     }
     const { def, detail } = best;
     const textColor = readableTextOn(def.color);
-    return `<span class="tag" style="background:${def.color};color:${textColor}">${esc(def.label)}${detail ? `<span class="detail">· ${esc(detail)}</span>` : ''}</span>`;
+    return `<span class="pellet" style="background:${def.color};color:${textColor}">${esc(def.label)}${detail ? `<span class="detail">· ${esc(detail)}</span>` : ''}</span>`;
   }
 
   // `forMeasurement`: used only by the sizing pass (see renderBalancedColumns/
-  // fitToScreen) to stand in a representative tag for anyone who doesn't
+  // fitToScreen) to stand in a representative pellet for anyone who doesn't
   // currently have a status set, so the board is sized as if every row
-  // might carry one - see measurementTagHtml's own comment for why. The
+  // might carry one - see measurementPelletHtml's own comment for why. The
   // actually-displayed HTML (forMeasurement left off/false) is completely
-  // unaffected - someone with no status set still shows no tag.
+  // unaffected - someone with no status set still shows no pellet.
   function personRowHtml(p, opts) {
     const forMeasurement = !!(opts && opts.forMeasurement);
     const checkedIn = !!p.status?.checkedIn;
@@ -384,22 +384,22 @@
     // dots (0-3, set per-status on the admin page's "Statusar" tab - see
     // server/status-store.js): a plain, undefined-meaning flag like
     // PLUPP1/PLUPP2 started out as. It still renders as a normal colored
-    // tag like every other status (below), but ALSO gets this many small
+    // pellet like every other status (below), but ALSO gets this many small
     // red dots right next to the name, so it reads at a glance from
-    // across the room without needing to read the tag text.
+    // across the room without needing to read the pellet text.
     const statusDef = p.status?.secondary ? secondaryByCode.get(p.status.secondary) : null;
     const pluppCount = statusDef?.dots || 0;
     const pluppHtml = pluppCount
       ? `<span class="plupp-dots" aria-hidden="true">${'●'.repeat(pluppCount)}</span>`
       : '';
 
-    let tagHtml = '';
+    let pelletHtml = '';
     if (statusDef) {
       const detail = p.status.detail || p.status.note || '';
       const textColor = readableTextOn(statusDef.color);
-      tagHtml = `<span class="tag" style="background:${statusDef.color};color:${textColor}">${esc(statusDef.label)}${detail ? `<span class="detail">· ${esc(detail)}</span>` : ''}</span>`;
+      pelletHtml = `<span class="pellet" style="background:${statusDef.color};color:${textColor}">${esc(statusDef.label)}${detail ? `<span class="detail">· ${esc(detail)}</span>` : ''}</span>`;
     } else if (forMeasurement) {
-      tagHtml = measurementTagHtml();
+      pelletHtml = measurementPelletHtml();
     }
 
     // The whole row - not just the small badge - tints by IN/OUT (see
@@ -407,12 +407,12 @@
     // glance from across a room without having to find and read the pill.
     //
     // .person-row-top is TWO flex items, not one wrapping row: the badge
-    // on its own, and everything else (avatar, name, dots, tag) boxed up
+    // on its own, and everything else (avatar, name, dots, pellet) boxed up
     // in .person-row-main next to it. Because the badge sits OUTSIDE
     // .person-row-main's own flex-wrap, it can never be pushed down onto
     // a second line the way a plain "everything in one wrapping row"
     // layout would - it always stays put, pinned top-right, exactly where
-    // it's always been. The tag is the last thing inside .person-row-main,
+    // it's always been. The pellet is the last thing inside .person-row-main,
     // so it lands right before the badge (same line) when there's room, or
     // wraps to its own line underneath - alongside avatar/name, never
     // alongside the badge - when there isn't. No JS decides which; it
@@ -424,7 +424,7 @@
           ${window.avatarHtml(p, 'avatar-sm')}
           <span class="person-name">${esc(p.name)}</span>
           ${pluppHtml}
-          ${tagHtml}
+          ${pelletHtml}
         </div>
         ${primaryBadge}
       </div>
@@ -487,9 +487,9 @@
     const groupKeys = [...groups.keys()].sort((a, b) => a.localeCompare(b, 'sv'));
 
     // Two parallel versions of each department card's HTML: `groupHtml`
-    // (real - only people who actually have a status set show a tag) is
+    // (real - only people who actually have a status set show a pellet) is
     // what actually gets displayed. `groupHtmlForMeasurement` stands a
-    // representative tag (see measurementTagHtml) in for EVERYONE who
+    // representative pellet (see measurementPelletHtml) in for EVERYONE who
     // doesn't currently have one, and is used ONLY to decide how much
     // room to give the board (see renderBalancedColumns/fitToScreen) -
     // sizing the board as if every row might carry a status, rather than
@@ -652,7 +652,7 @@
   // `deptHtml` is only ever used here to size things (both the weights
   // below and every candidate's trial render) - it's meant to be the
   // MEASUREMENT map (every row assumed to carry a representative status
-  // tag - see measurementTagHtml/personRowHtml's `forMeasurement`), not
+  // pellet - see measurementPelletHtml/personRowHtml's `forMeasurement`), not
   // the real one, so the chosen column count and scale reflect a stable
   // "as if everyone had a status" worst case rather than however many
   // people happen to have one set right now. The caller (render(), via
@@ -817,8 +817,8 @@
     scale = findWidthSafeScale(scale);
 
     // ---- phase 2: swap in the REAL content at that scale ----
-    // A representative measurement tag is always at least as wide as any
-    // real one (see measurementTagHtml), so this is normally just a
+    // A representative measurement pellet is always at least as wide as any
+    // real one (see measurementPelletHtml), so this is normally just a
     // straight swap with nothing left to correct - but the same safety
     // passes run again anyway, against the real content this time, so an
     // unusually long hand-typed note (server.js allows up to 200

@@ -18,7 +18,7 @@
 // top of whatever IN/OUT already was, same as FYS or Kommer sent.
 //
 // dots: 1-3 puts that many small red dots next to the person's name on the
-// board, in ADDITION to the normal colored tag - see PLUPP1/PLUPP2 below.
+// board, in ADDITION to the normal colored pellet - see PLUPP1/PLUPP2 below.
 // Deliberately open-ended: this system doesn't define what one or two dots
 // mean, that's for whoever's using it to decide between themselves. Leave
 // it out for a status that shouldn't show dots.
@@ -37,7 +37,7 @@ const SECONDARY = [
   { code: 'LATE', label: 'Kommer sent', color: '#f4a261', needsTime: true },
   { code: 'EARLY_LEAVE', label: 'Går tidigare', color: '#f4a261', needsTime: true },
   // detailPrefix: prepended to the entered date before it's stored, so the
-  // board tag and the popup's own "current status" line both read as a
+  // board pellet and the popup's own "current status" line both read as a
   // sentence ("Tjänsteresa · tillbaka 24/12") instead of a bare date. See
   // chooseSecondary()/detailSubmit() in statuspopup.js. A needsDate status
   // isn't limited to a single day, either - the popup itself offers a
