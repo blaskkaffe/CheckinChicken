@@ -169,12 +169,33 @@
     }
   }
 
+  // saveModal()/move() each POST a change and then re-fetch the roster
+  // themselves - but that POST also makes the server broadcast a 'person'
+  // SSE event back to this same tab, whose handler below does the exact
+  // same re-fetch independently. So one edit can have two
+  // /api/admin/people requests in flight from this tab at once, and
+  // network responses aren't guaranteed to resolve in the order they were
+  // sent - if a second edit lands in that window, the slower of the two
+  // could finish last and briefly repaint the table with the OLDER state.
+  // rosterFetchSeq guards against that: each refresh claims the next
+  // number, and a response only gets applied if nothing newer has started
+  // in the meantime - a stale response is just dropped, since whichever
+  // fetch is newest already reflects everything it would have shown.
+  let rosterFetchSeq = 0;
+  async function refreshRoster() {
+    const seq = ++rosterFetchSeq;
+    const next = await api('/api/admin/people');
+    if (seq !== rosterFetchSeq) return;
+    roster = next;
+    renderRoster();
+  }
+
   function connectEvents() {
     const es = new EventSource('/api/events');
     es.addEventListener('person', async () => {
       // Re-fetch (the public /api/people endpoint the board uses omits
       // some admin-only bookkeeping) so this table never drifts stale.
-      try { roster = await api('/api/admin/people'); renderRoster(); } catch (e) {}
+      try { await refreshRoster(); } catch (e) {}
     });
     // Someone (maybe this same admin page in another tab) edited the
     // status menu - keep this page's copy from going stale too. Also
@@ -248,8 +269,7 @@
     try {
       await api('/api/admin/people', { method: 'POST', body: JSON.stringify({ ...stripStatus(a), order: bOrder }) });
       await api('/api/admin/people', { method: 'POST', body: JSON.stringify({ ...stripStatus(b), order: aOrder }) });
-      roster = await api('/api/admin/people');
-      renderRoster();
+      await refreshRoster();
     } catch (e) { /* ignore - a failed reorder just leaves things as they were */ }
   }
 
@@ -358,8 +378,7 @@
 
     try {
       await api('/api/admin/people', { method: 'POST', body: JSON.stringify(payload) });
-      roster = await api('/api/admin/people');
-      renderRoster();
+      await refreshRoster();
       closeModal();
     } catch (e) {
       $('modalError').textContent = e.message;
