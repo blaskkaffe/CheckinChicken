@@ -99,12 +99,18 @@ html, body { height: 100%; overflow-y: auto; }
   border-radius: 50%;
   background: var(--panel-2);
   border: 1px solid var(--border);
-  font-size: var(--fs-lg);
+  /* Bigger than the shared --fs-lg token on purpose - this is the one
+     numpad in the app meant to be readable/tappable at a glance from a
+     normal standing distance, so it gets its own larger, viewport-based
+     size instead of reusing the page's regular type scale. Still a
+     clamp() like every other --fs-* token, so it doesn't run away on a
+     huge screen or shrink below readable on a small one. */
+  font-size: clamp(1.8rem, 4.5vh, 2.6rem);
   font-weight: 600;
   color: var(--text);
 }
 .gate-modal .keypad button:active { background: var(--accent); color: #06101f; }
-.gate-modal .keypad button.key-star, .gate-modal .keypad button.key-hash { font-size: var(--fs-md); color: var(--text-dim); }
+.gate-modal .keypad button.key-star, .gate-modal .keypad button.key-hash { font-size: clamp(1.6rem, 4vh, 2.3rem); color: var(--text-dim); }
 
 .dim { color: var(--text-dim); }
 .dim.small { font-size: var(--fs-base); }
