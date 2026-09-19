@@ -137,7 +137,19 @@ body { display: flex; flex-direction: column; }
   --cap: max(1.05rem, min(2.7vh, 1.7vw));
   flex: 1 1 auto;
   min-height: 0; /* let it actually shrink to the remaining space instead of the flex default of never going below its content's natural height */
-  padding: calc(1.6vh * var(--scale)) calc(1.6vw * var(--scale));
+  /* Top/bottom padding uses --gap-unit (see its own comment just above)
+     rather than a bare 1.6vh, for exactly the same reason: a bare vh
+     value is small in landscape (vh is the short dimension there) but
+     balloons in portrait (vh becomes the TALL dimension), so the board
+     used to visibly float further down from the header on a portrait
+     screen than a landscape one for no real reason - the same "plain vh
+     reads as two different distances" problem --gap-unit was already
+     built to solve, just not yet applied here too. min(1vw, 1vh) keeps
+     it pinned to whichever is smaller in either orientation, so it's
+     always the compact, landscape-like amount. Left/right padding stays
+     plain 1.6vw on purpose - it's fine, even desirable, for that to
+     widen on a landscape screen's extra horizontal room. */
+  padding: calc(1.6 * var(--gap-unit) * var(--scale)) calc(1.6vw * var(--scale));
   display: flex;
   flex-direction: row;
   align-items: flex-start;
