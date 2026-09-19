@@ -1,6 +1,9 @@
 (() => {
   let passcode = '';
   let gateBuffer = '';
+  // Blocks a second, overlapping tryEnter() call while one is already
+  // in flight - see tryEnter's own comment for why that matters.
+  let entering = false;
   let roster = [];
   let editingId = null;
   let cfg = {};
@@ -123,7 +126,19 @@
     });
   }
 
+  // The ✓ key is the only way in now (see admin.html's gate comment), but
+  // it's still one tap on a touchscreen, and this whole function is a long
+  // chain of awaited fetches - a second tap (or the keyboard event firing
+  // twice) before the first call has finished would run a second copy of
+  // all of it in parallel, opening a second SSE connection (connectEvents)
+  // and a second on-screen-keyboard instance per field (wireOnscreenKeyboards)
+  // that nothing ever tears down. `entering` just blocks that: set the
+  // moment a call starts, cleared in every exit path (success clears it
+  // implicitly by never needing another attempt in this session; the catch
+  // block below clears it explicitly so a mistyped code can be retried).
   async function tryEnter() {
+    if (entering) return;
+    entering = true;
     passcode = gateBuffer;
     try {
       roster = await api('/api/admin/people');
@@ -144,6 +159,7 @@
       $('gateError').textContent = 'Fel kod.';
       gateBuffer = '';
       renderGateDots();
+      entering = false;
     }
   }
 
@@ -665,7 +681,6 @@
 
   buildGateKeypad();
   renderGateDots();
-  $('gateSubmit').addEventListener('click', tryEnter);
   // Same popup chrome as every other dialog (round close button + idle
   // auto-close) - both just take you back to the board, since there's
   // nothing part-way-through to preserve on a login screen.

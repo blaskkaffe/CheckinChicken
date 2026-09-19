@@ -17,14 +17,18 @@
          rather than a plain inline page. Closing it (the round X, wired up
          in admin.js next to the other two modals) or leaving it idle too
          long both just go back to the board - there's no in-progress admin
-         state to preserve here, unlike the add/edit dialogs. -->
+         state to preserve here, unlike the add/edit dialogs.
+
+         No separate "Logga in" submit button any more - the keypad's own
+         ✓ key (built in admin.js's buildGateKeypad) already submits, so a
+         second button doing the exact same thing was just one more way to
+         double-fire tryEnter() (see its own re-entry guard in admin.js). -->
     <div id="gate" class="modal-backdrop">
       <div class="modal gate-modal">
         <h1>Admin</h1>
         <p class="dim">Ange adminkoden (den som är satt i config.json)</p>
         <div class="pin-dots" id="gatePinDots"></div>
         <div class="keypad" id="gateKeypad"></div>
-        <button class="primary-btn" id="gateSubmit">Logga in</button>
         <p id="gateError" class="error"></p>
       </div>
     </div>
