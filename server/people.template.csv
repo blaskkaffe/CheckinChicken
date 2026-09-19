@@ -1,0 +1,27 @@
+# server/people.template.csv - copy this to people.csv and fill in your
+# own roster, then run: node server/import-people.js people.csv
+#
+# name, department: required.
+# role, phone: optional, shown on the board / status popup.
+# location: optional - building name (e.g. "Byggnad A"). Blank = no
+#   building. See README's "Multiple buildings".
+# restrictToLocation: optional - 1/true/yes/ja/x = only show this person
+#   when their own building is the selected board filter (hidden from
+#   every other building and from "all buildings"). Blank = shows
+#   everywhere.
+#
+# Re-running this import is safe - matches existing people by name +
+# department + location, updates in place, never deletes.
+#
+# The running server does NOT reload this file automatically - restart
+# it after importing, or later admin-page edits will overwrite your
+# import.
+name,department,role,phone,location,restrictToLocation
+Anna Svensson,Kök,Kökschef,070-123 45 67,Byggnad A,
+Erik Lindqvist,Kök,Kock,,Byggnad A,
+Maria Johansson,Kök,Köksbiträde,,Byggnad A,
+Johan Karlsson,Servering,Chef,070-234 56 78,Byggnad A,
+Sara Nilsson,Servering,Servitör,,Byggnad A,
+Oskar Berg,Servering,Servitör,,Byggnad A,
+Lena Petersson,Lager,Lagerchef,,Byggnad B,
+David Olsson,Lager,Truckförare,,Byggnad B,

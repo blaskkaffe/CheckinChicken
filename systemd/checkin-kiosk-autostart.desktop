@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Application
+Name=Check-in Board Browser
+Exec=/home/pi/checkin-system/systemd/kiosk-browser.sh
+X-GNOME-Autostart-enabled=true
+
+# --- Install (Raspberry Pi OS / most Linux desktops) ---
+#   mkdir -p ~/.config/autostart
+#   cp checkin-kiosk-autostart.desktop ~/.config/autostart/
+#   Edit the Exec= line above:
+#     - fix the path to wherever you copied checkin-system
+#     - if the server isn't on this same machine (e.g. this is a separate
+#       touch input device, or a display-only TV), add its address:
+#       .../kiosk-browser.sh 192.168.1.20:8080
+#     - to pin this one screen to always show a single building, see
+#       kiosk-browser.sh's own comment for its optional third argument
+#
+# The browser will now relaunch fullscreen automatically every time this
+# machine boots or the user auto-logs back in after a power cut.

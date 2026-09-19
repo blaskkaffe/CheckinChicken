@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>Incheckningstavla</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="/shared.css" />
+<link rel="stylesheet" href="/board.css" />
+<link rel="stylesheet" href="/statuspopup.css" />
+<link rel="stylesheet" href="/boardsettings.css" />
+<script src="/theme.js"></script>
+</head>
+<body>
+  <!-- No more standing gear icon here - tap the clock to open the
+       board-settings popup below (see boardsettings.js), which the
+       building filter/board size live in - both per-device, never
+       touching the server (see board.js's window.BoardSettings) - plus a
+       button to the real, passcode-gated admin page (the old gear icon's
+       exact job), where every server-wide setting (theme, background,
+       roster, ...) lives instead. Deliberate: only someone who already
+       knows to tap the clock changes any of this - see README's "Screen
+       settings". -->
+  <header class="hdr">
+    <h1 id="locationName">Incheckningstavla</h1>
+    <button type="button" id="clock" class="clock" aria-label="Öppna skärminställningar"></button>
+    <!-- Hidden unless the live connection to this server actually drops
+         (see board.js's connectEvents()) - there's no peer any more to
+         be "in sync" with, just this one connection. -->
+    <span id="connPill" class="conn-pill down" style="display:none"><span class="dot"></span><span id="connLabel"></span></span>
+  </header>
+
+  <main id="board" class="board"></main>
+
+  <!-- Status popup: appears when a person's row is tapped on the board
+       above - tapping their INNE/UTE badge instead toggles it directly
+       with no popup at all. See board.js's wireClickToEdit and
+       statuspopup.js. There is no separate kiosk page any more: a second,
+       dedicated touch input device just loads this same board.html too
+       (see README's "Setup") - tapping a card there opens this
+       exact popup, and the change shows up on every other open board
+       instantly over the existing live-update stream. -->
+  <div id="statusPopup" class="popup-overlay">
+    <div class="popup-backdrop"></div>
+    <div class="popup-card" id="statusPopupCard">
+      <div class="status-popup">
+
+        <!-- MAIN: every status button for the selected person, one screen -->
+        <section id="sp-screen-menu" class="sp-screen active">
+          <div class="person-header">
+            <div id="spAvatar" class="avatar-slot"></div>
+            <div class="person-header-name" id="spName">—</div>
+            <div class="person-header-sub" id="spSub">—</div>
+            <div class="phone-line" id="spPhone"></div>
+            <div class="person-header-current" id="spCurrent"></div>
+          </div>
+          <div class="status-grid" id="spStatusGrid"></div>
+        </section>
+
+        <!-- DETAIL: time or date, for a status that needs one -->
+        <section id="sp-screen-detail" class="sp-screen">
+          <div class="person-header">
+            <div class="person-header-name" id="spDetailPrompt">Ange tid</div>
+          </div>
+          <div id="spDetailInput"></div>
+          <div class="detail-actions">
+            <button class="primary-btn" id="spDetailSkip">Klar</button>
+            <button class="ghost-btn" id="spDetailBack">Tillbaka</button>
+          </div>
+        </section>
+
+        <!-- NOTE: free text, for a status that needs one (uses the shared
+             on-screen keyboard - see keyboard.js) -->
+        <section id="sp-screen-note" class="sp-screen">
+          <div class="person-header">
+            <div class="person-header-name">Lägg till en kort anteckning</div>
+          </div>
+          <input id="spNoteInput" class="text-display" readonly />
+          <div class="detail-actions">
+            <button class="primary-btn" id="spNoteSubmit">Spara</button>
+            <button class="ghost-btn" id="spNoteBack">Tillbaka</button>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Board-settings popup: opened by tapping the clock in the header above
+       (see boardsettings.js) rather than a standing gear icon - "only
+       someone who manages the screen should be changing this, and the
+       clock is an obvious enough thing to tap once you know" (see README's
+       "Screen settings"). Same generic .popup-overlay/.popup-backdrop/
+       .popup-card shell as the status popup above (statuspopup.css).
+
+       Deliberately CLIENT-SIDE ONLY: everything in here is a per-device
+       setting that boardsettings.js keeps in this one browser's
+       localStorage and never sends to the server (see board.js's
+       window.BoardSettings) - which building this one screen shows, and a
+       manual nudge on this one screen's automatic sizing. Anything
+       server-wide (theme, background picture, the roster, statuses, ...)
+       is deliberately NOT here - that all stays admin-only, behind the
+       "Adminsidan" button below and its passcode gate, so a passcode is
+       always required before any setting that would change what every
+       other screen shows too. -->
+  <div id="boardSettings" class="popup-overlay">
+    <div class="popup-backdrop"></div>
+    <div class="popup-card" id="boardSettingsCard">
+      <div class="board-settings">
+        <h2 class="bs-title">Skärminställningar</h2>
+
+        <section id="bsLocationSection" class="bs-section">
+          <h3>Byggnad</h3>
+          <p class="bs-hint">Vilken byggnad den här skärmen visar.</p>
+          <div class="bs-choices" id="bsLocations"></div>
+        </section>
+
+        <section class="bs-section">
+          <h3>Storlek på tavlan</h3>
+          <p class="bs-hint">Om automatiken inte träffar rätt - justera för hand.</p>
+          <div class="bs-stepper">
+            <button type="button" class="bs-step" id="bsSizeDown" aria-label="Mindre">−</button>
+            <span class="bs-readout" id="bsSizeReadout">100%</span>
+            <button type="button" class="bs-step" id="bsSizeUp" aria-label="Större">+</button>
+            <button type="button" class="ghost-btn small" id="bsSizeReset">Auto</button>
+          </div>
+        </section>
+
+        <section class="bs-section bs-admin-section">
+          <p class="bs-hint bs-admin-hint">Tema, bakgrundsbild, personal med mera ändras på adminsidan.</p>
+          <!-- Same navigation the old header gear icon did (theme.js's
+               initConfigButton) - see boardsettings.js. admin.html has its
+               own passcode gate; this is just the shortcut there. -->
+          <button type="button" class="ghost-btn" id="bsAdminBtn">Adminsidan →</button>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="/avatar.js"></script>
+  <script src="/popup.js"></script>
+  <script src="/keyboard.js"></script>
+  <script src="/timepicker.js"></script>
+  <script src="/board.js"></script>
+  <script src="/boardsettings.js"></script>
+  <script src="/statuspopup.js"></script>
+</body>
+</html>

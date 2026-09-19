@@ -1,0 +1,4 @@
+data/
+dev-data/
+node_modules/
+*.log

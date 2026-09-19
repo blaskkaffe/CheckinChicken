@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Incheckning – Admin</title>
+<link rel="icon" href="data:," />
+<link rel="stylesheet" href="/shared.css" />
+<link rel="stylesheet" href="/admin.css" />
+<script src="/theme.js"></script>
+</head>
+<body>
+  <div class="admin">
+
+    <!-- Login gate, styled as a popup (same modal-backdrop/modal shell as
+         every other dialog in the app - see admin.css's .gate-modal comment)
+         rather than a plain inline page. Closing it (the round X, wired up
+         in admin.js next to the other two modals) or leaving it idle too
+         long both just go back to the board - there's no in-progress admin
+         state to preserve here, unlike the add/edit dialogs. -->
+    <div id="gate" class="modal-backdrop">
+      <div class="modal gate-modal">
+        <h1>Admin</h1>
+        <p class="dim">Ange adminkoden (den som är satt i config.json)</p>
+        <div class="pin-dots" id="gatePinDots"></div>
+        <div class="keypad" id="gateKeypad"></div>
+        <button class="primary-btn" id="gateSubmit">Logga in</button>
+        <p id="gateError" class="error"></p>
+      </div>
+    </div>
+
+    <section id="main" class="main" style="display:none">
+      <header class="a-hdr">
+        <h1 id="aLocationName">Personallista</h1>
+        <!-- Back to the board - see theme.js's initExitButton (same pattern
+             as the board's own gear "open admin" shortcut, mirrored). -->
+        <button class="icon-btn" id="exitBtn" type="button"></button>
+      </header>
+
+      <nav class="tab-row">
+        <button type="button" class="tab-btn active" id="tabPeople">Personal</button>
+        <button type="button" class="tab-btn" id="tabStatuses">Statusar</button>
+        <button type="button" class="tab-btn" id="tabAppearance">Utseende</button>
+        <button type="button" class="tab-btn" id="tabSettings">Inställningar</button>
+      </nav>
+
+      <section id="peoplePanel">
+        <p class="dim small">
+          Ska du lägga till många personer på en gång? Det går snabbare att fylla i <code>server/people.template.csv</code> och köra
+          <code>node server/import-people.js din-fil.csv</code> på den här servern, och sedan starta om den. Den här sidan är till för enstaka ändringar (ny anställd, någon som slutar).
+        </p>
+        <p class="dim small">
+          Ordningen nedan (använd pilarna för att flytta någon upp eller ner inom sin avdelning) styr bara i vilken ordning personer visas inom sin avdelning/roll på tavlan.
+        </p>
+
+        <button class="ghost-btn" id="addBtn">+ Lägg till person</button>
+
+        <div class="table-scroll">
+          <table class="roster">
+            <thead>
+              <tr><th></th><th></th><th>Namn</th><th>Byggnad</th><th>Avdelning</th><th>Roll</th><th>Status</th><th></th></tr>
+            </thead>
+            <tbody id="rosterBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="statusesPanel" style="display:none">
+        <p class="dim small">
+          Detta styr vad som går att välja på statuspopupen (och hur det visas
+          på tavlan). Ändringar gäller direkt på alla redan öppna adminsidor
+          och tavlor.
+        </p>
+
+        <h2>Inne / Ute</h2>
+        <div class="table-scroll">
+          <table class="roster status-roster" id="primaryTable">
+            <thead><tr><th></th><th>Namn</th><th></th></tr></thead>
+            <tbody id="primaryBody"></tbody>
+          </table>
+        </div>
+
+        <h2>Statusar <span class="dim small">(max 16 - visas som en lista på statuspopupen, under Inne/Ute)</span></h2>
+        <button class="ghost-btn" id="addStatusBtn">+ Lägg till status</button>
+        <div class="table-scroll">
+          <table class="roster status-roster" id="statusTableEl">
+            <thead><tr><th></th><th></th><th>Namn</th><th>Extra</th><th>Frånvarande</th><th>Prickar</th><th></th></tr></thead>
+            <tbody id="statusBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section id="appearancePanel" style="display:none">
+        <p class="dim small">
+          Väljer utseendet för tavlan och den här adminsidan på
+          <b id="aThemeLocationName">den här platsen</b> - ett delat tema för
+          alla skärmar, i alla byggnader. Ändringen gäller direkt på alla
+          redan öppna sidor, ingen omladdning behövs.
+        </p>
+
+        <div class="settings-card-row">
+          <div class="settings-card">
+            <h2>Tema</h2>
+            <label>Tema<select id="themeSelect"></select></label>
+            <p id="themeError" class="error"></p>
+          </div>
+
+          <div class="settings-card">
+            <h2>Bakgrundsbild <span class="dim small">för temat "<span id="aBgThemeLabel"></span>"</span></h2>
+            <p class="dim small">Visas bakom personkorten på tavlan. Varje tema kan ha sin egen bakgrundsbild - byt tema ovan för att sätta en för ett annat tema.</p>
+            <div class="photo-row">
+              <div class="bg-preview" id="bgPreview"></div>
+              <div class="photo-row-actions">
+                <label for="bgInput" class="sr-only">Välj bakgrundsbild</label>
+                <input id="bgInput" type="file" accept="image/*" />
+                <button type="button" class="ghost-btn small" id="bgRemove">Ta bort bakgrundsbild</button>
+              </div>
+            </div>
+            <label>Opacitet <input id="bgOpacity" type="range" min="0" max="1" step="0.05" value="0.35" /></label>
+            <p id="bgError" class="error"></p>
+          </div>
+        </div>
+      </section>
+
+      <section id="settingsPanel" style="display:none">
+        <div class="settings-card-row">
+          <div class="settings-card">
+            <h2>Popup-fönster</h2>
+            <p class="dim small">Statuspopupen (och adminsidans egna dialogrutor) stänger sig själva efter en stund utan aktivitet.</p>
+            <label>Stäng automatiskt efter (minuter)<input id="sIdleMinutes" type="number" min="1" max="60" step="1" /></label>
+            <label class="checkbox-label"><input id="sOnscreenKbAdmin" type="checkbox" /> Visa skärmtangentbord även på den här adminsidan (annars: fysiskt tangentbord antas)</label>
+            <p class="dim small">
+              Tryck på klockan uppe till höger på tavlan för att öppna skärminställningar - byggnad att visa och tavlans storlek, utan adminkod. Allt annat, inklusive tema och bakgrundsbild, ändras bara härifrån med adminkoden som vanligt.
+            </p>
+            <button class="primary-btn" id="settingsSave">Spara</button>
+            <p id="settingsError" class="error"></p>
+          </div>
+
+          <div class="settings-card">
+            <h2>Systemklocka</h2>
+            <p class="dim small">
+              Sätter den här maskinens systemklocka - användbart för en server utan
+              internetuppkoppling (ingen NTP) vars klocka har börjat dra iväg.
+              Kräver att serverprocessen har rättighet att ändra systemtiden;
+              annars visas ett felmeddelande om det (se README.md, "System clock").
+            </p>
+            <div class="clock-set-row">
+              <div id="clockPicker"></div>
+              <button class="primary-btn" id="clockSave">Spara</button>
+            </div>
+            <p id="clockError" class="error"></p>
+            <p id="clockSuccess" class="dim small"></p>
+          </div>
+        </div>
+      </section>
+    </section>
+
+    <!-- add/edit modal -->
+    <div id="modalBackdrop" class="modal-backdrop" style="display:none">
+      <div class="modal">
+        <h2 id="modalTitle">Lägg till person</h2>
+        <div class="field-label">Foto (valfritt)</div>
+        <div class="photo-row">
+          <div class="avatar-preview" id="fPhotoPreview"></div>
+          <div class="photo-row-actions">
+            <label for="fPhotoInput" class="sr-only">Välj fotofil</label>
+            <input id="fPhotoInput" type="file" accept="image/*" />
+            <button type="button" class="ghost-btn small" id="fPhotoRemove">Ta bort foto</button>
+          </div>
+        </div>
+        <label>Namn<input id="fName" type="text" /></label>
+        <label>Avdelning<input id="fDept" type="text" list="deptList" /></label>
+        <datalist id="deptList"></datalist>
+        <label>Roll<input id="fRole" type="text" /></label>
+        <label>Telefonnummer (valfritt)<input id="fPhone" type="tel" /></label>
+        <label class="checkbox-label"><input id="fActive" type="checkbox" checked /> Aktiv</label>
+        <p class="dim small">Kryssa ur "Aktiv" och spara för att inaktivera - personen slutar visas på tavlan och kan inte längre checka in, men finns kvar i listan så du kan aktivera igen senare.</p>
+        <label>Byggnad (valfritt)<input id="fLocation" type="text" list="locationList" placeholder="t.ex. Byggnad A" /></label>
+        <datalist id="locationList"></datalist>
+        <label class="checkbox-label"><input id="fRestrict" type="checkbox" /> Visa bara i sin egen byggnad (annars: syns i alla byggnader)</label>
+        <p id="modalError" class="error"></p>
+        <div class="modal-actions">
+          <button class="ghost-btn" id="modalCancel">Avbryt</button>
+          <button class="primary-btn" id="modalSave">Spara</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- add/edit status modal -->
+    <div id="statusModalBackdrop" class="modal-backdrop" style="display:none">
+      <div class="modal">
+        <h2 id="statusModalTitle">Lägg till status</h2>
+        <label>Namn<input id="sLabel" type="text" maxlength="40" /></label>
+        <label>Färg
+          <span class="color-row">
+            <input id="sColorPicker" type="color" />
+            <input id="sColorHex" type="text" maxlength="7" placeholder="#3d5a80" />
+          </span>
+        </label>
+        <label id="sKindRow">Extra fält vid val
+          <select id="sKind">
+            <option value="none">Inget</option>
+            <option value="time">Tid</option>
+            <option value="date">Datum</option>
+            <option value="note">Fritext (anteckning)</option>
+          </select>
+        </label>
+        <!-- "Datum" ger den som checkar in ett val mellan en specifik DAG
+             eller en VECKA (skrivs "V" + sista siffran i året + veckonumret,
+             t.ex. "V645" för vecka 45 - samma format som tavlans egen
+             klocka, se board.js) - valet görs på statuspopupen när
+             statusen väljs (se statuspopup.js), inte här. -->
+        <label id="sPrefixRow" style="display:none">Prefix före tiden/datumet (valfritt)<input id="sPrefix" type="text" maxlength="20" placeholder="t.ex. tillbaka" /></label>
+        <label id="sChecksOutRow" class="checkbox-label"><input id="sChecksOut" type="checkbox" /> Räknas som frånvarande (checkar automatiskt ut)</label>
+        <label id="sDotsRow">Prickar bredvid namnet på tavlan
+          <select id="sDots">
+            <option value="0">Inga</option>
+            <option value="1">1</option>
+            <option value="2">2</option>
+            <option value="3">3</option>
+          </select>
+        </label>
+        <p id="statusModalError" class="error"></p>
+        <div class="modal-actions">
+          <button class="ghost-btn" id="statusModalCancel">Avbryt</button>
+          <button class="ghost-btn danger" id="statusModalDelete" style="display:none">Ta bort</button>
+          <button class="primary-btn" id="statusModalSave">Spara</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <script src="/avatar.js"></script>
+  <script src="/popup.js"></script>
+  <script src="/keyboard.js"></script>
+  <script src="/timepicker.js"></script>
+  <script src="/admin.js"></script>
+</body>
+</html>

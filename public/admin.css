@@ -1,0 +1,484 @@
+html, body { height: 100%; overflow-y: auto; }
+
+.admin {
+  /* Capped like the modal below (min(Npx, Nvw)) rather than a bare fixed
+     1000px - a little extra breathing room on a wide screen so the
+     roster/status tables have room to keep names/buildings on one line
+     instead of wrapping (see table.roster below), while a narrow screen
+     still gets the full width it needs. */
+  max-width: min(1180px, 96vw);
+  margin: 0 auto;
+  padding: 3vh 3vw;
+
+  /* A small type scale, each step a vh-driven value with a readable
+     floor and a sane ceiling (clamp: min, preferred, max) - the same
+     "view unit based system" as the rest of the app (board.css's
+     --scale-multiplied vh/vw values, and shared.css's .icon-btn), so
+     nothing here is pinned to a fixed rem/px size that silently stops
+     scaling with the viewport while its neighbors keep going - exactly
+     the bug already fixed on .icon-btn (a fixed-rem button next to
+     vh-sized header text read as a different relative size in portrait
+     vs landscape - see shared.css).
+     The floor keeps text legible on a short browser window (a laptop
+     with a shallow viewport height); the ceiling keeps it from getting
+     comically large on a very tall one (this page used fullscreen on a
+     big kiosk display, say). Every font-size and icon/control dimension
+     below references one of these tokens instead of a bare rem value. */
+  --fs-xs: clamp(0.8rem, 1.3vh, 0.95rem);
+  --fs-sm: clamp(0.9rem, 1.5vh, 1.05rem);
+  --fs-base: clamp(0.95rem, 1.7vh, 1.2rem);
+  --fs-md: clamp(1.05rem, 1.9vh, 1.3rem);
+  --fs-lg: clamp(1.2rem, 2.4vh, 1.5rem);
+  --fs-xl: clamp(1.35rem, 2.7vh, 1.7rem);
+  --fs-xxl: clamp(1.5rem, 3vh, 1.9rem);
+  /* Square control sizes (reorder arrows, the system-clock steppers,
+     avatars) - same clamp idea, applied to width/height instead of
+     font-size so these never stretch into an oval on a screen with an
+     unusual aspect ratio. */
+  --sz-checkbox: clamp(1.3rem, 2.2vh, 1.6rem);
+  --sz-reorder: clamp(2.1rem, 3.6vh, 2.6rem);
+  --sz-avatar-xs: clamp(2.2rem, 3.8vh, 2.8rem);
+  --sz-avatar-md: clamp(3.8rem, 6.6vh, 4.8rem);
+}
+
+/* Login gate: the same modal-backdrop/modal shell as every other popup in
+   the app (add/edit person, add/edit status - see the shared .modal-backdrop/
+   .modal rules further down) rather than a plain inline page, so it reads
+   as a popup floating over the app instead of a full page of its own. Just
+   the inner content alignment is bespoke (centered, not left-aligned like a
+   form) - everything else (backdrop dimming, card shape, shadow, the round
+   close button, idle auto-close) comes for free from the shared rules and
+   admin.js's openPopupChrome (see the comment next to #gate in admin.html). */
+.gate-modal {
+  align-items: center;
+  text-align: center;
+  gap: 1.4vh;
+}
+.gate-modal h1 { font-size: var(--fs-xxl); margin: 0; }
+
+/* Large touch numpad for the admin passcode - same look/feel as the old
+   per-person PIN pad used to have, since this is normally typed standing
+   at a touchscreen too. See admin.js's buildGateKeypad/renderGateDots. */
+.gate-modal .pin-dots {
+  display: flex;
+  gap: 0.8em;
+  min-height: 1.4em;
+  justify-content: center;
+}
+.gate-modal .pin-dots .dot {
+  width: 1em;
+  height: 1em;
+  border-radius: 50%;
+  border: 2px solid var(--border);
+  background: transparent;
+}
+.gate-modal .pin-dots .dot.filled { background: var(--accent); border-color: var(--accent); }
+.gate-modal .keypad {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 2.2vh;
+  width: 100%;
+  max-width: 340px;
+  align-self: center;
+}
+.gate-modal .keypad button {
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: var(--fs-lg);
+  font-weight: 600;
+  color: var(--text);
+}
+.gate-modal .keypad button:active { background: var(--accent); color: #06101f; }
+.gate-modal .keypad button.key-star, .gate-modal .keypad button.key-hash { font-size: var(--fs-md); color: var(--text-dim); }
+
+.dim { color: var(--text-dim); }
+.dim.small { font-size: var(--fs-base); }
+.dim.small code { background: var(--panel-2); padding: 0.15em 0.4em; border-radius: 4px; }
+
+.error { font-size: var(--fs-base); } /* base rule (color/min-height) now in shared.css - this just re-matches this page's own type scale */
+
+.a-hdr { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.4vh; flex-wrap: wrap; gap: 1vh; }
+.a-hdr h1 { font-size: var(--fs-xl); }
+
+/* Scrolls sideways (swipe/drag) instead of wrapping onto a second row or
+   getting clipped, on a narrow phone-portrait screen where "Personal /
+   Statusar / Utseende / Inställningar" doesn't all fit at once - same fix,
+   same reasoning, as .table-scroll below. Harmless on anything wide enough
+   to fit all four already (nothing to scroll, so it just looks like a
+   normal row). */
+.tab-row {
+  display: flex; gap: 0.5em; margin-bottom: 1.6vh; border-bottom: 1px solid var(--border);
+  overflow-x: auto; -webkit-overflow-scrolling: touch;
+}
+.tab-btn {
+  background: transparent; border: none; border-bottom: 2px solid transparent;
+  color: var(--text-dim); font-size: var(--fs-md); font-weight: 600;
+  padding: 0.8em 0.2em; margin-bottom: -1px; cursor: pointer;
+  white-space: nowrap; flex: none;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+#statusesPanel h2 { font-size: var(--fs-md); margin: 2.4vh 0 0.4vh 0; }
+#statusesPanel .ghost-btn { margin-top: 0.6vh; }
+.ghost-btn:disabled { opacity: 0.4; cursor: default; }
+table.status-roster td:first-child { width: 1%; }
+
+/* Every roster/status table (people, Inne/Ute, Statusar) has more columns
+   than comfortably fit a narrow phone-portrait screen at a readable text
+   size. Rather than shrink text to the point of being hard to read, or
+   drop columns, each table gets its own horizontally-scrollable strip
+   (swipe/drag sideways) - the rest of the page (title, tabs, buttons,
+   the "+ Lägg till" button) stays fully visible and never scrolls
+   sideways itself. Harmless on a wide screen where the table already
+   fits - nothing to scroll, so it's invisible there. */
+.table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  margin-top: 1.5vh;
+}
+.table-scroll table.roster { margin-top: 0; }
+
+table.roster { width: 100%; border-collapse: collapse; margin-top: 1.5vh; }
+table.roster th, table.roster td {
+  text-align: left;
+  padding: 1.2vh 0.9vw;
+  border-bottom: 1px solid var(--border);
+  font-size: var(--fs-base);
+  /* Readable line spacing for a cell that wraps to two lines (a long
+     name, or "Byggnad B") - single-line cells are unaffected, but a
+     wrapped one no longer reads as two cramped lines touching each
+     other. */
+  line-height: 1.4;
+}
+table.roster th { color: var(--text-dim); font-weight: 600; font-size: var(--fs-sm); }
+table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
+.pill-inactive { color: var(--text-dim); font-size: 0.85em; }
+
+.reorder-cell { white-space: nowrap; }
+/* A comfortable tap target, not just a legible glyph - sized and spaced
+   like the ghost/icon buttons elsewhere in the app, not the browser's
+   own tiny default. --sz-reorder (defined on .admin above) keeps this
+   the same physical size as the system-clock steppers below, rather
+   than each picking its own one-off number. */
+.reorder-btn {
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+  width: var(--sz-reorder);
+  height: var(--sz-reorder);
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.reorder-btn:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
+.reorder-btn:disabled { opacity: 0.25; cursor: default; }
+.reorder-btn + .reorder-btn { margin-left: 0.4em; }
+
+/* Same shell look as the board's status popup (.popup-overlay/.popup-card
+   in statuspopup.css) - same backdrop darkness, same rounded corners, same
+   drop shadow, same base surface color - so admin's own dialogs read as
+   the same kind of popup rather than a visibly flatter, differently-
+   colored, un-shadowed box. Kept as its own .modal-backdrop/.modal rule
+   pair rather than literally reusing .popup-overlay/.popup-card, because
+   those are tuned for a single centered button grid with no internal
+   scrolling (.popup-card is `overflow: hidden`), while admin's forms
+   need to scroll internally on a short screen - so the sizing/scroll
+   behavior below stays bespoke, only the visual shell is matched. */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.65);
+  display: flex; align-items: center; justify-content: center; z-index: 10;
+}
+/* Like the status popup (see statuspopup.css's comment on the same
+   pattern), these vw measurements are capped at what they'd be at the
+   modal's own max width (460px) - plain vw would keep growing with the
+   full viewport on a wide screen even after the modal itself stops
+   growing past 460px wide. Not as visibly broken here as the status
+   popup was (there's no fixed-column button grid to squeeze), but the
+   same fix keeps it from wasting steadily more space as pure padding on
+   a wide monitor for no benefit. */
+.modal {
+  position: relative;
+  background: var(--bg); border: 1px solid var(--border); border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  padding: 3vh min(3vw, 14px); width: min(460px, 90vw); max-height: 90vh; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 1.2vh;
+}
+.modal h2 { font-size: var(--fs-lg); }
+.modal label { display: flex; flex-direction: column; gap: 0.4vh; font-size: var(--fs-base); color: var(--text-dim); }
+.modal input[type=text], .modal input[type=password], .modal input[type=tel] {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1vh min(1vw, 5px); color: var(--text); font-size: var(--fs-md);
+}
+.modal input[type=text]:disabled { color: var(--text-dim); }
+.modal input[type=text]:focus, .modal input[type=tel]:focus, .modal select:focus {
+  outline: none; border-color: var(--accent);
+}
+.checkbox-label { flex-direction: row !important; align-items: center; gap: 0.6em !important; }
+/* Centered, not right-aligned - a right-aligned button row left a big,
+   visually unbalanced gap on the left side of these centered dialogs
+   (unlike a full-width page form, where trailing right-aligned actions
+   are the normal convention). */
+.modal-actions { display: flex; justify-content: center; gap: min(0.8vw, 4px); margin-top: 1vh; }
+.ghost-btn.danger { color: var(--red); border-color: var(--red); }
+.ghost-btn.small { font-size: var(--fs-xs); padding: 0.4em 1em; }
+
+/* Custom checkbox: a plain native checkbox reads as a completely
+   different (much smaller, browser-default-styled) kind of control next
+   to the pill-shaped ghost/primary buttons and the rounded-square
+   reorder arrows everywhere else on this page - appearance:none plus a
+   hand-drawn checkmark makes it match that same "rounded square with a
+   border" shape/size language (the same --sz-checkbox token family as
+   .reorder-btn/.clock-step below) instead of standing out as an
+   unstyled system control. */
+.checkbox-label input[type=checkbox] {
+  appearance: none; -webkit-appearance: none;
+  width: var(--sz-checkbox); height: var(--sz-checkbox);
+  flex: none;
+  margin: 0;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  position: relative;
+  cursor: pointer;
+}
+.checkbox-label input[type=checkbox]:hover { border-color: var(--accent); }
+.checkbox-label input[type=checkbox]:checked {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.checkbox-label input[type=checkbox]:checked::after {
+  content: '';
+  position: absolute;
+  left: 28%; top: 20%;
+  width: 40%; height: 65%;
+  border-right: 2px solid #06101f;
+  border-bottom: 2px solid #06101f;
+  transform: rotate(40deg);
+}
+.checkbox-label input[type=checkbox]:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.avatar-xs { width: var(--sz-avatar-xs); height: var(--sz-avatar-xs); font-size: var(--fs-base); }
+.avatar-md { width: var(--sz-avatar-md); height: var(--sz-avatar-md); font-size: var(--fs-lg); }
+
+.color-swatch { display: inline-block; width: 1.4em; height: 1.4em; border-radius: 6px; border: 1px solid var(--border); vertical-align: middle; }
+.color-row { display: flex !important; flex-direction: row !important; gap: 0.6em; align-items: center; }
+/* A native <input type=color>'s visible swatch is drawn by browser-internal
+   pseudo-elements, not the element's own padding/content box - and their
+   default inset isn't symmetric (more on the sides than top/bottom), so
+   even though the input itself is a perfect square (width == height), the
+   colored rectangle inside it visibly isn't. padding:0 on the input plus
+   zeroing out the swatch wrapper's own inset makes the color fill the
+   full square with no border of its own (the input's existing border
+   below already frames it), so what you see really is a square. */
+.color-row input[type=color] {
+  width: 2.6em; height: 2.6em; padding: 0; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--panel-2); overflow: hidden;
+}
+.color-row input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
+.color-row input[type=color]::-webkit-color-swatch { border: none; border-radius: 7px; }
+.color-row input[type=color]::-moz-color-swatch { border: none; border-radius: 7px; }
+.color-row input[type=text] { flex: 1; }
+.modal select {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1vh min(1vw, 5px); color: var(--text); font-size: var(--fs-md);
+}
+
+.field-label { font-size: var(--fs-base); color: var(--text-dim); margin-top: 0.4vh; }
+/* flex-wrap: the preview (fixed-size) plus the actions column (the native
+   file-input button can't shrink much) are too wide side-by-side on a
+   narrow phone-portrait screen - wrapping stacks the preview above the
+   actions instead of forcing the row (and the whole tab) wider than the
+   screen. Harmless anywhere both already fit side by side. */
+.photo-row { display: flex; flex-direction: row; flex-wrap: wrap; align-items: center; gap: 1em; }
+.avatar-preview { flex: none; }
+.photo-row-actions { display: flex; flex-direction: column; gap: 0.5em; align-items: flex-start; }
+
+/* A plain native <input type=file> renders as a stark, browser-chrome
+   "Choose File" button that matches nothing else on the page (and looks
+   especially jarring on the dark theme). ::file-selector-button is the
+   standard hook for restyling just that inner button - shaped and colored
+   like every other .ghost-btn on this page, so this reads as "another
+   button in this app" instead of an unstyled OS control. Applies
+   everywhere a file input shows up (both the person-photo picker in the
+   add/edit modal and the background-picture picker on Utseende), so both
+   already look the same rather than needing two separate rules. */
+input[type=file] {
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  max-width: 100%;
+}
+input[type=file]::file-selector-button {
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  padding: 0.7em 1.4em;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  margin-right: 0.8em;
+  cursor: pointer;
+}
+input[type=file]::file-selector-button:hover { border-color: var(--accent); color: var(--text); }
+/* Wide enough for the pill-shaped ::file-selector-button above plus the
+   browser's own "No file chosen"/filename label text next to it without
+   the label getting clipped (Chromium truncates it mid-string, not with
+   a trailing ellipsis, if the input is too narrow for both - confirmed
+   by testing after the button above grew from a bare native button to a
+   padded pill). */
+.photo-row-actions input[type=file] { max-width: 280px; }
+
+/* A labeled group of related settings - the Tema picker, the background
+   picture picker, Popup-fönster, Systemklocka - each in its own bordered
+   card, the same panel/border/radius as a .dept card on the board or a
+   table row's surrounding table. Utseende/Inställningar used to be a
+   plain, undivided stack of labels and inputs with no visual grouping at
+   all, unlike Personal/Statusar's clearly bounded table rows - this gives
+   them the same "each thing is its own visually distinct unit" structure.
+
+   Both tabs' cards are laid out side by side (see #appearancePanel/
+   #settingsPanel below) rather than always stacked in one tall column -
+   stacked, two cards routinely ran taller than a normal laptop browser
+   window (Systemklocka alone, with its description text and the stepper
+   row, comfortably pushed the page past a ~700px-tall viewport), so the
+   second card needed scrolling to even see it existed. Side by side, both
+   fit within a normal window's height on anything but a narrow/portrait
+   screen, where they fall back to stacking (flex-wrap) same as before. */
+.settings-card-row {
+  display: flex; flex-wrap: wrap; align-items: flex-start; gap: 2vh 2vw; margin-top: 2vh;
+}
+.settings-card {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 2.2vh 2.2vw;
+  flex: 1 1 380px;
+  min-width: 0;
+}
+.settings-card h2 {
+  font-size: var(--fs-md);
+  margin: 0 0 0.8vh 0;
+}
+
+/* Appearance tab: per-theme background picture preview (see
+   admin.js's renderBackgroundPanel / server/background-store.js). */
+.bg-preview {
+  flex: none;
+  width: clamp(6.5rem, 11.6vh, 8.5rem);
+  height: clamp(3.6rem, 6.5vh, 4.8rem);
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background-color: var(--panel-2);
+  background-size: cover;
+  background-position: center;
+}
+#appearancePanel label {
+  display: flex; flex-direction: column; gap: 0.4vh; font-size: var(--fs-base); color: var(--text-dim);
+  max-width: 320px; margin-top: 1.5vh;
+}
+#appearancePanel select {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1vh 1vw; color: var(--text); font-size: var(--fs-md);
+}
+#appearancePanel select:focus { outline: none; border-color: var(--accent); }
+#appearancePanel input[type=range] { width: 100%; max-width: 320px; accent-color: var(--accent); }
+
+/* Inställningar tab */
+#settingsPanel label { display: flex; flex-direction: column; gap: 0.4vh; font-size: var(--fs-base); color: var(--text-dim); max-width: 360px; margin-top: 1.2vh; }
+#settingsPanel input[type=number] {
+  background: var(--panel-2); border: 1px solid var(--border); border-radius: 8px;
+  padding: 1vh 1vw; color: var(--text); font-size: var(--fs-md); max-width: 140px;
+}
+#settingsPanel input[type=number]:focus { outline: none; border-color: var(--accent); }
+#settingsPanel .primary-btn, #settingsPanel .ghost-btn { margin-top: 1.2vh; }
+
+/* System clock: six stepper fields (HH:MM:SS, YYYY-MM-DD), each captioned
+   with what it is and a + button above / − button below its number, split
+   into a time card and a date card, plus a Spara button beside the whole
+   thing - see timepicker.js's buildSystemClockInput. Replaces the old
+   native <input type=date> (locale-dependent formatting Chromium won't
+   let a page override - see the removed buildDateTimeInput's old comment)
+   plus a scattered handful of "Idag/Imorgon/+15 min" shortcut chips below
+   it - one consistent control instead of two different input styles
+   glued together. */
+.clock-set-row { display: flex; align-items: flex-end; gap: 1.6vw; flex-wrap: wrap; margin-top: 1.4vh; }
+.clock-set { display: flex; align-items: stretch; gap: 1.4vw; flex-wrap: wrap; }
+
+/* One card per group (time / date), each field one column within it. Uses
+   CSS grid rather than nested flex boxes specifically so a separator
+   (":" / "-") can span a column's full height and land vertically
+   centered next to the NUMBER row of its neighboring fields - lined up
+   the same regardless of the caption label now sitting above each field
+   (see timepicker.js's field()/sep()): grid-auto-flow:column with a fixed
+   4-row template fills one field's label/+/number/- top-to-bottom before
+   moving to the next column, and a separator's own `grid-row: span 4`
+   below claims a whole column for itself in one step. */
+.clock-group {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(4, auto);
+  align-items: center;
+  justify-items: center;
+  column-gap: 0.5em;
+  row-gap: 0.6vh;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.3vh 1.2vw;
+}
+.clock-field-label {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+}
+.clock-step {
+  width: var(--sz-reorder);
+  height: calc(var(--sz-reorder) * 0.6);
+  border-radius: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+}
+.clock-step:hover { color: var(--text); border-color: var(--accent); }
+.clock-step:active { background: var(--chip-bg); }
+.clock-num {
+  /* Wider than --sz-reorder (the +/- buttons above/below it don't need
+     to hold text, but this does) - a plain type=number's reserved
+     internal spinner gutter doesn't fully go away with just the
+     ::-webkit-*-spin-button rule below in every Chromium version, so
+     without -webkit-appearance:none here too, two tabular-nums digits
+     at this font-size measurably don't fit the box (confirmed: 49px of
+     content in a 36px box) and render clipped. */
+  appearance: none; -webkit-appearance: none; -moz-appearance: textfield;
+  width: calc(var(--sz-reorder) * 1.5);
+  text-align: center;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: var(--fs-md);
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+  padding: 0.5vh 0;
+}
+.clock-num:focus { outline: none; border-color: var(--accent); }
+.clock-num::-webkit-outer-spin-button, .clock-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* The year field holds 4 digits, not 2 - needs more room than the other
+   five, which are always zero-padded to exactly 2 (see the `wide` option
+   on timepicker.js's field(), which adds this class straight to its own
+   +/number/- elements - there's no per-field wrapper any more for it to
+   go on instead, see .clock-group above). */
+.clock-num.clock-field-wide { width: calc(var(--sz-reorder) * 2.3); }
+.clock-step.clock-field-wide { width: calc(var(--sz-reorder) * 2.3); }
+.clock-sep {
+  grid-row: span 4;
+  align-self: center;
+  font-size: var(--fs-lg);
+  font-weight: 700;
+  color: var(--text-dim);
+}

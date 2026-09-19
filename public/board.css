@@ -1,0 +1,330 @@
+/* body is a flex column of exactly two rows - the header, then the board -
+   so the board always gets precisely whatever vertical space the header
+   didn't use, however tall the header actually renders (see the .board
+   comment below for why that used to be guessed instead of measured). */
+html, body { height: 100%; }
+body { display: flex; flex-direction: column; }
+
+/* Just three items now - the title, the clock (now a tappable button that
+   opens the board-settings popup - see boardsettings.js/.css), and the
+   rarely-shown "reconnecting" pill. The building dropdown and the gear
+   icon that both used to live here are gone - moved INTO that popup, along
+   with the size/theme pickers it adds (see README's "Screen settings") -
+   so there's far less competing for room than before, and the title/clock
+   are the two things that get to keep their full size (see "prioritize"
+   below) with only the pill ever giving way.
+
+   Always a single row, in both orientations, same two techniques as
+   before: (1) flex-wrap:nowrap, so the browser is never allowed to drop
+   an item to a second line. (2) every size below is `max(<rem floor>,
+   min(<vh value>, <vw value>))` instead of a bare vh value - a bare vh
+   value looks fine in landscape but roughly DOUBLES in portrait (vh grows
+   with a portrait screen's now-taller viewport height), which is what
+   used to force the wrap. The vw half of min() caps that: in landscape
+   the vh term is the smaller one so nothing changes there, in portrait
+   the vw term takes over and holds the header to roughly its landscape
+   size - but on a narrow portrait-PHONE width the vw term itself would
+   shrink text past readable, so it's floored with max(<rem>, ...) the
+   same way admin.css floors its --fs-* tokens.
+
+   Prioritize title + clock: neither one shrinks or ellipsizes any more
+   (flex:none on both) - they're always shown in full. h1 still carries a
+   min-width/overflow/ellipsis safety net for a truly extreme case (a very
+   long server-configured location name on a very narrow screen), but it
+   no longer gives up room routinely the way it and the clock both used to
+   when the dropdown+gear were still here competing for the same space.
+   The connection pill is the one thing that still shrinks and ellipsizes
+   (see shared.css's .conn-pill) if it ever has to - it's the least
+   essential piece (rare, and purely informational), and with only three
+   items in this row now that almost never actually triggers. */
+.hdr {
+  display: flex;
+  align-items: center;
+  padding: 1.2vh 2vw;
+  border-bottom: 1px solid var(--border);
+  background: var(--panel);
+  flex-wrap: nowrap;
+  gap: 0.6vh 1.2vw;
+  flex: none; /* always its own natural height, never stretched or squeezed by the flex column above */
+}
+.hdr h1 {
+  margin: 0;
+  font-size: max(1.05rem, min(2.7vh, 1.7vw));
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  flex: 1 1 auto;
+  min-width: 3em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+/* A plain <button> (see board.html) rather than a <span> - it opens the
+   board-settings popup now - so the usual button chrome (background,
+   border, padding) is stripped back off first, then font/color are reset
+   to read exactly like the plain text it used to be. Deliberately NOT
+   styled like an obvious button (no border, no background) - "the clock
+   is clear enough" once you know to tap it (see README's "Screen
+   settings") - just a subtle tap/hover highlight so it doesn't feel like
+   dead space to touch. */
+.clock {
+  appearance: none;
+  background: transparent;
+  border: none;
+  border-radius: 8px;
+  padding: 0.2em 0.5em;
+  margin: 0 -0.5em;
+  font-family: inherit;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim);
+  font-size: max(0.85rem, min(2vh, 1.3vw));
+  white-space: nowrap;
+  flex: none;
+  cursor: pointer;
+}
+.clock:hover, .clock:focus-visible { background: var(--chip-bg); color: var(--text); }
+.clock:active { background: var(--panel-2); }
+.clock:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+
+/* This board is STATIC - no scrolling, ever. Instead, every size below is
+   expressed as `calc(<original vh/vw value> * var(--scale))`, and
+   board.js measures the rendered content once per render and shrinks
+   --scale (a plain multiplier, 1 = full size) just enough that everything
+   fits inside the fixed-height container below. Using a calc()-based
+   custom property rather than nested em avoids the usual problem of em
+   compounding through several levels of nested elements - every line
+   below scales from the SAME original design value, independently.
+
+   The board's own height used to be a guess - `calc(100vh - 7vh)`,
+   assuming the header above is always exactly 7vh tall. It usually isn't:
+   a longer location name, a wider clock, or the header's own
+   `flex-wrap: wrap` kicking in on a narrow/short screen (see .hdr above)
+   all change its real height, and whenever that measured taller than 7vh,
+   the board's box - and fitToScreen()'s whole "available height" budget -
+   was silently too tall, clipping the bottom row off screen even though
+   the shrink-to-fit logic below (correctly) thought everything fit. Now
+   that body is the flex column, the board just takes "whatever's left"
+   (flex: 1 1 auto) - always exactly right, however tall the header is. */
+.board {
+  --scale: 1;
+  /* The gap BETWEEN department cards (column-to-column here, card-to-card
+     in .board-col below) is deliberately the same physical distance in
+     both directions - min(1vw, 1vh) is whichever of the two is smaller,
+     so on a wide/landscape screen (vw > vh) it's vh-sized, and on a
+     tall/portrait screen (vh > vw) it's vw-sized. Without this, a plain
+     vw gap and a plain vh gap read as two different distances depending
+     on orientation (much wider gaps between columns than between cards
+     in landscape, and the reverse in portrait) even though both are
+     meant to be "the same small gap between two cards". */
+  --gap-unit: min(1vw, 1vh);
+  flex: 1 1 auto;
+  min-height: 0; /* let it actually shrink to the remaining space instead of the flex default of never going below its content's natural height */
+  padding: calc(1.6vh * var(--scale)) calc(1.6vw * var(--scale));
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: calc(1.4 * var(--gap-unit) * var(--scale));
+  overflow: hidden;
+}
+
+/* Columns are assigned in board.js (renderBalancedColumns), which balances
+   department cards across them by headcount rather than leaving it to the
+   browser's row-major grid placement - see the comment there for why.
+
+   container-type: inline-size turns this column into a query container, so
+   the text sizes below can be expressed in `cqw` (% of THIS column's own
+   width) instead of the viewport's. That matters because vh/vw alone broke
+   badly in portrait: a portrait screen is much taller than it is wide, so
+   a vh-based font stayed just as large as in landscape while the columns
+   themselves got much narrower (more of them fit before running out of
+   width isn't the issue - narrower available width per column is), and
+   names truncated. Sizing from the column's own width instead means the
+   font is only ever as big as that column can actually hold, in either
+   orientation, without needing per-orientation special-casing. */
+.board-col {
+  display: flex;
+  flex-direction: column;
+  gap: calc(1.4 * var(--gap-unit) * var(--scale));
+  flex: 1;
+  min-width: 0;
+  container-type: inline-size;
+}
+
+.dept {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: calc(1.3vh * var(--scale)) calc(1.3vw * var(--scale));
+  min-width: 0;
+}
+
+/* Which building this card belongs to - only rendered at all when "Alla
+   byggnader" is selected AND more than one building is actually in use
+   (see board.js's render()/showLocationLabels), so a single-building
+   install/view looks exactly like it always has, no empty label line. One
+   level "louder" than .role-label below it (accent color, not just dim
+   text) since it's the top of the location → department → role → name
+   hierarchy, not a peer of role. */
+.dept-location {
+  font-size: calc(3.6cqw * var(--scale));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  font-weight: 700;
+  margin: 0 0 calc(0.3vh * var(--scale)) 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dept h2 {
+  margin: 0 0 calc(0.9vh * var(--scale)) 0;
+  color: var(--text);
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5em;
+}
+/* Dept name gets its own span so IT truncates (with an ellipsis) before
+   ever pushing the "x/y inne" count onto a wrapped second line - that's
+   what caused "Servering2/5\ninne" to render as two broken lines. */
+.dept h2 .dept-name {
+  font-size: calc(6.6cqw * var(--scale));
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dept h2 .count {
+  font-size: calc(4.4cqw * var(--scale));
+  color: var(--text-dim);
+  font-weight: 400;
+  white-space: nowrap;
+  flex: none;
+}
+
+.role-group + .role-group { margin-top: calc(0.9vh * var(--scale)); }
+.role-label {
+  font-size: calc(4cqw * var(--scale));
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  margin: calc(0.7vh * var(--scale)) 0 calc(0.35vh * var(--scale)) 0;
+}
+
+/* Two-line layout on purpose: the name never competes for space with a
+   long status tag. Top line is always just [avatar, name, IN/OUT badge] -
+   that alone practically never needs to truncate. If there's a secondary
+   status (which can be long, e.g. "Semester · 24/09"), it drops to its
+   own line underneath, indented to line up under the name. A name is
+   never sacrificed to make room for a tag. */
+.person-row {
+  padding: calc(0.45vh * var(--scale)) calc(0.7vw * var(--scale));
+  border-radius: 8px;
+  border-left: calc(0.35vw * var(--scale)) solid transparent;
+}
+.person-row:nth-child(odd) { background: var(--row-alt); }
+/* Clearer at a glance than the small INNE/UTE pill alone: a checked-in
+   row gets a soft green tint and a matching left edge; checked-out is
+   left plain (not tinted red/grey - "not here" shouldn't read as
+   "something's wrong", just as the default, unhighlighted state). */
+.person-row.in { background: var(--badge-in-bg); border-left-color: var(--green); }
+.person-row.in:nth-child(odd) { background: var(--badge-in-bg); }
+
+.avatar-sm {
+  width: calc(9.5cqw * var(--scale));
+  height: calc(9.5cqw * var(--scale));
+  font-size: calc(3.6cqw * var(--scale));
+}
+
+.person-row-top {
+  display: flex;
+  align-items: center;
+  gap: calc(1.8cqw * var(--scale));
+}
+
+.person-name {
+  flex: 1;
+  min-width: 0;
+  font-size: calc(6cqw * var(--scale));
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Checked-in names read bolder than checked-out ones, so who's actually
+   here stands out at a glance even before reading the IN/OUT badge. */
+.person-row.in .person-name { font-weight: 800; }
+.person-row.out .person-name { font-weight: 400; }
+
+.person-row-tag {
+  margin: calc(0.35vh * var(--scale)) 0 0 calc(9.5cqw * var(--scale) + 1.8cqw * var(--scale));
+}
+
+/* .badge (INNE/UTE) and .tag (colored secondary status) share the same
+   height and a fixed minimum width in "ch" (character) units, so both
+   read as the same visual size on the board regardless of which word is
+   longer - "INNE" and "UTE" land on identical-sized pills. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 6.2ch;
+  gap: 0.3em;
+  font-size: calc(5cqw * var(--scale));
+  font-weight: 800;
+  letter-spacing: 0.02em;
+  padding: calc(1.1cqw * var(--scale)) calc(2.2cqw * var(--scale));
+  border-radius: 999px;
+  white-space: nowrap;
+  flex: none;
+}
+.badge.in { background: var(--green); color: #06170e; }
+.badge.out { background: var(--badge-out-bg); color: var(--badge-out-fg); }
+
+/* Hover/tap affordance - see board.js's wireClickToEdit(). The whole row
+   is now the tap target (not just the name/photo), so the hover highlight
+   and pointer cursor cover the full row too - the badge keeps its own
+   distinct hover (it's a separate, more specific action: toggle in place
+   rather than open the popup). Only kicks in where a pointer is actually
+   available (a touchscreen doesn't have hover), so it never gets in the
+   way on a TV nobody can tap. */
+@media (hover: hover) {
+  .person-row:hover .person-name { color: var(--accent); }
+  .badge:hover { filter: brightness(1.12); }
+}
+.person-row, .badge { cursor: pointer; }
+
+/* PLUPP1/PLUPP2's red dots (see board.js's PLUPP_DOTS) - sit between the
+   name and the INNE/UTE badge, alongside the normal colored tag underneath
+   rather than replacing it. */
+.plupp-dots {
+  flex: none;
+  color: var(--red);
+  font-size: calc(3.4cqw * var(--scale));
+  letter-spacing: calc(0.4cqw * var(--scale));
+  line-height: 1;
+}
+
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3em;
+  font-size: calc(4.2cqw * var(--scale));
+  padding: calc(0.85cqw * var(--scale)) calc(1.8cqw * var(--scale));
+  border-radius: 999px;
+  color: #0b0e16;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.tag .detail { font-weight: 600; opacity: 0.85; }
+
+.empty-hint {
+  color: var(--text-dim);
+  padding: 4vh;
+  text-align: center;
+  font-size: 2.4vh;
+}
+
+/* The status popup itself (opened by tapping a person's name/photo above -
+   see wireClickToEdit() in this file) lives in statuspopup.css/statuspopup.js -
+   nothing further needed here. */

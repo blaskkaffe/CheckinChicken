@@ -1,0 +1,208 @@
+/* statuspopup.css — the overlay opened from board.js when someone taps a
+   person's name/photo (see statuspopup.js). Generic .popup-overlay/
+   .popup-backdrop/.popup-card classes so any future popup can reuse the
+   same shell + the standardized close button (public/popup.js,
+   shared.css's .popup-close) - .status-popup below is just this one
+   popup's own content. */
+.popup-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+.popup-overlay.visible { display: flex; }
+.popup-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+}
+.popup-card {
+  position: relative;
+  width: min(640px, 94vw);
+  max-height: 92vh;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.55);
+  overflow: hidden;
+  display: flex;
+}
+
+/* The horizontal (vw) measurements below are capped with min() at what
+   they'd work out to at the card's own max width (see .popup-card's
+   `width: min(640px, 94vw)`) - 5vw of 640px is 32px, and so on. Plain vw
+   alone tracks the full VIEWPORT's width forever, but the card itself
+   stops growing past 640px, so on any screen wider than that (a normal
+   desktop monitor, never mind an ultrawide one) the padding/gaps kept
+   growing while the card didn't - eating so much of a status button's
+   own width that its label had nowhere left to go and wrapped or
+   vanished entirely. Capping each one at what it'd be at the card's own
+   max width keeps it scaling down properly on a small/narrow screen
+   (unchanged there) while never overshooting the card's actual size. */
+.status-popup {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  padding: 4vh min(5vw, 32px) 3vh min(5vw, 32px);
+  overflow: hidden;
+}
+
+.sp-screen {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  min-height: 0;
+  overflow: hidden;
+}
+.sp-screen.active { display: flex; }
+
+.person-header {
+  text-align: center;
+  margin-bottom: 2.2vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: none;
+}
+.avatar-slot { margin-bottom: 1vh; }
+.avatar-lg { width: 4.6rem; height: 4.6rem; font-size: 1.7rem; }
+.person-header-name { font-size: 1.5rem; font-weight: 800; }
+.person-header-sub { font-size: 1.05rem; color: var(--text-dim); margin-top: 0.3vh; }
+/* Same font-size as .person-header-sub (the department/role line right
+   above it) - explicitly matched here rather than relying on
+   shared.css's .phone-line `inherit` fallback, which would otherwise
+   pick up this page's ambient/ancestor font-size instead. */
+.phone-line { font-size: 1.05rem; }
+.person-header-current { font-size: 0.95rem; margin-top: 1vh; color: var(--text-dim); }
+
+.status-grid {
+  width: 100%;
+  max-width: 480px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.1vh min(1vw, 6px);
+  margin-bottom: 1vh;
+  overflow-y: auto;
+}
+.status-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.6vh min(3vw, 19px);
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 1.15rem;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  min-height: 3.2em;
+}
+.status-btn:active { filter: brightness(1.12); }
+.status-btn.primary-in { border-color: var(--green); grid-column: 1 / -1; }
+.status-btn.primary-out { border-color: var(--grey); grid-column: 1 / -1; }
+
+.detail-actions {
+  display: flex;
+  gap: 1em;
+  margin-top: 1.6vh;
+  flex: none;
+}
+
+/* Day/week calendar, shown for any needsDate status - see
+   timepicker.js's buildDateOrWeekInput(). One drawn-to-match grid rather
+   than a native <input type=date>/<input type=week>: tapping a day cell
+   picks that day, tapping the week number picks the whole week - no mode
+   toggle, just a prev/next month nav. */
+.cal-wrap { width: 100%; max-width: 480px; }
+.cal-nav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.2vh;
+}
+.cal-nav-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.2em;
+  height: 2.2em;
+  flex: none;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.2rem;
+  font-weight: 700;
+  line-height: 1;
+  padding: 0;
+}
+.cal-nav-btn:active { background: var(--chip-bg); }
+.cal-month-label { font-size: 1.05rem; font-weight: 700; text-transform: capitalize; }
+
+.cal-grid {
+  display: grid;
+  grid-template-columns: 2.1em repeat(7, 1fr);
+  gap: 0.3em;
+}
+.cal-head {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--text-dim);
+  padding-bottom: 0.4vh;
+}
+.cal-head-week { opacity: 0.7; }
+
+/* Week-number and day cells share the same box/type language - a week
+   number is just as tappable a "pick this" target as any day cell, only
+   narrower (see .cal-grid's column widths) and visually quieter
+   (var(--panel-2) fill, dimmer text) until it's the one that's picked. */
+.cal-week-num, .cal-day {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  padding: 0.65em 0;
+  font-size: 0.95rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+}
+.cal-week-num {
+  background: var(--panel-2);
+  color: var(--text-dim);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+.cal-day-outside { color: var(--text-dim); opacity: 0.45; }
+.cal-day.today { border-color: var(--accent); }
+.cal-week-num:active, .cal-day:active { filter: brightness(1.15); }
+/* A whole selected WEEK: every day cell in that row gets a light shared
+   tint (so the row reads as one picked unit) and the week-number button
+   itself gets the same solid fill a single selected DAY gets below - the
+   two are visually the same "this is what's picked" treatment, just at
+   different granularity. */
+.cal-day.in-selected-week { background: var(--chip-bg); border-color: var(--accent); }
+.cal-day.selected, .cal-week-num.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #06101f;
+}
+
+/* Room to grow: the docked on-screen keyboard (shared.css) shrinks the
+   available height, so the note field/status grid above shouldn't try to
+   fill more than they need to. */
+#sp-screen-note .text-display { width: 100%; max-width: 480px; }
+.text-display {
+  padding: 1.2vh min(1vw, 6px);
+  border-radius: var(--radius);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.1rem;
+  margin-bottom: 1.5vh;
+}

@@ -1,0 +1,29 @@
+{
+  "_comment": "Copy this file to config.json and edit the values below. One server handles every screen and every building - see README's 'Multiple buildings'.",
+
+  "locationName": "Huvudkontoret",
+
+  "_comment_port": "Port the web server listens on.",
+  "port": 8080,
+
+  "_comment_adminPasscode": "Simple passcode required to open the admin (roster editing) screen, entered on a big on-screen numpad. Change this.",
+  "adminPasscode": "0000",
+
+  "_comment_allowNameBrowse": "Reserved, currently unused.",
+  "allowNameBrowse": true,
+
+  "_comment_phoneVisibility": "'always' (default): shown on the status popup. 'hash': placeholder text only. 'off': not shown.",
+  "phoneVisibility": "always",
+
+  "_comment_boardClickToEdit": "Per-server default for tap-to-edit on the board. Override per screen with ?input=off or ?input=on in that screen's board.html URL.",
+  "boardClickToEdit": true,
+
+  "_comment_theme": "Optional. One of server/themes.js's ids ('dark', 'christmas', 'light'). Seeds data/theme.json on first boot only; admin 'Utseende' tab is the source of truth after that.",
+  "theme": "dark",
+
+  "_comment_popupIdleTimeoutMs": "Optional. Milliseconds of inactivity before a popup auto-closes. Seeds data/settings.json on first boot only; admin 'Inställningar' tab is the source of truth after that.",
+  "popupIdleTimeoutMs": 300000,
+
+  "_comment_onscreenKeyboardAdmin": "Optional. Show the on-screen keyboard on the admin page's own text fields. Seeds data/settings.json on first boot only.",
+  "onscreenKeyboardAdmin": false
+}

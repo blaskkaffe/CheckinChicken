@@ -1,0 +1,568 @@
+/* ---------------------------------------------------------------------
+   Theme: CSS variables per appearance theme, applied via data-theme="..."
+   on <html> (see public/theme.js). This is a server-wide setting - picked
+   from the admin page's Utseende tab, or seeded once from config.json's
+   `theme` field - not a per-device preference, so it's the SAME on every
+   board/admin tab, in every building, and updates them live. See
+   server/themes.js for the full list of theme ids and how
+   to add a new one; each one needs a block below with a matching id.
+   With no theme.json on disk yet (very first boot), :root's own values
+   below are the "dark" defaults, used until theme.js's first fetch of
+   /api/theme resolves and sets data-theme explicitly.
+   --------------------------------------------------------------------- */
+:root {
+  --bg: #0f1420;
+  --panel: #171e2e;
+  --panel-2: #1f2740;
+  --text: #eef1f8;
+  --text-dim: #a7b1c2;
+  --border: #2b3350;
+  --accent: #6db2ff;
+  --green: #34c17b;
+  --grey: #8a94a3;
+  --red: #ff6b6b;
+  --row-alt: rgba(255, 255, 255, 0.035);
+  --chip-bg: rgba(255, 255, 255, 0.09);
+  --badge-in-bg: rgba(52, 193, 123, 0.18);
+  --badge-in-fg: #6be6a5;
+  --badge-out-bg: rgba(138, 148, 163, 0.2);
+  --badge-out-fg: #a7b1c2;
+  --radius: 14px;
+  font-size: 18px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #f4f6fb;
+    --panel: #ffffff;
+    --panel-2: #eef1f7;
+    --text: #16202e;
+    --text-dim: #545f70;
+    --border: #d7dde8;
+    --accent: #1d6fe0;
+    --green: #17874a;
+    --grey: #6b7480;
+    --red: #d6304a;
+    --row-alt: rgba(20, 30, 50, 0.035);
+    --chip-bg: rgba(20, 30, 50, 0.06);
+    --badge-in-bg: rgba(23, 135, 74, 0.14);
+    --badge-in-fg: #0f6b3a;
+    --badge-out-bg: rgba(107, 116, 128, 0.16);
+    --badge-out-fg: #545f70;
+  }
+}
+
+:root[data-theme="light"] {
+  --bg: #f4f6fb;
+  --panel: #ffffff;
+  --panel-2: #eef1f7;
+  --text: #16202e;
+  --text-dim: #545f70;
+  --border: #d7dde8;
+  --accent: #1d6fe0;
+  --green: #17874a;
+  --grey: #6b7480;
+  --red: #d6304a;
+  --row-alt: rgba(20, 30, 50, 0.035);
+  --chip-bg: rgba(20, 30, 50, 0.06);
+  --badge-in-bg: rgba(23, 135, 74, 0.14);
+  --badge-in-fg: #0f6b3a;
+  --badge-out-bg: rgba(107, 116, 128, 0.16);
+  --badge-out-fg: #545f70;
+}
+
+:root[data-theme="dark"] {
+  --bg: #0f1420;
+  --panel: #171e2e;
+  --panel-2: #1f2740;
+  --text: #eef1f8;
+  --text-dim: #a7b1c2;
+  --border: #2b3350;
+  --accent: #6db2ff;
+  --green: #34c17b;
+  --grey: #8a94a3;
+  --red: #ff6b6b;
+  --row-alt: rgba(255, 255, 255, 0.035);
+  --chip-bg: rgba(255, 255, 255, 0.09);
+  --badge-in-bg: rgba(52, 193, 123, 0.18);
+  --badge-in-fg: #6be6a5;
+  --badge-out-bg: rgba(138, 148, 163, 0.2);
+  --badge-out-fg: #a7b1c2;
+}
+
+/* Christmas: a third, purely opt-in theme (never picked automatically from
+   prefers-color-scheme, only via the toggle button - see theme.js) - deep
+   pine green + a strong Christmas red (borders, buttons, the UTE/"out"
+   badge, snow's own glow) instead of the base themes' blue/gold accent,
+   plus falling snow (see the #snowLayer rules below and theme.js, which
+   creates/removes it only for this theme). --red itself stays a slightly
+   different, more muted shade than --accent's bright red, on purpose - a
+   real alert (sync lost, delete) should still read as distinct from plain
+   decoration even when almost everything around it is some shade of red.
+   Every accent/border/badge color below was checked against the fixed
+   dark text colors it sits under in board.css/statuspopup.css (e.g. #06101f on
+   --accent) for at least 4.5:1 contrast, same bar the other two themes
+   are held to. */
+:root[data-theme="christmas"] {
+  --bg: #0b1f16;
+  --panel: #123625;
+  --panel-2: #1a4630;
+  --text: #fdf6ec;
+  --text-dim: #c9d9c9;
+  --border: #8a2c3a;
+  --accent: #ff5a4e;
+  --green: #4cbf6b;
+  --grey: #9db3a3;
+  --red: #e2453c;
+  --row-alt: rgba(255, 255, 255, 0.04);
+  --chip-bg: rgba(255, 90, 78, 0.14);
+  --badge-in-bg: rgba(76, 191, 107, 0.24);
+  --badge-in-fg: #8de8a4;
+  --badge-out-bg: rgba(226, 69, 60, 0.55);
+  --badge-out-fg: #ffd9d9;
+}
+
+/* Christmas top bar: board's .hdr (board.css) and admin's .a-hdr
+   (admin.css) are otherwise unstyled/transparent, just showing the plain
+   --bg underneath - for this theme only, a solid Christmas red instead.
+   #9c1f28 was picked (and checked) for >=4.5:1 contrast against both
+   --text and --text-dim above, same AA bar every other color on this
+   theme is held to. .conn-pill/.icon-btn already paint their own solid
+   --panel-2 chip behind their content so they stay readable unchanged;
+   only .clock is normally fully transparent with a translucent *red*
+   hover/active tint (--chip-bg), which would all but disappear against a
+   solid red bar, so it gets its own pale, non-red tint here instead. */
+:root[data-theme="christmas"] .hdr,
+:root[data-theme="christmas"] .a-hdr {
+  background: #9c1f28;
+}
+:root[data-theme="christmas"] .clock:hover,
+:root[data-theme="christmas"] .clock:focus-visible {
+  background: rgba(255, 255, 255, 0.18);
+  color: var(--text);
+}
+:root[data-theme="christmas"] .clock:active {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+/* Falling snow - the element tree is only ever created for data-theme=
+   "christmas" (see theme.js); this CSS just has to make it look right and
+   stay out of the way once it exists. Fixed + pointer-events:none so it
+   floats over every page without ever intercepting a tap on the board
+   underneath, and inset:0 + overflow:hidden keeps flakes from adding
+   any scroll/layout size of their own. Deliberately given NO explicit
+   z-index (same treatment as #bgLayer right below in board.css/here) so
+   it paints in the same back-of-the-stack bucket as the optional
+   background picture - behind .hdr/#board/.admin's explicit z-index:1 -
+   instead of drifting on top of names and cards like it used to (a plain
+   z-index:5 here used to put it ABOVE that content, which is the bug this
+   fixes: snow should live in the background, like the background
+   picture, not over the top of anything real). */
+#snowLayer {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+#snowLayer .snowflake {
+  position: absolute;
+  top: -10vh;
+  left: 0;
+  width: var(--flake-size, 8px);
+  height: var(--flake-size, 8px);
+  border-radius: 50%;
+  /* Soft round flake instead of a unicode glyph: a light-hot-center
+     radial gradient (so it still reads as a highlighted flake, not a flat
+     dot) plus a per-flake blur (set in theme.js, larger for smaller/
+     "farther" flakes) for a soft depth-of-field look rather than a crisp
+     edge. */
+  background: radial-gradient(circle at 35% 35%, #ffffff 0%, rgba(253, 246, 236, 0.85) 45%, rgba(253, 246, 236, 0) 75%);
+  filter: blur(var(--flake-blur, 1px));
+  opacity: 0;
+  will-change: transform, opacity;
+  animation-name: snow-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+@keyframes snow-fall {
+  0% { transform: translateY(0) translateX(0); opacity: 0; }
+  10% { opacity: var(--flake-opacity, 0.7); }
+  90% { opacity: var(--flake-opacity, 0.7); }
+  100% { transform: translateY(120vh) translateX(var(--drift, 40px)); opacity: 0; }
+}
+/* Respect it like any other motion - the board usually runs
+   unattended, but admin.html doesn't, and whoever's there may have this
+   set system-wide for a reason. */
+@media (prefers-reduced-motion: reduce) {
+  #snowLayer { display: none; }
+}
+
+* { box-sizing: border-box; }
+
+/* Visually hidden but still readable by a screen reader - a <label> for a
+   file input whose button already has its own visible text (see admin.css's
+   photo-row / boardsettings.css's bs-photo-row), so it's not left with no
+   accessible name at all rather than duplicating a visible label on screen. */
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; }
+
+/* An inline form-validation message under a field/button - shared base
+   (color + reserved height so a form doesn't jump when one appears); a
+   page with its own type scale (e.g. admin.css's --fs-base) can still
+   override just the font-size on top of this. */
+.error { color: var(--red); min-height: 1.4em; font-size: 0.95rem; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, "Segoe UI", Roboto, Arial, sans-serif;
+  -webkit-user-select: none;
+  user-select: none;
+  overflow: hidden;
+  height: 100%;
+}
+
+/* ------------------------------------------------------- background layer -
+   Optional per-theme picture (see server/background-store.js, set from the
+   admin page's Utseende tab), sitting behind every card/panel on the page.
+   A dedicated element rather than a body background-image so its opacity
+   (admin-controlled, independent of the theme itself) never affects
+   anything drawn on top of it. Empty/inactive (no theme background set) by
+   default - .active only appears once theme.js has one to show. Stacking:
+   this is prepended as body's FIRST child with no z-index of its own, so
+   it paints right on top of body's own solid background but underneath
+   every subsequent sibling (header, main content, modals, snow) - see the
+   generic stacking rule right below. */
+#bgLayer {
+  position: fixed;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+#bgLayer.active { opacity: var(--bg-layer-opacity, 1); }
+
+/* Positioned elements (like #bgLayer, position:fixed) paint ABOVE plain
+   in-flow content regardless of DOM order, per the normal CSS stacking
+   rules - so without this, the background layer above would cover the
+   whole page instead of sitting behind it. Explicitly promoting just the
+   page's own static content containers (board.html's header+board,
+   admin.html's single wrapping .admin div) gives them a stacking context
+   that puts them back in DOM order together with #bgLayer, so #bgLayer
+   (prepended first) reliably stays at the back.
+
+   This used to be a blanket `body > *:not(#bgLayer):not(#snowLayer)`
+   rule instead of naming these three - which looked equivalent but had a
+   nasty surprise: `:not(#id)` counts as FULL ID specificity (not zero),
+   so that one blanket rule ended up MORE specific than a plain class
+   selector, and silently forced `position: relative` onto .popup-overlay
+   (#statusPopup) and .onscreen-keyboard too - both of which are
+   themselves also appended as direct children of <body> (see board.html
+   and keyboard.js's `document.body.appendChild`) and NEED to stay
+   `position: fixed` to be full-screen overlays at all. That's what was
+   pinning the status popup and the on-screen keyboard in normal document
+   flow below the header/board instead of over them - pushed off the
+   bottom of the screen on anything taller than one viewport. Listing the
+   handful of elements that actually need this explicitly, rather than
+   excluding the ones that don't, means a future fixed-position overlay
+   appended to body (there will be more) just works without anyone having
+   to remember to add it to an exclusion list. #snowLayer is deliberately
+   left off this list too, same as #bgLayer - both are meant to stay
+   behind this promoted content, not join it (see #snowLayer's own
+   comment above). */
+.hdr, #board, .admin {
+  position: relative;
+  z-index: 1;
+}
+
+button {
+  font-family: inherit;
+  cursor: pointer;
+  border: none;
+  color: var(--text);
+}
+
+/* Base button looks shared by board/admin. The status popup (statuspopup.css) overrides these
+   with larger touch-friendly sizing in statuspopup.css. */
+.ghost-btn {
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 1rem;
+  padding: 0.7em 1.4em;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+}
+.ghost-btn:hover { border-color: var(--accent); color: var(--text); }
+
+.primary-btn {
+  background: var(--accent);
+  color: #06101f;
+  font-weight: 700;
+  font-size: 1.05rem;
+  padding: 0.8em 1.6em;
+  border-radius: 999px;
+  border: none;
+}
+
+.icon {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+}
+
+/* Small connectivity pill on the board - hidden by default, shown only if
+   the live connection to the server drops (see board.js's connectEvents()).
+   The dot never shrinks (it's the actual at-a-glance status signal), but
+   the "återansluter…" label next to it is just elaboration, so it's
+   allowed to shrink down and ellipsize (see board.css's .hdr comment) so
+   this pill showing up unpredictably (a real disconnect can happen at any
+   time) never re-introduces a wrap on a narrow screen. Title and clock
+   don't shrink at all any more (see board.css) - this pill is the one
+   thing in the header that still gives up room, being the least
+   essential piece of the three. */
+.conn-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: 0.85rem;
+  padding: 0.3em 0.8em;
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  flex: 0 1 auto;
+  min-width: 1.6em; /* dot + padding, even if the label shrinks all the way to nothing */
+  overflow: hidden;
+}
+.conn-pill .dot {
+  width: 0.6em;
+  height: 0.6em;
+  border-radius: 50%;
+  background: var(--grey);
+  flex: none;
+}
+#connLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.conn-pill.down .dot { background: var(--red); }
+
+/* A plain circular icon button in a page header - the "back to board"
+   shortcut on the admin page (see initExitButton in theme.js). Used to
+   also be the board's own "open admin" gear icon, but that's gone now -
+   replaced by a button inside the board-settings popup (tap the clock -
+   see boardsettings.js/README's "Screen settings") - kept generic here in
+   case another icon button shows up somewhere later.
+
+   Sized from min(1.6vh, 1vw) rather than a fixed rem value - rem is
+   anchored to :root's fixed 18px font-size (see shared.css's :root
+   block), so a rem/em-based size never changes with the viewport at all:
+   next to header text that DOES scale with vh (the admin page's own h1),
+   a fixed-size button would read as a different relative size on a tall
+   portrait screen than on a wide landscape one. The vw half of the min()
+   additionally keeps a header this sits in down to a single row in
+   portrait - see board.css's .hdr comment for why a bare vh value blows
+   up on a tall screen. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4em;
+  height: 2.4em;
+  border-radius: 50%;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: max(0.85rem, min(1.6vh, 1vw));
+  flex: none;
+}
+.icon-btn:active { background: var(--chip-bg); }
+
+/* Avatar: a person's photo, or a colored circle with their initials when
+   they don't have one. Actual size is set per-page (see .avatar-sm /
+   .avatar-md / .avatar-lg in board.css / admin.css). */
+.avatar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  background-size: cover;
+  background-position: center;
+  color: #fff;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* ------------------------------------------------------ standardized popup
+   close button (see public/popup.js's createPopupCloseButton) - every
+   popup/modal in the app (the status popup, admin's add/edit dialogs) uses
+   this exact same round red X in the top-right corner, so closing one is
+   always the same gesture no matter which screen it's on. The parent popup
+   needs `position: relative` (already set on .popup-card / .modal)
+   for the absolute positioning below to anchor correctly. */
+.popup-close {
+  position: absolute;
+  top: 0.6em;
+  right: 0.6em;
+  width: 2.2em;
+  height: 2.2em;
+  border-radius: 50%;
+  background: var(--red);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  border: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+  z-index: 20;
+}
+.popup-close:active { filter: brightness(0.9); }
+
+/* ------------------------------------------------------- on-screen keyboard
+   Shared Swedish QWERTY keyboard (see public/keyboard.js's
+   attachOnscreenKeyboard) - docks at the bottom of the screen while a text
+   field that opted in has focus. Sits above everything else, including a
+   popup (z-index 20 on .popup-close) or the admin modal backdrop (z-index
+   10), since it has to be reachable no matter what's open behind it. */
+.onscreen-keyboard {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 500;
+  background: var(--panel);
+  border-top: 1px solid var(--border);
+  padding: 0.8vh 1vw calc(0.8vh + env(safe-area-inset-bottom, 0px)) 1vw;
+  box-shadow: 0 -6px 24px rgba(0, 0, 0, 0.3);
+}
+/* Every row (including the space/Klar row) shares one max-width and is
+   centered within the full-width docked bar - without this, the letter
+   rows above (whose individual keys are capped by .kb-key's max-width)
+   settle into a compact centered block, while the space/Klar row - the
+   only row with just two flex-growing items and no per-key cap - would
+   stretch edge-to-edge to fill the *entire* width of a wide screen. That
+   mismatch (a tight keyboard block sitting above one giant full-width
+   bar) is what made the space bar look oversized and disconnected from
+   the rest of the keys instead of "grouped" with them. Capping every
+   row to the same max-width, the widest a full letter row actually
+   needs, keeps the whole keyboard reading as one properly sized block on
+   any screen; a fixed em-based gap (rather than a vw one) keeps that
+   sizing independent of viewport width too. */
+.kb-row {
+  display: flex;
+  gap: 0.35em;
+  justify-content: center;
+  margin-bottom: 0.5vh;
+  max-width: 860px;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* The action row (space/Klar) is functionally distinct from the typing
+   rows above it, so it gets a touch of extra breathing room - the same
+   grouping cue a physical/native keyboard gives its bottom row. */
+.onscreen-keyboard .kb-row:last-child { margin-top: 0.3vh; }
+.kb-key {
+  flex: 1;
+  max-width: 3.4em;
+  min-width: 2em;
+  padding: 1.1vh 0;
+  border-radius: 8px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-size: 1.15rem;
+  text-align: center;
+}
+.kb-key:active { background: var(--accent); color: #06101f; }
+.kb-key.kb-fn { flex: 1.3; color: var(--text-dim); font-size: 1rem; }
+.kb-key.kb-space { flex: 6; max-width: none; }
+.kb-key.kb-done { flex: 2; max-width: none; background: var(--accent); color: #06101f; font-weight: 700; }
+/* Room for the docked keyboard so it doesn't cover whatever field is being
+   typed into. This used to be a margin-bottom on the card itself, which
+   just made the card TALLER (its max-height budget didn't shrink to
+   match) - on anything but a tall viewport that pushed the total size
+   past the screen, and since the backdrop centers its content, the
+   overflow got split between both ends: the title clipped off the top,
+   the action buttons pushed down behind the keyboard and out of reach.
+   Reserving the space as padding on the backdrop instead, alongside a
+   matching cut to the card's own max-height, keeps the whole card -
+   title through buttons - centered and fully visible in what's left
+   above the keyboard. */
+body.onscreen-keyboard-open .modal-backdrop,
+body.onscreen-keyboard-open .popup-overlay {
+  padding-bottom: 32vh;
+}
+body.onscreen-keyboard-open .modal,
+body.onscreen-keyboard-open .popup-card {
+  max-height: 56vh;
+}
+
+/* --------------------------------------------------------------- time input
+   Touch-friendly time picker (see public/timepicker.js's buildTimeInput) -
+   a plain always-24-hour HH/MM field pair (.time-hm-*) rather than a
+   native <input type=time>, because that control's 12h/24h rendering
+   follows the browser's own locale with no reliable page-level override.
+   Paired with a one-tap shortcut row (.time-shortcuts) for the values
+   people actually pick most often. The date/week equivalent is a fully
+   drawn calendar instead of a native input - see statuspopup.css's .cal-*
+   (buildDateOrWeekInput in timepicker.js). */
+.touch-time-input { display: flex; flex-direction: column; gap: 0.8vh; align-items: center; }
+.time-hm-wrap { display: flex; align-items: center; gap: 0.4em; }
+.time-hm-field {
+  font-size: 1.3rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  width: 2.6em;
+  padding: 0.6em 0.2em;
+  border-radius: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  min-height: 2.4em;
+  /* Hide the native browser increment/decrement spinner arrows - the
+     shortcut row below is the fast path, and the tiny native arrows are
+     both hard to hit on a touchscreen and inconsistent-looking across
+     browsers. Typing (or the shortcuts) is the intended way in. */
+  -moz-appearance: textfield;
+}
+.time-hm-field::-webkit-outer-spin-button,
+.time-hm-field::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+.time-hm-field:focus { outline: none; border-color: var(--accent); }
+.time-hm-sep { font-size: 1.3rem; font-weight: 700; color: var(--text-dim); }
+.time-shortcuts { display: flex; gap: 0.5em; flex-wrap: wrap; justify-content: center; }
+.time-shortcut {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  border-radius: 999px;
+  padding: 0.5em 1em;
+  font-size: 0.95rem;
+}
+.time-shortcut:active { border-color: var(--accent); color: var(--text); }
+
+/* A person's phone number, shown by default right below their department/
+   role line (see server.js's `phoneVisibility`, default 'always') - same
+   type treatment as that line so it reads as one more fact about them, not
+   a separate special element. Used by the status popup's person header -
+   see statuspopup.css's own .phone-line rule (right next to
+   .person-header-sub, the line it's meant to match) for the actual
+   matching font-size; `inherit` here would just pick up whatever
+   ambient/body size happens to surround it, which isn't necessarily the
+   same as its sibling line's own (explicitly set) size. This is just a
+   sane fallback for a page that includes shared.css but not
+   statuspopup.css. */
+.phone-line {
+  color: var(--text-dim);
+  margin-top: 0.2em;
+}
