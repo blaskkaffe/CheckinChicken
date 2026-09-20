@@ -334,6 +334,18 @@ body {
   font-size: min(calc(3.6cqw * var(--scale)), calc(var(--cap) * 0.545));
 }
 
+/* Number-display mode (see avatar.js's showCode / board.js's
+   BoardNumberMode) - a 3-digit code needs a touch smaller and more
+   consistently spaced than 2 initials to keep fitting the same circle. */
+.avatar-code {
+  font-variant-numeric: tabular-nums;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, "Courier New", monospace;
+  letter-spacing: 0;
+}
+.avatar-sm.avatar-code {
+  font-size: min(calc(2.8cqw * var(--scale)), calc(var(--cap) * 0.42));
+}
+
 /* Two flex ITEMS, not one wrapping row: .person-row-main (below) on the
    left, and the badge on the right - see personRowHtml's own comment for
    why splitting them like this is what keeps the badge pinned in place.

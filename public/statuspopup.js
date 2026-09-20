@@ -61,11 +61,32 @@
   // the board itself (board.js's personRowHtml) - so picking a status here
   // and spotting it on the board afterward is visually the same color,
   // not just the same word.
+  // The exact same digit code numpad.js would have someone type for this
+  // status (see its own comment on the scheme): IN/OUT are the fixed
+  // single digits 1/0; every other status gets a 2-digit code from its
+  // position in the secondary list (2-9 as the leading digit, 0-9 as the
+  // second) - so reordering a status on the admin "Statusar" tab changes
+  // its digit code here too, same as it already changes where the status
+  // shows up in this exact grid.
+  function digitCodeFor(code) {
+    if (code === 'IN') return '1';
+    if (code === 'OUT') return '0';
+    const i = statusDefs.secondary.findIndex((s) => s.code === code);
+    return i < 0 ? '' : `${2 + Math.floor(i / 10)}${i % 10}`;
+  }
+
   function renderStatusGrid(container, defs, onChoice) {
+    // Codes are only worth showing if numeric input is actually on for
+    // this server (server.js's `numericInput`, default true) - otherwise
+    // they're just unexplained clutter on every button for a server that
+    // doesn't use the numpad at all.
+    const showCodes = cfg.numericInput !== false;
     container.innerHTML = defs.map((d) => {
       const cls = d.code === 'IN' ? 'primary-in' : d.code === 'OUT' ? 'primary-out' : '';
       const textColor = window.readableTextOn(d.color);
-      return `<button type="button" class="status-btn ${cls}" data-code="${esc(d.code)}" style="background:${esc(d.color)};color:${esc(textColor)}">${esc(d.label)}</button>`;
+      const digit = showCodes ? digitCodeFor(d.code) : '';
+      const codeHtml = digit ? `<span class="status-btn-code">${esc(digit)}</span>` : '';
+      return `<button type="button" class="status-btn ${cls}" data-code="${esc(d.code)}" style="background:${esc(d.color)};color:${esc(textColor)}">${codeHtml}${esc(d.label)}</button>`;
     }).join('');
     container.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => onChoice(btn.dataset.code));
@@ -103,10 +124,17 @@
     renderStatusGrid($('spStatusGrid'), [...statusDefs.primary, ...statusDefs.secondary], onMenuChoice);
   }
 
+  // Returns finalize()'s promise when this choice saves right away
+  // (IN/OUT, or a secondary status with no detail to fill in), or
+  // undefined when it instead switches to the detail/note screen to wait
+  // for a time/date/note first - numpad.js (driving this same function by
+  // digit code - see window.StatusPopup.choose below) uses that
+  // difference to know whether to show its own "saved" flash or just step
+  // out of the way and leave this popup open for the person to finish.
   function onMenuChoice(code) {
     if (code === 'IN' || code === 'OUT') return finalize({ primary: code });
     const def = statusDefs.secondary.find((s) => s.code === code);
-    if (def) chooseSecondary(def);
+    if (def) return chooseSecondary(def);
   }
 
   function chooseSecondary(def) {
@@ -131,7 +159,7 @@
       $('spNoteInput').value = '';
       return showScreen('note');
     }
-    finalize({ secondaryCode: def.code });
+    return finalize({ secondaryCode: def.code });
   }
 
   function formatDetail() {
@@ -179,38 +207,45 @@
     person = null;
   }
 
-  // Same as open(id), but immediately picks a secondary status too - used
-  // by numpad.js when someone types a status digit-code that needs a time/
-  // date/note (something a numpad alone can't capture): it opens straight
-  // to that status's own detail/note screen instead of the plain menu, so
-  // finishing it is one screen, not two. A no-op if the code isn't a real
-  // secondary status (defensive only - numpad.js already checks this
-  // itself before calling).
-  function openWithStatus(id, code) {
-    open(id);
-    if (!person) return;
-    const def = statusDefs.secondary.find((s) => s.code === code);
-    if (def) chooseSecondary(def);
-  }
-  window.StatusPopup = { open, close, isOpen, openWithStatus };
+  // numpad.js's own way to drive this exact popup once someone's typed a
+  // full status digit-code (see its own comment on the scheme) - same
+  // function a touch tap on one of renderStatusGrid's buttons calls, so
+  // typing a code and tapping a button always do the exact same thing.
+  // Returns onMenuChoice's own return value: a Promise<boolean> (saved
+  // ok?) once this choice actually saves, or undefined when it instead
+  // switched to the detail/note screen and is waiting on the person to
+  // fill that in by touch/keyboard - see onMenuChoice's own comment.
+  window.StatusPopup = {
+    open, close, isOpen,
+    choose: onMenuChoice,
+    isMenuScreen: () => state.screen === 'menu',
+  };
 
+  // Returns whether the save actually succeeded - the touch flow itself
+  // doesn't care (no confirmation screen either way, see below), but
+  // numpad.js's own "saved"/"failed" flash (driving this via `choose`
+  // above) does.
   async function finalize(payload) {
-    if (!person) return close();
+    if (!person) { close(); return false; }
+    let ok = true;
     try {
-      await fetch('/api/checkin/set', {
+      const res = await fetch('/api/checkin/set', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ id: person.id, ...payload }),
       });
+      if (!res.ok) ok = false;
     } catch (e) {
       // The board itself just keeps showing whatever the last known-good
       // state was - see README's offline/sync notes; nothing more to do
       // here.
+      ok = false;
     }
     // No confirmation screen and no delay: the new status is already
     // visible on the board itself (pushed over SSE) the instant it lands,
     // so lingering here would only slow the next person down.
     close();
+    return ok;
   }
 
   function boot() {

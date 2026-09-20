@@ -190,36 +190,6 @@
     <div class="numpad-msg" id="npMsg"></div>
   </div>
 
-  <!-- Number-pad directory: "*" with nothing typed lists every active
-       person's number (see numpad.js's buildDirectory) - so a number is
-       always discoverable without a separate cheat sheet. Same popup
-       shell as the status popup above. -->
-  <div id="numpadDirectory" class="popup-overlay">
-    <div class="popup-backdrop"></div>
-    <div class="popup-card">
-      <div class="numpad-directory">
-        <h2>Personnummer</h2>
-        <p class="numpad-directory-hint">Tryck ett nummer för att välja den personen, eller en siffra på tangentbordet/numpaden för att skriva direkt.</p>
-        <div class="numpad-directory-list" id="npDirList"></div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Number-pad status legend: "#" with nothing typed lists every
-       status's own digit code (see numpad.js's buildLegend) - the "*" of
-       status codes, so what to press after a person's number is just as
-       discoverable as the number itself. -->
-  <div id="numpadLegend" class="popup-overlay">
-    <div class="popup-backdrop"></div>
-    <div class="popup-card">
-      <div class="numpad-directory">
-        <h2>Statuskoder</h2>
-        <p class="numpad-directory-hint">Tryck efter personens nummer - en siffra för Inne/Ute, eller två för en annan status.</p>
-        <div class="numpad-directory-list" id="npLegendList"></div>
-      </div>
-    </div>
-  </div>
-
   <script src="/avatar.js"></script>
   <script src="/popup.js"></script>
   <script src="/keyboard.js"></script>

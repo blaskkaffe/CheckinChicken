@@ -146,6 +146,27 @@
 .status-btn.primary-in, .status-btn.primary-out { grid-column: span 3; }
 .status-btn:not(.primary-in):not(.primary-out) { grid-column: span 2; }
 
+/* This status's own numpad digit code (see statuspopup.js's
+   digitCodeFor) - shown right on the button so the same popup a touch tap
+   opens also teaches/reminds what to type instead, and so someone typing
+   on a numpad can visually confirm a code before committing to it. Hidden
+   entirely (statuspopup.js's renderStatusGrid) when numericInput is off
+   server-wide. A small chip rather than a separate line - keeps every
+   button's height the same whether or not it happens to show one. */
+.status-btn-code {
+  display: inline-block;
+  min-width: 1.6em;
+  margin-right: 0.4em;
+  padding: 0.05em 0.4em;
+  border-radius: 6px;
+  background: rgba(0, 0, 0, 0.22);
+  font-family: ui-monospace, "SFMono-Regular", Consolas, "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 0.85em;
+  vertical-align: middle;
+}
+
 .detail-actions {
   display: flex;
   gap: 1em;

@@ -482,19 +482,20 @@ Typing on the board:
 
 | Keys | Does |
 | --- | --- |
-| `1` `2` `7` | Selects that person (shows their name/photo in a small readout) |
+| `1` `2` `7` | Matches that person and opens their normal status popup — the same one a touch tap on their row opens, now with every button also showing its own digit code |
 | then `1` | Checks them in (Inne) |
 | then `0` | Checks them out (Ute) |
-| then `#` | Toggles Inne/Ute directly — the fastest path, 3 digits + `#` |
-| then two more digits (`20`–`99`) | Picks a status from the admin "Statusar" list, in that list's own order — `20` is the first one, `21` the second, and so on (see the "Sifferkod" column on that tab). A status that needs a time/date/note hands off to the normal popup, already open on that one field, since a numpad alone can't type free text. |
-| `*` with nothing typed | Opens a directory of everyone's number, grouped for browsing/tapping |
-| `*` with something typed | Clears the current entry (same "back out" role it has in every popup here) |
-| `#` with nothing typed | Opens a legend of every status's own digit code (0/1 for Ute/Inne, then each status's 2-digit code) — the `*` of status codes |
+| then `#` | Toggles Inne/Ute directly — the fastest path, 3 digits + `#`, no need to look at the popup at all |
+| then two more digits (`20`–`99`) | Picks a status button by its code — `20` is the first one in the admin "Statusar" list, `21` the second, and so on (see that tab's own "Sifferkod" column, or just read it straight off the open popup). A status that needs a time/date/note switches that same popup to its own detail/note screen, exactly as tapping it would — finishing it is then a touch/keyboard job, same as it always was. |
+| `*` with nothing typed | Swaps every person's photo on the board for a circle showing their own number — a visual "cheat sheet" for what to type. Press `*` again to switch back. |
+| `*` with something typed | Clears the current entry (and closes the popup it opened, if any) — same "back out" role it has in every popup here |
 | `Backspace` | Removes the last digit typed (a bare numpad has no backspace key — use `*` there) |
 
 So `1271` in one breath is: department 1, person 27, status 1 → checked in
-— the example this feature is built around. An unmatched number or status
-code just shows a brief error and clears itself; nothing is ever half-saved.
+— the example this feature is built around. An unmatched number just shows
+a brief error and clears itself; an unmatched status code drops back to
+the matched person (their popup stays open) rather than starting over.
+Nothing is ever half-saved.
 
 Off by default only if you set `numericInput: false` in `config.json` — on
 by default otherwise, since it costs nothing when nobody's using it (the

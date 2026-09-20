@@ -12,6 +12,16 @@
   // boardsettings.js).
   let locationFilter = new Set();
 
+  // Toggled by "*" on the numpad (see numpad.js) with nothing typed:
+  // swaps every visible person's avatar for a circle showing their own
+  // check-in number instead of photo/initials, so it's easy to glance at
+  // the board and see what to type for someone rather than needing a
+  // separate lookup. In-memory only (not persisted like locationFilter/
+  // manualScaleFactor below) - a transient lookup aid, not a real display
+  // preference, so it resets to normal on reload same as any other
+  // in-progress numpad entry would.
+  let numberDisplayMode = false;
+
   const boardEl = document.getElementById('board');
   const connPill = document.getElementById('connPill');
   const connLabel = document.getElementById('connLabel');
@@ -328,6 +338,18 @@
     },
   };
 
+  // Number-display mode toggle (see numberDisplayMode above) - numpad.js's
+  // own API, same "one small object" pattern as window.BoardSettings/
+  // window.BoardPeople above rather than reaching into this file's
+  // internals directly.
+  window.BoardNumberMode = {
+    isOn: () => numberDisplayMode,
+    toggle() {
+      numberDisplayMode = !numberDisplayMode;
+      render();
+    },
+  };
+
   // ------------------------------------------------------- click to edit -
   // Tap a person's INNE/UTE badge to toggle it directly - the single most
   // common action, one tap, no menu. Tap anywhere else in their row (name,
@@ -520,7 +542,7 @@
     return `<div class="person-row ${checkedIn ? 'in' : 'out'}" data-id="${esc(p.id)}">
       <div class="person-row-top">
         <div class="person-row-main">
-          ${window.avatarHtml(p, 'avatar-sm')}
+          ${window.avatarHtml(p, 'avatar-sm', { showCode: numberDisplayMode })}
           <span class="person-name">${esc(p.name)}</span>
           ${pluppHtml}
           ${pelletHtml}
