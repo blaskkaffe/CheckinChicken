@@ -44,12 +44,15 @@ html, body { height: 100%; overflow-y: auto; }
   --fs-lg: clamp(1.2rem, 2.4vh, 1.5rem);
   --fs-xl: clamp(1.35rem, 2.7vh, 1.7rem);
   --fs-xxl: clamp(1.5rem, 3vh, 1.9rem);
-  /* Square control sizes (reorder arrows, the system-clock steppers,
+  /* Square control sizes (the checkbox, the system-clock's number boxes,
      avatars) - same clamp idea, applied to width/height instead of
      font-size so these never stretch into an oval on a screen with an
-     unusual aspect ratio. */
+     unusual aspect ratio. The round buttons (reorder arrows, the
+     system-clock steppers) size themselves from shared.css's
+     --btn-round-sm/-md instead - a --sz-clock-num-like clamp of their own
+     would fight with that shared em-based scale rather than join it. */
   --sz-checkbox: clamp(1.3rem, 2.2vh, 1.6rem);
-  --sz-reorder: clamp(2.1rem, 3.6vh, 2.6rem);
+  --sz-clock-num: clamp(2.1rem, 3.6vh, 2.6rem);
   --sz-avatar-xs: clamp(2.2rem, 3.8vh, 2.8rem);
   --sz-avatar-md: clamp(3.8rem, 6.6vh, 4.8rem);
 }
@@ -142,7 +145,6 @@ html, body { height: 100%; overflow-y: auto; }
 
 #statusesPanel h2 { font-size: var(--fs-md); margin: 2.4vh 0 0.4vh 0; }
 #statusesPanel .ghost-btn { margin-top: 0.6vh; }
-.ghost-btn:disabled { opacity: 0.4; cursor: default; }
 table.status-roster td:first-child { width: 1%; }
 
 /* Every roster/status table (people, Inne/Ute, Statusar) has more columns
@@ -177,25 +179,17 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
 .pill-inactive { color: var(--text-dim); font-size: 0.85em; }
 
 .reorder-cell { white-space: nowrap; }
-/* A comfortable tap target, not just a legible glyph - sized and spaced
-   like the ghost/icon buttons elsewhere in the app, not the browser's
-   own tiny default. --sz-reorder (defined on .admin above) keeps this
-   the same physical size as the system-clock steppers below, rather
-   than each picking its own one-off number. */
+/* A comfortable tap target, not just a legible glyph. Shape/fill/hover/
+   active/disabled all come from shared.css's unified button system (the
+   "round" shape, "ghost" fill) - only this button's own size (the small
+   round tier - it repeats once per roster row, so stays compact) and
+   font-size (em-relative sizing needs its own font-size to size against)
+   are its own. */
 .reorder-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: transparent;
-  color: var(--text-dim);
   font-size: var(--fs-md);
-  width: var(--sz-reorder);
-  height: var(--sz-reorder);
-  border-radius: 8px;
-  border: 1px solid var(--border);
+  width: var(--btn-round-sm);
+  height: var(--btn-round-sm);
 }
-.reorder-btn:hover:not(:disabled) { color: var(--text); border-color: var(--accent); }
-.reorder-btn:disabled { opacity: 0.25; cursor: default; }
 .reorder-btn + .reorder-btn { margin-left: 0.4em; }
 
 /* Same shell look as the board's status popup (.popup-overlay/.popup-card
@@ -286,12 +280,14 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
 
 /* Custom checkbox: a plain native checkbox reads as a completely
    different (much smaller, browser-default-styled) kind of control next
-   to the pill-shaped ghost/primary buttons and the rounded-square
-   reorder arrows everywhere else on this page - appearance:none plus a
-   hand-drawn checkmark makes it match that same "rounded square with a
-   border" shape/size language (the same --sz-checkbox token family as
-   .reorder-btn/.clock-step below) instead of standing out as an
-   unstyled system control. */
+   to the app's other buttons - appearance:none plus a hand-drawn
+   checkmark makes it match their general "flat surface, --border ring"
+   look instead of standing out as an unstyled system control. Kept as
+   its OWN rounded-SQUARE shape though, deliberately not round like
+   shared.css's unified button system - round is this app's shorthand for
+   "button", and a checkbox is a different control (any number can be
+   checked, not a single choice from a group), so keeping it visibly
+   square is what tells the two apart at a glance. */
 .checkbox-label input[type=checkbox] {
   appearance: none; -webkit-appearance: none;
   width: var(--sz-checkbox); height: var(--sz-checkbox);
@@ -488,44 +484,26 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
   letter-spacing: 0.02em;
   color: var(--text-dim);
 }
-/* Pill-shaped (border-radius 999px) like every other button in the app
-   (.ghost-btn, .bs-choice, ...) - this used to be a barely-rounded
-   rectangle, the only button shape that didn't match. Fixed width
-   regardless of which field it belongs to (no separate
-   .clock-step.clock-field-wide override any more) - the year field's own
-   number box is wider to hold 4 digits (.clock-num.clock-field-wide
+/* Shape/fill/hover/active/disabled all come from shared.css's unified
+   button system (the "round" shape, "panel" fill - the same treatment
+   as the board-settings popup's own +/- stepper, .bs-step, since it's
+   the exact same role: two different pages' step buttons now genuinely
+   match instead of each having quietly drifted its own way, including
+   the vertical centering of the glyph inside it, and the true circle
+   shape - this used to be a squished pill half as tall as it was wide).
+   Fixed width regardless of which field it belongs to - the year field's
+   own number box is wider to hold 4 digits (.clock-num.clock-field-wide
    below), but its +/- buttons don't need to be, and letting them match
-   the number's width made every +/- button a different size depending on
-   which field it stepped. */
-/* display:flex + align-items/justify-content:center, not line-height, is
-   what actually centers a single glyph in a box shorter/taller than its
-   natural line box - a grid item (this button is a direct child of
-   .clock-group's grid) is "blockified" regardless of its own display
-   value, so the button's text otherwise lays out as a top-aligned block
-   line box, with the leftover height (box taller than one line) showing
-   as visibly more empty space below the glyph than above it. Same fix as
-   every other icon-button in the app (.bs-step, .icon-btn, .popup-close,
-   .cal-nav-btn) already uses - this and .reorder-btn below were the two
-   that had fallen out of step with that pattern. */
+   the number's width used to make every +/- button a different size
+   depending on which field it stepped. */
 .clock-step {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: var(--sz-reorder);
-  height: calc(var(--sz-reorder) * 0.6);
-  border-radius: 999px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text-dim);
+  width: var(--btn-round-md);
+  height: var(--btn-round-md);
   font-size: var(--fs-md);
-  font-weight: 700;
-  line-height: 1;
   padding: 0;
 }
-.clock-step:hover { color: var(--text); border-color: var(--accent); }
-.clock-step:active { background: var(--chip-bg); }
 .clock-num {
-  /* Wider than --sz-reorder (the +/- buttons above/below it don't need
+  /* Wider than --sz-clock-num (the +/- buttons above/below it don't need
      to hold text, but this does) - a plain type=number's reserved
      internal spinner gutter doesn't fully go away with just the
      ::-webkit-*-spin-button rule below in every Chromium version, so
@@ -533,7 +511,7 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
      at this font-size measurably don't fit the box (confirmed: 49px of
      content in a 36px box) and render clipped. */
   appearance: none; -webkit-appearance: none; -moz-appearance: textfield;
-  width: calc(var(--sz-reorder) * 1.5);
+  width: calc(var(--sz-clock-num) * 1.5);
   text-align: center;
   background: var(--panel-2);
   border: 1px solid var(--border);
@@ -551,7 +529,7 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
    on timepicker.js's field(), which adds this class straight to its own
    +/number/- elements - there's no per-field wrapper any more for it to
    go on instead, see .clock-group above). */
-.clock-num.clock-field-wide { width: calc(var(--sz-reorder) * 2.3); }
+.clock-num.clock-field-wide { width: calc(var(--sz-clock-num) * 2.3); }
 /* display:flex here rather than just align-self:center on the bare text -
    align-self:center centers this item's own (content-sized) box within
    its 4-row span, but doesn't touch where the glyph sits WITHIN that

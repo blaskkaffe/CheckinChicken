@@ -45,45 +45,29 @@
 }
 .bs-title-input:focus { outline: none; border-color: var(--accent); }
 
-/* Coop picker: a row of pill buttons rather than a native <select> -
-   this whole popup is reached and used by tapping (see the clock button
-   that opens it), so touch-friendly buttons fit the rest of the app's
-   popups (the status grid right next to this one on the same page uses
-   the same idea) better than a dropdown would. */
+/* Coop picker: a row of pill buttons (shape/fill/hover/active from
+   shared.css's unified button system - the "pill" shape, "panel" fill,
+   default size tier) rather than a native <select> - this whole popup is
+   reached and used by tapping (see the clock button that opens it), so
+   touch-friendly buttons fit the rest of the app's popups (the status
+   grid right next to this one on the same page uses the same idea)
+   better than a dropdown would. .active (selected) is this button's own
+   state, on top of the shared "primary" fill it borrows for it - no
+   other button in the app has a persistent toggled-on look to share. */
 .bs-choices { display: flex; flex-wrap: wrap; gap: 0.6em; }
-.bs-choice {
-  background: var(--panel-2);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  padding: 0.6em 1.3em;
-  font-size: 0.95rem;
-  font-weight: 600;
-}
-.bs-choice:active { filter: brightness(1.12); }
-.bs-choice.active { border-color: var(--accent); background: var(--accent); color: #06101f; }
 
 /* Manual board-size adjustment (board.js's manualScaleFactor) - a plain
-   -/+ stepper matching the visual weight of the round icon buttons used
-   elsewhere (shared.css's .icon-btn), plus a live "100%"-style readout and
-   a one-tap reset back to "Auto" (see board.js's resetManualScale). */
+   -/+ stepper (shape/fill/hover/active from shared.css's unified button
+   system - the "round" shape, "panel" fill, larger size tier, the same
+   as the system-clock's own +/- stepper on the admin page, .clock-step),
+   plus a live "100%"-style readout and a one-tap reset back to "Auto"
+   (see board.js's resetManualScale). */
 .bs-stepper { display: flex; align-items: center; gap: 0.9em; flex-wrap: wrap; }
 .bs-step {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.4em;
-  height: 2.4em;
-  border-radius: 50%;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
+  width: var(--btn-round-md);
+  height: var(--btn-round-md);
   font-size: 1.3rem;
-  font-weight: 700;
-  line-height: 1;
 }
-.bs-step:active:not(:disabled) { background: var(--chip-bg); }
-.bs-step:disabled { opacity: 0.4; }
 .bs-readout {
   min-width: 3.6em;
   text-align: center;

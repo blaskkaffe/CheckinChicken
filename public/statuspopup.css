@@ -101,17 +101,20 @@
   margin-bottom: 1vh;
   overflow-y: auto;
 }
+/* Fill (panel-2/border/text, hover/active) comes from shared.css's
+   unified button system, same treatment as the round/pill families -
+   only the shape here is its own: a rounded-RECTANGLE ("tile"), the one
+   deliberate exception to "every button is round or pill", because a
+   status label can be several words ("Jobbar hemifrån") that need to
+   wrap, which neither shape allows. */
 .status-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: calc(0.8 * var(--gap-unit)) min(1.2vw, 8px);
   border-radius: 12px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
   font-size: 0.95rem;
   font-weight: 600;
-  color: var(--text);
   text-align: center;
   line-height: 1.15;
   min-height: 2.6em;
@@ -128,7 +131,6 @@
   overflow-wrap: break-word;
   word-break: break-word;
 }
-.status-btn:active { filter: brightness(1.12); }
 .status-btn.primary-in { border-color: var(--green); grid-column: 1 / -1; }
 .status-btn.primary-out { border-color: var(--grey); grid-column: 1 / -1; }
 
@@ -151,23 +153,16 @@
   justify-content: space-between;
   margin-bottom: 1.2vh;
 }
+/* Shape/fill/hover/active from shared.css's unified button system (the
+   "round" shape, "panel" fill, smaller size tier) - only this button's
+   own font-size (its glyph, ‹/›, reads better a touch bigger than the
+   round family's other members) and padding are its own. */
 .cal-nav-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.2em;
-  height: 2.2em;
-  flex: none;
-  border-radius: 50%;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
+  width: var(--btn-round-sm);
+  height: var(--btn-round-sm);
   font-size: 1.2rem;
-  font-weight: 700;
-  line-height: 1;
   padding: 0;
 }
-.cal-nav-btn:active { background: var(--chip-bg); }
 .cal-month-label { font-size: 1.05rem; font-weight: 700; text-transform: capitalize; }
 
 .cal-grid {

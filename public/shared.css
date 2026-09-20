@@ -29,6 +29,17 @@
   --badge-out-fg: #a7b1c2;
   --radius: 14px;
   font-size: 18px;
+
+  /* Round-button size scale (see the "Buttons" section below) - every
+     round icon button in the app (close/info/nav/step/reorder/...) picks
+     one of exactly these two, each relative to ITS OWN font-size (so two
+     buttons naming the same token can still render at different pixel
+     sizes if their surrounding context sets a different font-size - e.g.
+     .icon-btn's own responsive formula - but every one of them is sized
+     in the same "how many ems" terms instead of each re-guessing its own
+     one-off number). */
+  --btn-round-sm: 2.2em;
+  --btn-round-md: 2.4em;
 }
 
 @media (prefers-color-scheme: light) {
@@ -301,27 +312,133 @@ button {
   color: var(--text);
 }
 
-/* Base button looks shared by board/admin. The status popup (statuspopup.css) overrides these
-   with larger touch-friendly sizing in statuspopup.css. */
-.ghost-btn {
+/* =======================================================================
+   BUTTONS — one shared base: two orthogonal layers (shape, fill) instead
+   of every button its own one-off combination of both. Every icon and
+   pill button across board.html and admin.html (close, info, coop/week
+   toggles, the system-clock and board-size steppers, the roster's
+   reorder arrows, ...) used to each define its own copy of "flex-center
+   a glyph in a circle" or "pill-shaped text label" AND its own colors
+   together, with small unintentional drift between ones that should've
+   matched (different paddings, only some defining :hover, only some
+   :active, bs-choice's panel fill almost but not quite matching
+   icon-btn's). This section is the one place shape and fill mechanics
+   live now; everything below it just says which shape + which fill it
+   is and what's genuinely its own (icon/label, one of two round sizes,
+   one of three pill sizes) - never the box model or interaction states
+   again.
+
+   Shapes:
+   - "Round" (.icon-btn, .popup-close, .popup-info, .bs-step,
+     .cal-nav-btn, .clock-step, .reorder-btn): a single glyph, always a
+     perfect circle, one of exactly two sizes (--btn-round-sm/-md above).
+   - "Pill" (.ghost-btn, .primary-btn, .bs-choice): a text label, fully
+     rounded ends, one of three sizes (.ghost-btn.small, admin.css, is
+     the small tier; .ghost-btn/.bs-choice share the default tier;
+     .primary-btn is the large/bold tier for THE primary action in a
+     group).
+   - "Tile" (.status-btn, statuspopup.css): the one deliberate shape
+     exception - a rounded-RECTANGLE, because it holds multi-word labels
+     ("Jobbar hemifrån") a circle or pill can't wrap. Still shares the
+     base interaction rules below, just not the box shape.
+
+   Fills (cut across both shapes above - a fill says nothing about
+   round-vs-pill):
+   - "Ghost": transparent, dim text by default, brightens on interaction.
+     The plainest/most frequent action (.ghost-btn, .reorder-btn).
+   - "Panel": solid --panel-2, full-brightness text already. Reads as a
+     step more present than ghost without being a "the" action
+     (.icon-btn, .popup-info, .bs-step, .cal-nav-btn, .clock-step,
+     .bs-choice unselected).
+   - "Primary": solid --accent, dark bold text. THE action in a group, or
+     an already-selected choice (.primary-btn, .bs-choice.active).
+   - "Danger": solid --red, white text. Currently just .popup-close - the
+     one place an action is destructive enough (closing WITHOUT saving,
+     from wherever the person happened to be) to warrant its own alarm
+     color rather than the ghost .danger text-color override
+     admin.css's "Ta bort" button uses instead (a lower-stakes, reversible
+     confirm-first delete, not this).
+
+   Every button (any shape/fill) gets both a :hover treatment (mouse, for
+   admin's desktop use) and an :active one (touch feedback on the
+   board/kiosk side) - some used to define only whichever one the person
+   writing it happened to reach for first. */
+.ghost-btn, .primary-btn, .icon-btn, .popup-close, .popup-info,
+.bs-choice, .bs-step, .cal-nav-btn, .clock-step, .reorder-btn,
+.status-btn {
+  transition: border-color .15s ease, background-color .15s ease, color .15s ease, filter .15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.icon-btn:disabled, .bs-step:disabled, .clock-step:disabled, .reorder-btn:disabled,
+.ghost-btn:disabled, .primary-btn:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* ---- shapes ---- */
+.icon-btn, .popup-close, .popup-info, .bs-step, .cal-nav-btn,
+.clock-step, .reorder-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  font-weight: 700;
+  line-height: 1;
+}
+.ghost-btn, .primary-btn, .bs-choice {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 600;
+  white-space: nowrap;
+  padding: 0.7em 1.4em;
+  font-size: 1rem;
+}
+.primary-btn {
+  padding: 0.8em 1.6em;
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* ---- fills ---- */
+.ghost-btn, .reorder-btn {
   background: transparent;
   color: var(--text-dim);
-  font-size: 1rem;
-  padding: 0.7em 1.4em;
-  border-radius: 999px;
   border: 1px solid var(--border);
 }
-.ghost-btn:hover { border-color: var(--accent); color: var(--text); }
+.ghost-btn:hover, .reorder-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
+.ghost-btn:active, .reorder-btn:active:not(:disabled) { background: var(--chip-bg); }
 
-.primary-btn {
+.icon-btn, .popup-info, .bs-step, .cal-nav-btn, .clock-step, .bs-choice,
+.status-btn {
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+.icon-btn:hover, .popup-info:hover, .bs-step:hover:not(:disabled),
+.cal-nav-btn:hover, .clock-step:hover, .bs-choice:hover,
+.status-btn:hover { border-color: var(--accent); }
+.icon-btn:active, .popup-info:active, .bs-step:active:not(:disabled),
+.cal-nav-btn:active, .clock-step:active, .bs-choice:active,
+.status-btn:active { background: var(--chip-bg); }
+
+.primary-btn, .bs-choice.active {
   background: var(--accent);
   color: #06101f;
-  font-weight: 700;
-  font-size: 1.05rem;
-  padding: 0.8em 1.6em;
-  border-radius: 999px;
+  border-color: var(--accent);
+}
+.primary-btn:hover { filter: brightness(1.08); }
+.primary-btn:active, .bs-choice.active:active { filter: brightness(0.9); }
+
+.popup-close {
+  background: var(--red);
+  color: #fff;
   border: none;
 }
+.popup-close:hover { filter: brightness(1.08); }
+.popup-close:active { filter: brightness(0.9); }
 
 .icon {
   display: inline-block;
@@ -384,19 +501,10 @@ button {
    portrait - see board.css's .hdr comment for why a bare vh value blows
    up on a tall screen. */
 .icon-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 2.4em;
-  height: 2.4em;
-  border-radius: 50%;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
+  width: var(--btn-round-md);
+  height: var(--btn-round-md);
   font-size: max(0.85rem, min(1.6vh, 1vw));
-  flex: none;
 }
-.icon-btn:active { background: var(--chip-bg); }
 
 /* Avatar: a person's photo, or a colored circle with their initials when
    they don't have one. Actual size is set per-page (see .avatar-sm /
@@ -426,20 +534,12 @@ button {
   position: absolute;
   top: 0.6em;
   right: 0.6em;
-  width: 2.2em;
-  height: 2.2em;
-  border-radius: 50%;
-  background: var(--red);
-  color: #fff;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  width: var(--btn-round-sm);
+  height: var(--btn-round-sm);
   font-size: 1rem;
-  border: none;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
   z-index: 20;
 }
-.popup-close:active { filter: brightness(0.9); }
 
 /* The board-settings popup (tap the clock - see boardsettings.js/.html)
    is the one popup with a second corner button, the version-info "i" -
@@ -454,18 +554,11 @@ button {
   position: absolute;
   top: 0.6em;
   right: 0.6em;
-  width: 2.2em;
-  height: 2.2em;
-  border-radius: 50%;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  width: var(--btn-round-sm);
+  height: var(--btn-round-sm);
   /* Same base font-size .popup-close sets explicitly (rather than
      inheriting whatever ambient size this button happens to sit in) -
-     both buttons' 2.2em width/height is relative to THIS, so without it
+     both buttons' width/height above are relative to THIS, so without it
      the two circles quietly stop matching depending on where each one
      gets placed. */
   font-size: 1rem;
@@ -479,11 +572,10 @@ button {
   font-style: normal;
   line-height: 1;
 }
-.popup-info:active { filter: brightness(1.12); }
 /* Only the board-settings card has a .popup-info sibling to make room
    for - every other .popup-close (status popup, admin dialogs) stays
    exactly where it's always been, flush in the corner. */
-#boardSettingsCard .popup-info { right: calc(0.6em + 2.2em + 0.5em); }
+#boardSettingsCard .popup-info { right: calc(0.6em + var(--btn-round-sm) + 0.5em); }
 
 /* ------------------------------------------------------- on-screen keyboard
    Shared Swedish QWERTY keyboard (see public/keyboard.js's
