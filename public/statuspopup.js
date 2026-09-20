@@ -56,10 +56,16 @@
     return parts.join(' · ');
   }
 
+  // Same background color (and same luminance-picked contrasting text -
+  // popup.js's window.readableTextOn) as the status's own pellet/badge on
+  // the board itself (board.js's personRowHtml) - so picking a status here
+  // and spotting it on the board afterward is visually the same color,
+  // not just the same word.
   function renderStatusGrid(container, defs, onChoice) {
     container.innerHTML = defs.map((d) => {
       const cls = d.code === 'IN' ? 'primary-in' : d.code === 'OUT' ? 'primary-out' : '';
-      return `<button type="button" class="status-btn ${cls}" data-code="${esc(d.code)}">${esc(d.label)}</button>`;
+      const textColor = window.readableTextOn(d.color);
+      return `<button type="button" class="status-btn ${cls}" data-code="${esc(d.code)}" style="background:${esc(d.color)};color:${esc(textColor)}">${esc(d.label)}</button>`;
     }).join('');
     container.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => onChoice(btn.dataset.code));

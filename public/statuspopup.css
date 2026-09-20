@@ -73,7 +73,7 @@
   flex: none;
 }
 .avatar-slot { margin-bottom: 1vh; }
-.avatar-lg { width: 4.6rem; height: 4.6rem; font-size: 1.7rem; }
+.avatar-lg { width: 5.6rem; height: 5.6rem; font-size: 2.1rem; }
 .person-header-name { font-size: 1.5rem; font-weight: 800; }
 .person-header-sub { font-size: 1.05rem; color: var(--text-dim); margin-top: 0.3vh; }
 /* Same font-size as .person-header-sub (the department/role line right
@@ -83,35 +83,45 @@
 .phone-line { font-size: 1.05rem; }
 .person-header-current { font-size: 0.95rem; margin-top: 1vh; color: var(--text-dim); }
 
-/* 3 columns instead of 2 - with up to 16 secondary statuses (see
-   admin.html's own "max 16" note) plus IN/UTE, 2 columns could run
-   longer than this popup's max-height and need an internal scroll that
-   had no visual hint it was there (looked like the list was just cut
-   off). Three columns keeps every status on screen at once without
-   scrolling - this app already treats "tap a status" and "fill in its
-   time/date/note" as two separate screens (see .sp-screen), so nothing
-   here actually needs to scroll. overflow-y stays on as a safety net
-   only, not the primary way this is meant to be used. */
+/* 6 columns, not 3 - secondary statuses each span 2 (so 3 still land per
+   row, same as before) while IN/UTE (.primary-in/.primary-out below) each
+   span 3, putting the two of them side by side on one row instead of each
+   claiming a full row of its own. With up to 16 secondary statuses (see
+   admin.html's own "max 16" note) plus IN/UTE, keeping every status on
+   screen at once without an internal scroll (that had no visual hint it
+   was there - looked like the list was just cut off) is the whole reason
+   for a grid over a plain wrapping row in the first place - this app
+   already treats "tap a status" and "fill in its time/date/note" as two
+   separate screens (see .sp-screen), so nothing here actually needs to
+   scroll. overflow-y stays on as a safety net only, not the primary way
+   this is meant to be used. */
 .status-grid {
   width: 100%;
   max-width: 480px;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: calc(0.9 * var(--gap-unit)) min(1vw, 6px);
   margin-bottom: 1vh;
   overflow-y: auto;
 }
-/* Fill (panel-2/border/text, hover/active) comes from shared.css's
-   unified button system, same treatment as the round/pill families -
-   only the shape here is its own: a rounded-RECTANGLE ("tile"), the one
-   deliberate exception to "every button is round or pill", because a
-   status label can be several words ("Jobbar hemifrån") that need to
-   wrap, which neither shape allows. */
+/* Colored per-status inline (background/color - see statuspopup.js's
+   renderStatusGrid, same color+contrast pick as that status's pellet/
+   badge on the board), so no border - a border in a THIRD, unrelated
+   color on top of an already-colorful fill just adds noise. Hover/active
+   feedback is a brightness filter instead of shared.css's usual
+   background-swap, since a swap would need to fight the inline
+   background this button already sets (inline always wins over any
+   plain class selector, active/hover pseudo-class or not). Shape-wise
+   still the "tile" rounded-rectangle exception the rest of the app's
+   buttons don't use, because a status label can be several words
+   ("Jobbar hemifrån") that need to wrap, which neither the round nor the
+   pill shape allows. */
 .status-btn {
   display: flex;
   align-items: center;
   justify-content: center;
   padding: calc(0.8 * var(--gap-unit)) min(1.2vw, 8px);
+  border: none;
   border-radius: 12px;
   font-size: 0.95rem;
   font-weight: 600;
@@ -131,8 +141,10 @@
   overflow-wrap: break-word;
   word-break: break-word;
 }
-.status-btn.primary-in { border-color: var(--green); grid-column: 1 / -1; }
-.status-btn.primary-out { border-color: var(--grey); grid-column: 1 / -1; }
+@media (hover: hover) { .status-btn:hover { filter: brightness(1.1); } }
+.status-btn:active { filter: brightness(0.85); }
+.status-btn.primary-in, .status-btn.primary-out { grid-column: span 3; }
+.status-btn:not(.primary-in):not(.primary-out) { grid-column: span 2; }
 
 .detail-actions {
   display: flex;

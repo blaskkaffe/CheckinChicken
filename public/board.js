@@ -397,34 +397,16 @@
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  // Status colors (server/statuses.js's `color`) are plain fixed hex, not
-  // theme-aware, and span everything from pale orange to dark navy - a
-  // single fixed text color can't read well on all of them at once
-  // (that was the light-mode contrast problem: dark text on a dark blue
-  // pill). So instead of hardcoding one, pick per-pill: relative luminance
-  // (the standard WCAG formula) decides whether light or dark text gets
-  // better contrast against THIS background, so every pill stays readable
-  // in both themes regardless of which status color it happens to be.
-  function readableTextOn(hex) {
-    const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
-    if (!m) return '#0b0e16';
-    const [r, g, b] = m.slice(1).map((h) => {
-      const c = parseInt(h, 16) / 255;
-      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
-    });
-    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    return luminance > 0.45 ? '#0b0e16' : '#f5f7fb';
-  }
-
   // --green is a solid, fairly saturated fill in both themes (unlike the
   // translucent --badge-in-bg it replaces on the INNE pill - see
   // .badge.in in board.css) and its exact shade differs enough between
   // light and dark mode that no single fixed text color reads well on
   // both. Read the live value and run it through the same contrast pick
-  // as the status tags, instead of guessing.
+  // as the status tags (popup.js's window.readableTextOn), instead of
+  // guessing.
   function inBadgeTextColor() {
     const green = getComputedStyle(document.documentElement).getPropertyValue('--green').trim();
-    return readableTextOn(green);
+    return window.readableTextOn(green);
   }
 
   // IN/UTE's own label is editable from the admin page's "Statusar" tab
@@ -465,7 +447,7 @@
       if (len > bestLen) { bestLen = len; best = { def, detail }; }
     }
     const { def, detail } = best;
-    const textColor = readableTextOn(def.color);
+    const textColor = window.readableTextOn(def.color);
     return `<span class="pellet" style="background:${def.color};color:${textColor}">${esc(def.label)}${detail ? `<span class="detail">· ${esc(detail)}</span>` : ''}</span>`;
   }
 
@@ -497,7 +479,7 @@
     let pelletHtml = '';
     if (statusDef) {
       const detail = p.status.detail || p.status.note || '';
-      const textColor = readableTextOn(statusDef.color);
+      const textColor = window.readableTextOn(statusDef.color);
       pelletHtml = `<span class="pellet" style="background:${statusDef.color};color:${textColor}">${esc(statusDef.label)}${detail ? `<span class="detail">· ${esc(detail)}</span>` : ''}</span>`;
     } else if (forMeasurement) {
       pelletHtml = measurementPelletHtml();

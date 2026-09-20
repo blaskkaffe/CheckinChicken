@@ -6,6 +6,28 @@
 // Default 5 minutes, editable from the admin page's Inställningar tab -
 // see server/settings-store.js.
 (() => {
+  // Status colors (server/statuses.js's `color`) are plain fixed hex, not
+  // theme-aware, and span everything from pale orange to dark navy - a
+  // single fixed text color can't read well on all of them at once (dark
+  // text on a dark blue pill, say). So instead of hardcoding one, pick per
+  // pill: relative luminance (the standard WCAG formula) decides whether
+  // light or dark text gets better contrast against THIS background, so
+  // every pill stays readable in both themes regardless of which status
+  // color it happens to be. Shared here (rather than living in board.js,
+  // where it originated) because statuspopup.js's status buttons now use
+  // the exact same per-status colors as board.js's pellets/badge - see
+  // both files' own callers.
+  window.readableTextOn = function (hex) {
+    const m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
+    if (!m) return '#0b0e16';
+    const [r, g, b] = m.slice(1).map((h) => {
+      const c = parseInt(h, 16) / 255;
+      return c <= 0.03928 ? c / 12.92 : Math.pow((c + 0.055) / 1.055, 2.4);
+    });
+    const luminance = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    return luminance > 0.45 ? '#0b0e16' : '#f5f7fb';
+  };
+
   let idleTimeoutMs = 5 * 60 * 1000; // default; refreshed below
 
   function readSettings(s) {

@@ -412,18 +412,22 @@ button {
 .ghost-btn:hover, .reorder-btn:hover:not(:disabled) { border-color: var(--accent); color: var(--text); }
 .ghost-btn:active, .reorder-btn:active:not(:disabled) { background: var(--chip-bg); }
 
-.icon-btn, .popup-info, .bs-step, .cal-nav-btn, .clock-step, .bs-choice,
-.status-btn {
+.icon-btn, .popup-info, .bs-step, .cal-nav-btn, .clock-step, .bs-choice {
   background: var(--panel-2);
   color: var(--text);
   border: 1px solid var(--border);
 }
 .icon-btn:hover, .popup-info:hover, .bs-step:hover:not(:disabled),
-.cal-nav-btn:hover, .clock-step:hover, .bs-choice:hover,
-.status-btn:hover { border-color: var(--accent); }
+.cal-nav-btn:hover, .clock-step:hover, .bs-choice:hover { border-color: var(--accent); }
 .icon-btn:active, .popup-info:active, .bs-step:active:not(:disabled),
-.cal-nav-btn:active, .clock-step:active, .bs-choice:active,
-.status-btn:active { background: var(--chip-bg); }
+.cal-nav-btn:active, .clock-step:active, .bs-choice:active { background: var(--chip-bg); }
+
+/* .status-btn is NOT part of the PANEL fill above - it's colored inline,
+   per status (statuspopup.js), the exact same background/text-color pick
+   as that status's own pellet/badge on the board - see statuspopup.css
+   for its border-less look and filter-based (rather than background-
+   swapping, which an inline background would just override) hover/active
+   feedback. */
 
 .primary-btn, .bs-choice.active {
   background: var(--accent);
