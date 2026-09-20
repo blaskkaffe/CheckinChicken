@@ -305,8 +305,13 @@ body {
      same reasoning as .hdr/.board (see body's own comment on --gap-unit) -
      this is the single most-repeated element on the board, so a bare-vh
      top/bottom that balloons in portrait was the most visible instance of
-     this bug. Left/right stays plain vw, same precedent as the other two. */
-  padding: calc(0.45 * var(--gap-unit) * var(--scale)) calc(0.7vw * var(--scale));
+     this bug. Left/right stays plain vw, same precedent as the other two -
+     halved (0.7 -> 0.35) so the avatar/badge/pellet - all sized off the
+     row's own content width via cqw - can grow into the freed-up space
+     without changing the row's height, and the INNE/UTE badge's tap
+     target (.badge, flush against this padding on the right) reaches
+     closer to the actual edge of the row. */
+  padding: calc(0.45 * var(--gap-unit) * var(--scale)) calc(0.35vw * var(--scale));
   border-radius: 8px;
   border-left: calc(0.35vw * var(--scale)) solid transparent;
 }
