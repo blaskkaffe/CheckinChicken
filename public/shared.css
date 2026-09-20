@@ -666,39 +666,20 @@ body.onscreen-keyboard-open .popup-card {
 
 /* --------------------------------------------------------------- time input
    Touch-friendly time picker (see public/timepicker.js's buildTimeInput) -
-   a plain always-24-hour HH/MM field pair (.time-hm-*) rather than a
-   native <input type=time>, because that control's 12h/24h rendering
-   follows the browser's own locale with no reliable page-level override.
-   Paired with a one-tap shortcut row (.time-shortcuts) for the values
-   people actually pick most often. The date/week equivalent is a fully
-   drawn calendar instead of a native input - see statuspopup.css's .cal-*
+   the exact same stepper-card look as admin's own system-clock control
+   (.clock-group and friends, just below) rather than a separate style of
+   its own: a captioned +/- stepper per field, grouped in a bordered card,
+   just HH/MM (no seconds - see buildTimeInput, which builds one
+   .clock-group instead of buildSystemClockInput's two, and never adds a
+   third field for seconds). A native <input type=time> was tried first
+   and dropped for the same reason as the system clock's own fields: its
+   12h/24h rendering follows the browser's own locale with no reliable
+   page-level override, and this app always wants 24-hour time. Paired
+   with a one-tap shortcut row (.time-shortcuts) for the values people
+   actually pick most often. The date/week equivalent is a fully drawn
+   calendar instead of a native input - see statuspopup.css's .cal-*
    (buildDateOrWeekInput in timepicker.js). */
 .touch-time-input { display: flex; flex-direction: column; gap: 0.8vh; align-items: center; }
-.time-hm-wrap { display: flex; align-items: center; gap: 0.4em; }
-.time-hm-field {
-  font-size: 1.3rem;
-  font-variant-numeric: tabular-nums;
-  text-align: center;
-  width: 2.6em;
-  padding: 0.6em 0.2em;
-  border-radius: 10px;
-  background: var(--panel-2);
-  border: 1px solid var(--border);
-  color: var(--text);
-  min-height: 2.4em;
-  /* Hide the native browser increment/decrement spinner arrows - the
-     shortcut row below is the fast path, and the tiny native arrows are
-     both hard to hit on a touchscreen and inconsistent-looking across
-     browsers. Typing (or the shortcuts) is the intended way in. */
-  -moz-appearance: textfield;
-}
-.time-hm-field::-webkit-outer-spin-button,
-.time-hm-field::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-.time-hm-field:focus { outline: none; border-color: var(--accent); }
-.time-hm-sep { font-size: 1.3rem; font-weight: 700; color: var(--text-dim); }
 .time-shortcuts { display: flex; gap: 0.5em; flex-wrap: wrap; justify-content: center; }
 .time-shortcut {
   background: var(--panel-2);
@@ -709,6 +690,100 @@ body.onscreen-keyboard-open .popup-card {
   font-size: 0.95rem;
 }
 .time-shortcut:active { border-color: var(--accent); color: var(--text); }
+
+/* .clock-group and its contents (moved from admin.css - see its own
+   .clock-set/.clock-set-row comment for why only the layout AROUND a
+   group, not the group itself, stayed there): one card per HH:MM(:SS)
+   group, CSS grid rather than nested flex boxes specifically so a
+   separator (":") can span a column's full height and land vertically
+   centered next to the NUMBER row of its neighboring fields - lined up
+   the same regardless of the caption label sitting above each field (see
+   timepicker.js's field()/sep()): grid-auto-flow:column with a fixed
+   4-row template fills one field's label/+/number/- top-to-bottom before
+   moving to the next column, and a separator's own `grid-row: span 4`
+   below claims a whole column for itself in one step.
+
+   font-size/width below read admin's own --fs-* / --sz-clock-num tokens
+   (defined on admin.html's .admin wrapper) with a plain rem fallback for
+   every other page that draws a .clock-group without ever defining
+   those - currently just board.html's status popup. Same rendered look
+   either way on admin (the fallback never applies there, since the
+   tokens exist) - board.html's popup just gets sensible fixed sizing
+   instead of admin's own viewport-height-responsive scale, matching the
+   fixed-rem sizing the rest of that popup already uses (see e.g.
+   statuspopup.css's .status-btn). */
+.clock-group {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(4, auto);
+  align-items: center;
+  justify-items: center;
+  column-gap: 0.5em;
+  row-gap: 0.6vh;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: calc(1.3 * var(--gap-unit)) 1.2vw;
+}
+.clock-field-label {
+  font-size: var(--fs-xs, 0.8rem);
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: var(--text-dim);
+}
+/* Shape/fill/hover/active/disabled all come from this file's own unified
+   button system above (the "round" shape, "panel" fill - the same
+   treatment as the board-settings popup's own +/- stepper, .bs-step, and
+   now this same control on two different pages too). Concrete size
+   (width/height/font-size) is still each page's own - see admin.css and
+   statuspopup.css for their own .clock-step rules, same precedent as
+   .bs-step/.cal-nav-btn each having their own. */
+.clock-num {
+  /* Wider than --sz-clock-num (the +/- buttons above/below it don't need
+     to hold text, but this does) - a plain type=number's reserved
+     internal spinner gutter doesn't fully go away with just the
+     ::-webkit-*-spin-button rule below in every Chromium version, so
+     without -webkit-appearance:none here too, two tabular-nums digits
+     at this font-size measurably don't fit the box (confirmed: 49px of
+     content in a 36px box) and render clipped. */
+  appearance: none; -webkit-appearance: none; -moz-appearance: textfield;
+  width: calc(var(--sz-clock-num, 2.2rem) * 1.5);
+  text-align: center;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: var(--fs-md, 1.1rem);
+  font-variant-numeric: tabular-nums;
+  font-family: inherit;
+  padding: 0.5vh 0;
+}
+.clock-num:focus { outline: none; border-color: var(--accent); }
+.clock-num::-webkit-outer-spin-button, .clock-num::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+/* The year field (admin's own date group only - board.html's popup never
+   builds one) holds 4 digits, not 2 - needs more room than every other
+   field, which are always zero-padded to exactly 2 (see the `wide`
+   option on timepicker.js's field(), which adds this class straight to
+   its own +/number/- elements - there's no per-field wrapper for it to
+   go on instead, see .clock-group above). */
+.clock-num.clock-field-wide { width: calc(var(--sz-clock-num, 2.2rem) * 2.3); }
+/* display:flex here rather than just align-self:center on the bare text -
+   align-self:center centers this item's own (content-sized) box within
+   its 4-row span, but doesn't touch where the glyph sits WITHIN that
+   box, which is down to the font's own ascent/descent metrics for ":"/
+   "-" and isn't reliably centered on its own. Stretching to fill the
+   full span (align-self:stretch, the grid default - dropping the old
+   align-self:center) and then flex-centering the text inside that full
+   height sidesteps the font-metrics question entirely. */
+.clock-sep {
+  grid-row: span 4;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--fs-lg, 1.3rem);
+  font-weight: 700;
+  color: var(--text-dim);
+}
 
 /* A person's phone number, shown by default right below their department/
    role line (see server.js's `phoneVisibility`, default 'always') - same

@@ -153,6 +153,20 @@
   flex: none;
 }
 
+/* "What time" field, shown for any needsTime status (e.g. "Kommer sent")
+   - see timepicker.js's buildTimeInput, which draws a single .clock-group
+   (shared.css - the exact same card/stepper look as admin's own system-
+   clock control, just HH:MM, no seconds). Shape/fill come from shared.css's
+   unified button system; only this concrete size is this page's own, same
+   precedent as .cal-nav-btn below and admin.css's own .clock-step rule for
+   its system-clock control. */
+.clock-step {
+  width: var(--btn-round-md);
+  height: var(--btn-round-md);
+  font-size: 1.3rem;
+  padding: 0;
+}
+
 /* Day/week calendar, shown for any needsDate status - see
    timepicker.js's buildDateOrWeekInput(). One drawn-to-match grid rather
    than a native <input type=date>/<input type=week>: tapping a day cell

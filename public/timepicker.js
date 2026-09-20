@@ -1,8 +1,13 @@
 // timepicker.js — fast, touch-friendly time/date inputs.
 //
 // buildTimeInput below is used by the status popup for a status that
-// needsTime (see server/statuses.js) - a plain always-24-hour HH:MM field
-// pair plus a row of one-tap shortcuts.
+// needsTime (server/statuses.js, e.g. "Kommer sent") - always-24-hour
+// HH:MM, drawn with the exact same captioned +/- stepper card
+// (.clock-group, shared.css) as admin's own system-clock control
+// (buildSystemClockInput below) - just one group instead of two, and no
+// seconds field, rather than a second, differently-styled time input
+// existing side by side with that one. Paired with a row of one-tap
+// shortcuts.
 //
 // buildDateOrWeekInput is used for a status that needsDate - a single
 // drawn-to-match calendar (not a native <input type=date>/<input
@@ -12,16 +17,17 @@
 // in. See its own comment below for the full reasoning.
 //
 // buildSystemClockInput (bottom of this file) is admin's own "set the
-// system clock" control (Inställningar tab) - a separate, simpler widget
-// rather than reusing either of the above, because that control has
-// different needs: it always needs seconds (buildTimeInput doesn't have a
-// seconds field), and it's for "read out this exact date to verify the
-// clock" rather than "pick a date", where a full calendar would be
-// overkill and the app's own consistent YYYY-MM-DD is what you want, not
-// a picked-then-formatted date. Six plain +/- steppers suit that better.
-// (An earlier version of this control, buildDateTimeInput, combined
-// buildTimeInput with a native <input type=date> instead - removed once
-// nothing else used it.)
+// system clock" control (Inställningar tab) - kept as its own function
+// rather than just being buildTimeInput plus a date group tacked on,
+// because it has one real difference beyond the extra date fields: it
+// always needs seconds ("read out this exact date to verify the clock"
+// wants precision buildTimeInput's statuses never do), and it always
+// shows a real, already-valid value (seeded from "now") rather than
+// buildTimeInput's blank-until-chosen fields - setting the system clock
+// has no equivalent of "no time entered", every field always has to mean
+// something. (An earlier version of this control, buildDateTimeInput,
+// combined buildTimeInput with a native <input type=date> instead -
+// removed once nothing else used it.)
 (() => {
   function pad2(n) { return String(n).padStart(2, '0'); }
   function isoDate(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
@@ -41,8 +47,10 @@
     container.appendChild(row);
   }
 
-  /** { value } getter/setter object, backed by an always-24-hour HH:MM
-   *  field pair + shortcut row.
+  /** { value } getter/setter object, backed by a single always-24-hour
+   *  HH:MM .clock-group (shared.css - the same captioned +/- stepper card
+   *  admin's own system-clock control uses, see buildSystemClockInput
+   *  below, just one group and no seconds field) + shortcut row.
    *
    *  This used to be a native <input type=time>, which is a nice wheel
    *  picker on a touchscreen - but which 12h/24h format it renders in
@@ -53,54 +61,118 @@
    *  locale even with lang="sv-SE" on the input). Since this app always
    *  wants 24-hour time regardless of the device's own locale (matching
    *  the board's own clock - board.js's fmtClock), and there's no
-   *  reliable way to force that on the native control, two plain
-   *  HH/MM number fields sidestep the issue entirely: there's no AM/PM
-   *  concept to mis-render in the first place. The shortcut row below
-   *  still covers the fast/common path exactly as before - manual entry
-   *  here is just the fallback.
+   *  reliable way to force that on the native control, two plain HH/MM
+   *  fields sidestep the issue entirely: there's no AM/PM concept to
+   *  mis-render in the first place.
+   *
+   *  Unlike buildSystemClockInput's fields, these start blank (placeholder
+   *  "HH"/"MM", not a real value) and stay that way until actually
+   *  touched - typed into, stepped, or filled via a shortcut - so tapping
+   *  Klar without picking a time saves no detail at all rather than
+   *  silently recording some default one. The +/- steppers are the one
+   *  exception that has to start SOMEWHERE: the first tap on either
+   *  field's own + or - seeds THAT field from the current real time, then
+   *  applies the step - the other field stays blank until it gets its own
+   *  first tap (or the whole pair is filled together, in one step, by
+   *  typing or a shortcut). The shortcut row below still covers the
+   *  fast/common path exactly as before; the steppers/typing are for
+   *  anything else.
    */
   window.buildTimeInput = function (container, { initial, onChange } = {}) {
     container.innerHTML = '';
     container.className = 'touch-time-input';
-    const wrap = document.createElement('div');
-    wrap.className = 'time-hm-wrap';
 
     const [initH, initM] = (initial || '').split(':');
-    const hh = document.createElement('input');
-    hh.type = 'number'; hh.inputMode = 'numeric'; hh.min = '0'; hh.max = '23';
-    hh.className = 'time-hm-field'; hh.placeholder = 'HH'; hh.setAttribute('aria-label', 'Timme');
-    hh.value = initH || '';
-    const sep = document.createElement('span');
-    sep.className = 'time-hm-sep'; sep.textContent = ':'; sep.setAttribute('aria-hidden', 'true');
-    const mm = document.createElement('input');
-    mm.type = 'number'; mm.inputMode = 'numeric'; mm.min = '0'; mm.max = '59';
-    mm.className = 'time-hm-field'; mm.placeholder = 'MM'; mm.setAttribute('aria-label', 'Minut');
-    mm.value = initM || '';
+    const state = {
+      hh: initH ? Number(initH) : null,
+      mm: initM ? Number(initM) : null,
+    };
+    const RANGES = { hh: [0, 23], mm: [0, 59] };
 
-    function clamp(el, max) {
-      if (el.value === '') return;
-      let v = Math.trunc(Number(el.value));
-      if (!Number.isFinite(v)) { el.value = ''; return; }
-      el.value = String(Math.min(max, Math.max(0, v)));
-    }
     function currentValue() {
-      return (hh.value !== '' && mm.value !== '') ? `${pad2(Number(hh.value))}:${pad2(Number(mm.value))}` : '';
+      return (state.hh !== null && state.mm !== null) ? `${pad2(state.hh)}:${pad2(state.mm)}` : '';
     }
     function fire() { onChange && onChange(currentValue()); }
-    function fireClamped() { clamp(hh, 23); clamp(mm, 59); fire(); }
-    hh.addEventListener('input', fire);
-    mm.addEventListener('input', fire);
-    hh.addEventListener('blur', fireClamped);
-    mm.addEventListener('blur', fireClamped);
-    // Jump to the minute field once two hour digits are typed - keeps
-    // manual entry to a quick four keystrokes total, no tapping required
-    // between fields.
-    hh.addEventListener('input', () => { if (hh.value.length >= 2) mm.focus(); });
+    function clampTyped(key, v) {
+      const [lo, hi] = RANGES[key];
+      return Math.max(lo, Math.min(hi, v));
+    }
+    // Same wrap-at-the-field's-own-boundary behavior as
+    // buildSystemClockInput's own wrapStep (59 -> 0, not carried into the
+    // other field) - seeded from the current real time if this field
+    // hasn't been touched yet (see this function's own doc comment above).
+    function wrapStep(key, dir) {
+      const [lo, hi] = RANGES[key];
+      const span = hi - lo + 1;
+      const now = new Date();
+      const base = state[key] !== null ? state[key] : (key === 'hh' ? now.getHours() : now.getMinutes());
+      state[key] = ((base - lo + dir) % span + span) % span + lo;
+    }
 
-    wrap.appendChild(hh);
-    wrap.appendChild(sep);
-    wrap.appendChild(mm);
-    container.appendChild(wrap);
+    const inputs = {};
+    function syncInputs() {
+      inputs.hh.value = state.hh === null ? '' : pad2(state.hh);
+      inputs.mm.value = state.mm === null ? '' : pad2(state.mm);
+    }
+
+    // Same field()/sep() shape as buildSystemClockInput's own (below) -
+    // deliberately not shared as one function between the two: this one
+    // has to handle a blank/null state theirs never does, and theirs
+    // handles wrap-around year/month/day boundaries this one never needs.
+    function field(group, key, label, placeholder) {
+      const captionEl = document.createElement('span');
+      captionEl.className = 'clock-field-label';
+      captionEl.textContent = label;
+      captionEl.setAttribute('aria-hidden', 'true');
+
+      const plus = document.createElement('button');
+      plus.type = 'button'; plus.className = 'clock-step'; plus.textContent = '+';
+      plus.setAttribute('aria-label', `Öka ${label.toLowerCase()}`);
+
+      const input = document.createElement('input');
+      input.type = 'number'; input.inputMode = 'numeric'; input.className = 'clock-num';
+      input.placeholder = placeholder; input.setAttribute('aria-label', label);
+
+      const minus = document.createElement('button');
+      minus.type = 'button'; minus.className = 'clock-step'; minus.textContent = '−';
+      minus.setAttribute('aria-label', `Minska ${label.toLowerCase()}`);
+
+      plus.addEventListener('click', () => { wrapStep(key, 1); syncInputs(); fire(); });
+      minus.addEventListener('click', () => { wrapStep(key, -1); syncInputs(); fire(); });
+      input.addEventListener('input', () => {
+        if (input.value === '') { state[key] = null; fire(); return; }
+        const v = Math.trunc(Number(input.value));
+        if (!Number.isFinite(v)) return;
+        state[key] = v;
+        fire();
+        // Jump to the minute field once two hour digits are typed - keeps
+        // manual entry to a quick four keystrokes total, no tapping
+        // required between fields.
+        if (key === 'hh' && input.value.length >= 2) inputs.mm.focus();
+      });
+      input.addEventListener('blur', () => {
+        if (input.value === '') { state[key] = null; syncInputs(); fire(); return; }
+        const v = Math.trunc(Number(input.value));
+        state[key] = Number.isFinite(v) ? clampTyped(key, v) : state[key];
+        syncInputs();
+        fire();
+      });
+
+      group.append(captionEl, plus, input, minus);
+      inputs[key] = input;
+    }
+    function sep(group, ch) {
+      const s = document.createElement('span');
+      s.className = 'clock-sep'; s.textContent = ch; s.setAttribute('aria-hidden', 'true');
+      group.appendChild(s);
+    }
+
+    const group = document.createElement('div');
+    group.className = 'clock-group';
+    field(group, 'hh', 'Timme', 'HH'); sep(group, ':');
+    field(group, 'mm', 'Minut', 'MM');
+    container.appendChild(group);
+    syncInputs();
 
     const addMin = (mins) => {
       const base = currentValue() || isoTime(new Date());
@@ -116,7 +188,8 @@
       ['+1 tim', () => addMin(60)],
     ], (v) => {
       const [h, m] = v.split(':');
-      hh.value = h; mm.value = m;
+      state.hh = Number(h); state.mm = Number(m);
+      syncInputs();
       fire();
     });
 
@@ -124,7 +197,9 @@
       get value() { return currentValue(); },
       set value(v) {
         const [h, m] = (v || '').split(':');
-        hh.value = h || ''; mm.value = m || '';
+        state.hh = h ? Number(h) : null;
+        state.mm = m ? Number(m) : null;
+        syncInputs();
       },
     };
   };
