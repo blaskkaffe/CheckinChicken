@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.jpg" alt="CheckinChicken logo" width="200">
+  <img src="docs/logo.png" alt="CheckinChicken logo" width="200">
 </p>
 
 # CheckinChicken
