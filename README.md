@@ -489,6 +489,7 @@ Typing on the board:
 | then two more digits (`20`–`99`) | Picks a status from the admin "Statusar" list, in that list's own order — `20` is the first one, `21` the second, and so on (see the "Sifferkod" column on that tab). A status that needs a time/date/note hands off to the normal popup, already open on that one field, since a numpad alone can't type free text. |
 | `*` with nothing typed | Opens a directory of everyone's number, grouped for browsing/tapping |
 | `*` with something typed | Clears the current entry (same "back out" role it has in every popup here) |
+| `#` with nothing typed | Opens a legend of every status's own digit code (0/1 for Ute/Inne, then each status's 2-digit code) — the `*` of status codes |
 | `Backspace` | Removes the last digit typed (a bare numpad has no backspace key — use `*` there) |
 
 So `1271` in one breath is: department 1, person 27, status 1 → checked in

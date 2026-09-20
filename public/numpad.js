@@ -19,6 +19,10 @@
 //
 // # with just a person selected (3 digits, no status digit yet) toggles
 //   Inne/Ute directly - the single most common action, done in 3 keys.
+//   With NOTHING typed, # instead opens a legend of every status's own
+//   digit code (see buildLegend below) - the "*" of status codes, same
+//   idea as * below but for the codes you type AFTER a person's number
+//   rather than the number itself.
 // * clears whatever's typed so far - the same "erase/back out" role it has
 //   in every popup menu here. With NOTHING typed, * instead opens a
 //   directory of every active person's number (see buildDirectory below),
@@ -55,6 +59,8 @@
   const msgEl = $('npMsg');
   const dirOverlay = $('numpadDirectory');
   const dirList = $('npDirList');
+  const legendOverlay = $('numpadLegend');
+  const legendList = $('npLegendList');
 
   function esc(s) {
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -67,6 +73,14 @@
   // line, see e.g. statuspopup.js/board.js both having their own esc()).
   function secondaryDigitIndex(leadDigit, secondDigit) {
     return (Number(leadDigit) - 2) * 10 + Number(secondDigit);
+  }
+  // The reverse (index -> code), only needed for the legend (buildLegend)
+  // - handleDigit itself only ever needs secondaryDigitIndex above.
+  function secondaryDigitCode(index) {
+    return `${2 + Math.floor(index / 10)}${index % 10}`;
+  }
+  function primaryDigitCode(code) {
+    return code === 'IN' ? '1' : code === 'OUT' ? '0' : '';
   }
 
   // --------------------------------------------------------------- reset
@@ -232,7 +246,9 @@
   function handleHash() {
     if (matchedPerson && buffer.length === 3) {
       commitPrimary(matchedPerson.status?.checkedIn ? 'OUT' : 'IN');
+      return;
     }
+    if (!buffer && !errorText) openLegend();
   }
 
   function handleStar() {
@@ -287,6 +303,44 @@
   dirOverlay.querySelector('.popup-backdrop').addEventListener('click', closeDirectory);
   dirOverlay.appendChild(window.createPopupCloseButton(closeDirectory));
 
+  // -------------------------------------------------------------- legend
+  // "#" with nothing typed - every status's own digit code (0/1 for Ute/
+  // Inne, then the secondary list's own 2-digit codes, in the same order
+  // shown on the admin "Statusar" tab's own "Sifferkod" column), so the
+  // codes are just as discoverable as the people directory above ("*")
+  // rather than something you have to memorize or look up on another
+  // screen.
+  function buildLegend() {
+    const rows = [];
+    // OUT (0) before IN (1) - reads in ascending digit order, same as the
+    // secondary codes right after them - rather than statusDefs.primary's
+    // own [IN, OUT] storage order.
+    for (const code of ['OUT', 'IN']) {
+      const p = statusDefs.primary.find((s) => s.code === code);
+      if (p) rows.push({ digit: primaryDigitCode(code), label: p.label, color: p.color });
+    }
+    statusDefs.secondary.forEach((s, i) => {
+      rows.push({ digit: secondaryDigitCode(i), label: s.label, color: s.color });
+    });
+    legendList.innerHTML = rows.map((r) => `
+      <div class="numpad-dir-row numpad-legend-row">
+        <span class="numpad-dir-code">${esc(r.digit)}</span>
+        <span class="numpad-legend-swatch" style="background:${esc(r.color)}"></span>
+        <span class="numpad-dir-name">${esc(r.label)}</span>
+      </div>
+    `).join('');
+  }
+
+  function isLegendOpen() { return legendOverlay.classList.contains('visible'); }
+  function openLegend() {
+    buildLegend();
+    legendOverlay.classList.add('visible');
+  }
+  function closeLegend() { legendOverlay.classList.remove('visible'); }
+
+  legendOverlay.querySelector('.popup-backdrop').addEventListener('click', closeLegend);
+  legendOverlay.appendChild(window.createPopupCloseButton(closeLegend));
+
   // ------------------------------------------------------------ dispatch
   // Ignored entirely while: disabled (numericInput: false server-wide),
   // some other popup already has the board's attention (status popup,
@@ -312,6 +366,10 @@
 
     if (isDirectoryOpen()) {
       if (e.key === '*' || e.key === 'Escape') { e.preventDefault(); closeDirectory(); }
+      return;
+    }
+    if (isLegendOpen()) {
+      if (e.key === '#' || e.key === 'Escape') { e.preventDefault(); closeLegend(); }
       return;
     }
     if (otherPopupOpen()) return;

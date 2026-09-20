@@ -103,3 +103,16 @@
 }
 .numpad-dir-name { font-weight: 600; }
 .numpad-dir-dept { margin-left: auto; color: var(--text-dim); font-size: 0.85rem; }
+
+/* Status legend ("#" with nothing typed) reuses .numpad-dir-row's shape -
+   a color swatch (that status's own pellet/badge color, same as the
+   board itself) stands in for the directory's avatar. Not clickable
+   (cursor:default) - unlike a directory row, there's no useful "select
+   this" action for a bare status code on its own. */
+.numpad-legend-row { cursor: default; }
+.numpad-legend-swatch {
+  flex: none;
+  width: 1.3em;
+  height: 1.3em;
+  border-radius: 50%;
+}
