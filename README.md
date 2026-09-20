@@ -486,9 +486,9 @@ Typing on the board:
 | then `1` | Checks them in (Inne) |
 | then `0` | Checks them out (Ute) |
 | then `#` | Toggles Inne/Ute directly — the fastest path, 3 digits + `#`, no need to look at the popup at all |
-| then two more digits (`20`–`99`) | Picks a status button by its code — `20` is the first one in the admin "Statusar" list, `21` the second, and so on (see that tab's own "Sifferkod" column, or just read it straight off the open popup). A status that needs a time/date/note switches that same popup to its own detail/note screen, exactly as tapping it would — finishing it is then a touch/keyboard job, same as it always was. |
-| `*` with nothing typed | Swaps every person's photo on the board for a circle showing their own number — a visual "cheat sheet" for what to type. Press `*` again to switch back. |
-| `*` with something typed | Clears the current entry (and closes the popup it opened, if any) — same "back out" role it has in every popup here |
+| then two more digits (`20`–`99`) | Picks a status button by its code — `20` is the first one in the admin "Statusar" list, `21` the second, and so on (see that tab's own "Sifferkod" column, or just read it straight off the open popup). A status that needs a time/date/note switches that same popup to its own detail/note screen, exactly as tapping it would, ready to keep typing — see below. |
+| `#` with nothing typed | Swaps every person's photo on the board for a circle showing their own number — a visual "cheat sheet" for what to type. Press `#` again to switch back. |
+| `*` (only ever "clear") | With something typed: clears the current entry (and closes the popup it opened, if any). With nothing typed: does nothing. |
 | `Backspace` | Removes the last digit typed (a bare numpad has no backspace key — use `*` there) |
 
 So `1271` in one breath is: department 1, person 27, status 1 → checked in
@@ -496,6 +496,20 @@ So `1271` in one breath is: department 1, person 27, status 1 → checked in
 a brief error and clears itself; an unmatched status code drops back to
 the matched person (their popup stays open) rather than starting over.
 Nothing is ever half-saved.
+
+**Typing a time or date.** A status that needs a time (e.g. "Kommer sent")
+or a date (e.g. "Tjänsteresa") switches its popup screen to a set of
+number fields, already focused - just keep typing:
+
+| Keys | Does |
+| --- | --- |
+| digits | Fill the current field (HH then MM for a time; DD then MM for a date, under the calendar), jumping to the next field automatically once one's full |
+| `#` | Same as tapping "Klar" - saves whatever's filled in |
+| `*` | Clears the current field; if it's already empty, jumps back to the previous one instead |
+
+A date typed this way picks a specific day in the current year (the same
+as tapping that day on the calendar above it) - picking a whole week
+still needs a tap on its week number, there's no digit code for that.
 
 Off by default only if you set `numericInput: false` in `config.json` — on
 by default otherwise, since it costs nothing when nobody's using it (the

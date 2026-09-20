@@ -85,8 +85,16 @@
       const cls = d.code === 'IN' ? 'primary-in' : d.code === 'OUT' ? 'primary-out' : '';
       const textColor = window.readableTextOn(d.color);
       const digit = showCodes ? digitCodeFor(d.code) : '';
+      // The code chip is a SEPARATE, absolutely-positioned element (see
+      // statuspopup.css's .status-btn-code) rather than inline text next
+      // to the label - keeps it pinned to one corner regardless of label
+      // length, and keeps the label itself the button's one and only flex
+      // child so it still wraps/centers exactly as it did before any of
+      // this existed, instead of the two competing for space on one row
+      // and the label's wrapped lines landing in a ragged, off-center spot
+      // next to the chip.
       const codeHtml = digit ? `<span class="status-btn-code">${esc(digit)}</span>` : '';
-      return `<button type="button" class="status-btn ${cls}" data-code="${esc(d.code)}" style="background:${esc(d.color)};color:${esc(textColor)}">${codeHtml}${esc(d.label)}</button>`;
+      return `<button type="button" class="status-btn ${cls}${digit ? ' has-code' : ''}" data-code="${esc(d.code)}" style="background:${esc(d.color)};color:${esc(textColor)}">${codeHtml}<span class="status-btn-label">${esc(d.label)}</span></button>`;
     }).join('');
     container.querySelectorAll('button').forEach((btn) => {
       btn.addEventListener('click', () => onChoice(btn.dataset.code));
@@ -150,9 +158,22 @@
       // that'd ever make sense pre-filled).
       state.detailValue = def.needsTime ? (def.defaultTime || '') : null;
       $('spDetailPrompt').textContent = def.label;
+      // showScreen BEFORE build(): the builder auto-focuses its first
+      // field (timepicker.js's buildTimeInput/buildDateOrWeekInput) so
+      // typing just works with no tap needed first - but focus() is a
+      // silent no-op on an element that's still display:none, which
+      // #sp-screen-detail is until showScreen actually makes it visible.
+      showScreen('detail');
       const build = def.needsTime ? window.buildTimeInput : window.buildDateOrWeekInput;
-      build($('spDetailInput'), { initial: def.needsTime ? def.defaultTime : undefined, onChange: (v) => { state.detailValue = v; } });
-      return showScreen('detail');
+      // onEnter: "#" inside any of this screen's own fields (see
+      // timepicker.js's wireDigitFields) does exactly what tapping "Klar"
+      // does - the same key that finishes a check-in on the board itself.
+      build($('spDetailInput'), {
+        initial: def.needsTime ? def.defaultTime : undefined,
+        onChange: (v) => { state.detailValue = v; },
+        onEnter: detailSubmit,
+      });
+      return;
     }
     if (def.needsNote) {
       state.noteSecondaryCode = def.code;

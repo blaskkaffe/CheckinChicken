@@ -20,13 +20,14 @@
 //
 // What each key does depends on whether anything's been typed yet:
 //   Nothing typed:
-//     * toggles the whole BOARD between normal avatars and a "number
+//     # toggles the whole BOARD between normal avatars and a "number
 //       mode" that shows every person's own code instead (see
 //       window.BoardNumberMode, driven from board.js) - a visual lookup,
-//       the "cheat sheet" for what to type for someone.
-//     # does nothing (status codes are shown on the status popup itself,
-//       once a person is selected - see below - rather than behind their
-//       own separate lookup here).
+//       the "cheat sheet" for what to type for someone. Its OTHER job
+//       (below) only exists once a person is matched, so this gives it
+//       something to do before that.
+//     * does nothing - it's purely a "clear" key (see below), and there's
+//       nothing to clear yet.
 //   Something typed (a person's number, in progress or fully matched):
 //     * clears the current entry - the same "erase/back out" role it has
 //       in every popup menu here.
@@ -278,15 +279,21 @@
     if (matchedPerson && buffer.length === 3) {
       const code = matchedPerson.status?.checkedIn ? 'OUT' : 'IN';
       commitCode(code, primaryLabel(code));
+      return;
     }
-    // Nothing typed, or still mid-entry (1-2 digits, no match yet): no-op
-    // - status codes are discoverable on the popup itself once a person
-    // is actually selected, not behind their own separate idle lookup.
+    if (!buffer && !errorText) {
+      // Nothing typed: # has nothing else to do at this stage, so it
+      // doubles as the board's own number-display toggle (see
+      // window.BoardNumberMode) - the same key that's about to mean
+      // "Inne/Ute" the moment a person's matched.
+      window.BoardNumberMode && window.BoardNumberMode.toggle();
+    }
+    // Still mid-entry (1-2 digits, no match yet): no-op either way.
   }
 
   function handleStar() {
-    if (buffer || errorText) { resetBuffer(); render(); return; }
-    window.BoardNumberMode && window.BoardNumberMode.toggle();
+    // * is purely "clear" - nothing typed means nothing to clear.
+    if (buffer || errorText) { resetBuffer(); render(); }
   }
 
   // ------------------------------------------------------------ dispatch

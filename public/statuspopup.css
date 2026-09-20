@@ -117,6 +117,7 @@
    ("Jobbar hemifrån") that need to wrap, which neither the round nor the
    pill shape allows. */
 .status-btn {
+  position: relative;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -138,6 +139,12 @@
      forcing the overflow - same trade either way (a long word wraps
      that wouldn't at 2 columns), just contained instead of clipped. */
   min-width: 0;
+}
+/* .status-btn-label (not .status-btn itself) carries the wrapping rules
+   now - see the code chip's own comment below for why the label needs to
+   be its own element/flex-child rather than bare text next to the chip. */
+.status-btn-label {
+  min-width: 0;
   overflow-wrap: break-word;
   word-break: break-word;
 }
@@ -145,26 +152,37 @@
 .status-btn:active { filter: brightness(0.85); }
 .status-btn.primary-in, .status-btn.primary-out { grid-column: span 3; }
 .status-btn:not(.primary-in):not(.primary-out) { grid-column: span 2; }
+/* Room for the corner code chip below so it never sits over the first
+   line of a short button's label - the label stays vertically centered
+   in whatever's left under it, same as a codeless button's label centers
+   in the button's full height. */
+.status-btn.has-code { padding-top: 1.9em; }
 
 /* This status's own numpad digit code (see statuspopup.js's
    digitCodeFor) - shown right on the button so the same popup a touch tap
    opens also teaches/reminds what to type instead, and so someone typing
    on a numpad can visually confirm a code before committing to it. Hidden
    entirely (statuspopup.js's renderStatusGrid) when numericInput is off
-   server-wide. A small chip rather than a separate line - keeps every
-   button's height the same whether or not it happens to show one. */
+   server-wide.
+   Positioned absolutely, out of the button's own flex flow entirely -
+   .status-btn-label above is then the button's only IN-FLOW (flex) child
+   again, so it wraps and centers exactly as it would with no code chip at
+   all, rather than the two sharing one flex row and the label's own
+   wrapped lines landing in a ragged spot next to the chip instead of
+   centered under it. */
 .status-btn-code {
-  display: inline-block;
+  position: absolute;
+  top: 0.45em;
+  left: 0.5em;
   min-width: 1.6em;
-  margin-right: 0.4em;
   padding: 0.05em 0.4em;
   border-radius: 6px;
   background: rgba(0, 0, 0, 0.22);
   font-family: ui-monospace, "SFMono-Regular", Consolas, "Courier New", monospace;
   font-variant-numeric: tabular-nums;
   font-weight: 800;
-  font-size: 0.85em;
-  vertical-align: middle;
+  font-size: 0.8em;
+  line-height: 1.4;
 }
 
 .detail-actions {
@@ -194,6 +212,19 @@
    picks that day, tapping the week number picks the whole week - no mode
    toggle, just a prev/next month nav. */
 .cal-wrap { width: 100%; max-width: 480px; }
+
+/* Typed DD/MM entry under the calendar (see timepicker.js's
+   buildDateOrWeekInput / README's "Number pad input") - the same
+   .clock-group card shared.css already draws for buildTimeInput's HH/MM,
+   just a 2-row variant (label + number box, no +/- steppers - a typed-only
+   field here, the calendar itself is the "stepper") instead of
+   .clock-group's default 4-row template, and .clock-sep's own
+   grid-row:span 4 shortened to match. */
+.cal-typed {
+  grid-template-rows: repeat(2, auto);
+  margin-top: 1.4vh;
+}
+.cal-typed .clock-sep { grid-row: span 2; }
 .cal-nav {
   display: flex;
   align-items: center;

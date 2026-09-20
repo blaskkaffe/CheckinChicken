@@ -33,6 +33,54 @@
   function isoDate(d) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`; }
   function isoTime(d) { return `${pad2(d.getHours())}:${pad2(d.getMinutes())}`; }
 
+  // Focuses `input` AND selects its content, so the very next keystroke
+  // REPLACES whatever's already there (a prefilled defaultTime, or a
+  // previous entry) instead of just appending after it - a plain
+  // .focus() alone leaves the cursor wherever it lands (usually the end),
+  // which is what let "0930" typed into an hour field prefilled "07" come
+  // out as "0709" while this bug was still here.
+  function focusAndSelect(input) {
+    input.focus();
+    input.select();
+  }
+
+  // Wires the numpad's own "#"/"*" onto an ordered list of plain number
+  // <input> fields (see README's "Number pad input" - typing a time/date):
+  // "#" (or Enter) calls `onEnter` - the caller's own "submit this" action
+  // (e.g. the status popup's "Klar" button), same key numpad.js itself
+  // uses to finish a check-in. "*" clears the FOCUSED field if it has
+  // something in it, or - already empty - jumps back to the previous
+  // field instead, so repeated "*" presses walk back out of a multi-field
+  // group one field at a time, same as backing out of a check-in a digit
+  // at a time. `onClear(input)` runs after a clear so the caller can
+  // resync its own state and re-fire onChange.
+  //
+  // Deliberately separate from numpad.js's own page-level listener, which
+  // steps aside the moment a real input has focus (see its own
+  // isTypingTarget guard) - once focus is actually in one of THESE
+  // fields, this is what's driving "#"/"*" instead, field by field rather
+  // than digit-position by digit-position.
+  function wireDigitFields(fields, { onClear, onEnter } = {}) {
+    fields.forEach((input, i) => {
+      input.addEventListener('keydown', (e) => {
+        if (e.key === '#' || e.key === 'Enter') {
+          e.preventDefault();
+          onEnter && onEnter();
+          return;
+        }
+        if (e.key === '*') {
+          e.preventDefault();
+          if (input.value) {
+            input.value = '';
+            onClear && onClear(input);
+          } else if (i > 0) {
+            focusAndSelect(fields[i - 1]);
+          }
+        }
+      });
+    });
+  }
+
   function addShortcuts(container, defs, onPick) {
     const row = document.createElement('div');
     row.className = 'time-shortcuts';
@@ -78,7 +126,7 @@
    *  fast/common path exactly as before; the steppers/typing are for
    *  anything else.
    */
-  window.buildTimeInput = function (container, { initial, onChange } = {}) {
+  window.buildTimeInput = function (container, { initial, onChange, onEnter } = {}) {
     container.innerHTML = '';
     container.className = 'touch-time-input';
 
@@ -157,7 +205,7 @@
         // Jump to the minute field once two hour digits are typed - keeps
         // manual entry to a quick four keystrokes total, no tapping
         // required between fields.
-        if (key === 'hh' && input.value.length >= 2) inputs.mm.focus();
+        if (key === 'hh' && input.value.length >= 2) focusAndSelect(inputs.mm);
       });
       input.addEventListener('blur', () => {
         if (input.value === '') { state[key] = null; syncInputs(); fire(); return; }
@@ -182,6 +230,20 @@
     field(group, 'mm', 'Minut', 'MM');
     container.appendChild(group);
     syncInputs();
+
+    wireDigitFields([inputs.hh, inputs.mm], {
+      onClear(input) {
+        const key = input === inputs.hh ? 'hh' : 'mm';
+        state[key] = null;
+        syncInputs();
+        fire();
+      },
+      onEnter,
+    });
+    // Auto-focus the hour field the moment this screen appears - see
+    // README's "Number pad input": typing should just work without
+    // needing to tap the field first.
+    focusAndSelect(inputs.hh);
 
     const addMin = (mins) => {
       const base = currentValue() || isoTime(new Date());
@@ -259,7 +321,7 @@
    *  formatDetail(), which is the one place that format is actually
    *  written out) - or `null` for "nothing picked yet".
    */
-  window.buildDateOrWeekInput = function (container, { onChange } = {}) {
+  window.buildDateOrWeekInput = function (container, { onChange, onEnter } = {}) {
     container.innerHTML = '';
     container.className = 'cal-wrap';
 
@@ -283,7 +345,21 @@
     const grid = document.createElement('div');
     grid.className = 'cal-grid';
 
-    container.append(nav, grid);
+    // Typed entry under the calendar (see README's "Number pad input") -
+    // the fast path once someone already knows the day they want, same
+    // idea as buildTimeInput's HH/MM fields (and drawn to match - same
+    // .clock-group card, just a 2-row variant with no +/- steppers, see
+    // statuspopup.css's .cal-typed). Two-way bound with the calendar
+    // itself via syncTyped()/applyTyped() below: tapping a day fills
+    // these in, typing a day/month picks it on the calendar - always in
+    // THIS year, since there's no year field here (a status detail is
+    // never more than a few months out). Picking a whole WEEK has no
+    // digit code and stays tap-only (a week isn't a day/month pair).
+    const typed = document.createElement('div');
+    typed.className = 'clock-group cal-typed';
+    const typedInputs = {};
+
+    container.append(nav, grid, typed);
 
     function fire() {
       if (!onChange) return;
@@ -291,6 +367,19 @@
       if (selection.kind === 'day') return onChange({ kind: 'day', date: isoDate(selection.date) });
       const { week, isoYear } = isoWeekParts(selection.monday);
       onChange({ kind: 'week', week, isoYear });
+    }
+
+    // Keeps the typed DD/MM boxes matching whatever's actually selected -
+    // a specific day mirrors into them, a week (or nothing) leaves them
+    // blank, since neither has a single day/month pair to show.
+    function syncTyped() {
+      if (selection && selection.kind === 'day') {
+        typedInputs.dd.value = pad2(selection.date.getDate());
+        typedInputs.mo.value = pad2(selection.date.getMonth() + 1);
+      } else {
+        typedInputs.dd.value = '';
+        typedInputs.mo.value = '';
+      }
     }
 
     function render() {
@@ -327,7 +416,7 @@
         weekBtn.className = 'cal-week-num' + (rowSelected ? ' selected' : '');
         weekBtn.textContent = String(week);
         weekBtn.setAttribute('aria-label', `Välj hela vecka ${week}`);
-        weekBtn.addEventListener('click', () => { selection = { kind: 'week', monday: new Date(rowMonday) }; render(); fire(); });
+        weekBtn.addEventListener('click', () => { selection = { kind: 'week', monday: new Date(rowMonday) }; render(); syncTyped(); fire(); });
         grid.appendChild(weekBtn);
 
         for (let c = 0; c < 7; c++) {
@@ -343,7 +432,7 @@
           if (daySelected) btn.classList.add('selected');
           btn.textContent = String(d.getDate());
           btn.setAttribute('aria-label', isoDate(d));
-          btn.addEventListener('click', () => { selection = { kind: 'day', date: d }; render(); fire(); });
+          btn.addEventListener('click', () => { selection = { kind: 'day', date: d }; render(); syncTyped(); fire(); });
           grid.appendChild(btn);
         }
       }
@@ -360,7 +449,69 @@
       render();
     });
 
+    // Picks a day IN THIS YEAR from whatever's typed, applied live as
+    // both fields fill in - same immediate feel as tapping a day cell.
+    // An invalid combination (e.g. 31 in April) is simply left unapplied
+    // rather than silently rounding to some other day - nothing lights up
+    // on the calendar until it's a real date.
+    function applyTyped() {
+      const dd = Number(typedInputs.dd.value);
+      const mo = Number(typedInputs.mo.value);
+      if (!dd || !mo) return;
+      const candidate = new Date(today.getFullYear(), mo - 1, dd);
+      if (candidate.getMonth() !== mo - 1) return; // not a real day (e.g. 31/04)
+      selection = { kind: 'day', date: candidate };
+      viewYear = candidate.getFullYear();
+      viewMonth = candidate.getMonth();
+      render();
+      fire();
+    }
+
+    function typedField(key, label, placeholder) {
+      const captionEl = document.createElement('span');
+      captionEl.className = 'clock-field-label';
+      captionEl.textContent = label;
+      captionEl.setAttribute('aria-hidden', 'true');
+
+      const input = document.createElement('input');
+      input.type = 'number'; input.inputMode = 'numeric'; input.className = 'clock-num';
+      input.placeholder = placeholder; input.setAttribute('aria-label', label);
+
+      input.addEventListener('input', () => {
+        // Jump to the month field once two day digits are typed - same
+        // no-tapping-between-fields convenience as buildTimeInput's own
+        // hour -> minute jump.
+        if (key === 'dd' && input.value.length >= 2) focusAndSelect(typedInputs.mo);
+        applyTyped();
+      });
+      input.addEventListener('blur', applyTyped);
+
+      typed.append(captionEl, input);
+      typedInputs[key] = input;
+    }
+    function typedSep(ch) {
+      const s = document.createElement('span');
+      s.className = 'clock-sep'; s.textContent = ch; s.setAttribute('aria-hidden', 'true');
+      typed.appendChild(s);
+    }
+    typedField('dd', 'Dag', 'DD');
+    typedSep('/');
+    typedField('mo', 'Månad', 'MM');
+
+    // Clearing either field invalidates the whole picked day, same as
+    // buildTimeInput's fields both having to hold a value for its own
+    // currentValue() to be non-empty - "day 15, month unknown" isn't a
+    // meaningful selection to leave lit on the calendar.
+    wireDigitFields([typedInputs.dd, typedInputs.mo], {
+      onClear() { selection = null; render(); fire(); },
+      onEnter,
+    });
+
     render();
+    // Auto-focus the day field the moment this screen appears - see
+    // README's "Number pad input": typing should just work without
+    // needing to tap the field first.
+    focusAndSelect(typedInputs.dd);
 
     return {
       get value() {
