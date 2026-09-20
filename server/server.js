@@ -56,6 +56,14 @@ const {
   // and README's "Setup") rather than changing this, which
   // would apply to every connected tab alike.
   boardClickToEdit = true,
+  // On by default: board.html also listens for plain digit/*/# keys (a USB
+  // numpad, or a keyboard's number row) and lets someone check in/out by
+  // typing a person's 3-digit number instead of touching/clicking - see
+  // public/numpad.js and README's "Number pad input". Off disables the key
+  // listener entirely for a server where that'd just be an accident
+  // waiting to happen (e.g. a shared keyboard also used for other things
+  // near the board).
+  numericInput = true,
   // Optional. Which appearance theme (see server/themes.js) this server
   // starts with - only used the very first time it boots (no data/
   // theme.json on disk yet); after that, whatever was last set from the
@@ -322,7 +330,7 @@ const server = http.createServer(async (req, res) => {
     // ---- read-only info everyone can fetch ----
     if (method === 'GET' && pathname === '/api/config') {
       return sendJson(res, 200, {
-        locationName, allowNameBrowse, phoneVisibility, boardClickToEdit,
+        locationName, allowNameBrowse, phoneVisibility, boardClickToEdit, numericInput,
       });
     }
 
@@ -461,6 +469,15 @@ const server = http.createServer(async (req, res) => {
         // Off by default - everyone shows everywhere, same as before this
         // feature existed.
         const restrictToLocation = body.restrictToLocation !== undefined ? !!body.restrictToLocation : !!existing.restrictToLocation;
+        // Numeric check-in code (public/numpad.js's "1271" scheme):
+        // department digit (1-9) + a 2-digit running number (00-99) - e.g.
+        // "127" is department 1, person 27. Optional; blank means this
+        // person just can't be looked up by number, touch/click still
+        // works exactly as before. Kept as a plain 3-digit string rather
+        // than split department/sequence fields - it's a lookup key, not
+        // structured data anything else here needs to reason about
+        // separately.
+        const code = body.code !== undefined ? String(body.code).trim() : (existing.code ?? '');
         const record = {
           ...existing,
           id,
@@ -469,6 +486,7 @@ const server = http.createServer(async (req, res) => {
           role: body.role ?? existing.role ?? '',
           order: body.order ?? existing.order ?? 0,
           active: body.active ?? existing.active ?? true,
+          code,
           // Small data: URL (resized client-side before upload) or null to
           // remove it; omit the field entirely to leave it untouched.
           photo: body.photo !== undefined ? body.photo : (existing.photo ?? null),
@@ -488,6 +506,15 @@ const server = http.createServer(async (req, res) => {
         }
         if (record.location && record.location.length > 60) {
           return sendJson(res, 400, { error: 'områdets namn ser för långt ut' });
+        }
+        if (record.code) {
+          if (!/^[1-9][0-9]{2}$/.test(record.code)) {
+            return sendJson(res, 400, { error: 'numret måste vara 3 siffror: avdelning (1-9) + löpnummer (00-99), t.ex. 127' });
+          }
+          const dupe = store.getAll().find((p) => p.id !== id && p.code === record.code);
+          if (dupe) {
+            return sendJson(res, 400, { error: `numret ${record.code} används redan av ${dupe.name}` });
+          }
         }
         store.applyLocal(id, record);
         return sendJson(res, 200, store.getById(id));

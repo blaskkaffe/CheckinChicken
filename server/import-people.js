@@ -89,11 +89,15 @@ for (const [i, row] of rows.entries()) {
     phone: row.phone || prev?.phone || '',
     location,
     restrictToLocation: row.restrictToLocation !== undefined ? parseBool(row.restrictToLocation) : !!prev?.restrictToLocation,
+    // Numeric check-in code (see admin.js's "Nummer" field / README's
+    // "Number pad input") - blank if the column's left out or empty,
+    // same as every other optional column here.
+    code: row.code !== undefined ? row.code.trim() : (prev?.code || ''),
     order: prev?.order ?? i,
     active: true,
   };
 
-  const referenceChanged = !prev || ['name', 'department', 'role', 'active', 'phone', 'location', 'restrictToLocation'].some((k) => prev[k] !== reference[k]);
+  const referenceChanged = !prev || ['name', 'department', 'role', 'active', 'phone', 'location', 'restrictToLocation', 'code'].some((k) => prev[k] !== reference[k]);
 
   const record = {
     ...reference,

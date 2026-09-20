@@ -1,0 +1,105 @@
+/* numpad.css — the number-pad check-in readout + directory (see
+   numpad.js). Two pieces:
+     .numpad-readout   a small floating toast, shown only while an entry is
+                        in progress - NOT a modal, pointer-events:none, so
+                        it never blocks a touch tap on the board underneath
+                        while someone else is mid-entry on a keyboard.
+     .numpad-directory  the "*" (nothing typed) popup listing every
+                        person's number - reuses statuspopup.css's generic
+                        .popup-overlay/.popup-backdrop/.popup-card shell,
+                        this file only styles its own content. */
+
+.numpad-readout {
+  position: fixed;
+  left: 50%;
+  bottom: max(3vh, env(safe-area-inset-bottom, 0px) + 16px);
+  transform: translateX(-50%);
+  z-index: 150;
+  pointer-events: none;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5vh;
+  padding: calc(1.6 * var(--gap-unit)) min(6vw, 34px);
+  background: var(--panel);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  box-shadow: 0 16px 44px rgba(0, 0, 0, 0.45);
+  min-width: 220px;
+  text-align: center;
+}
+.numpad-readout.error { border-color: var(--red); }
+
+.numpad-digits {
+  font-family: ui-monospace, "SFMono-Regular", Consolas, "Courier New", monospace;
+  font-size: clamp(1.8rem, 5vh, 2.6rem);
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.numpad-readout.error .numpad-digits { color: var(--red); }
+
+.numpad-person {
+  display: flex;
+  align-items: center;
+  gap: 0.6em;
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.numpad-msg {
+  font-size: 0.9rem;
+  color: var(--text-dim);
+}
+.numpad-readout.error .numpad-msg { color: var(--red); }
+
+/* ---------------------------------------------------------- directory --
+   Same padding/shape language as statuspopup.css's .status-popup, just
+   this popup's own content instead. */
+.numpad-directory {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-height: 0;
+  padding: calc(4 * var(--gap-unit)) min(5vw, 32px) calc(3 * var(--gap-unit)) min(5vw, 32px);
+}
+.numpad-directory h2 { margin: 0 0 0.4vh 0; font-size: 1.3rem; }
+.numpad-directory-hint { margin: 0 0 1.6vh 0; color: var(--text-dim); font-size: 0.9rem; }
+
+.numpad-directory-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5vh;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.numpad-dir-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8em;
+  width: 100%;
+  padding: calc(0.8 * var(--gap-unit)) min(1vw, 8px);
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  color: var(--text);
+  font-size: 0.98rem;
+  text-align: left;
+  cursor: pointer;
+}
+@media (hover: hover) { .numpad-dir-row:hover { border-color: var(--accent); } }
+.numpad-dir-row:active { filter: brightness(0.9); }
+
+.numpad-dir-code {
+  flex: none;
+  min-width: 3ch;
+  font-family: ui-monospace, "SFMono-Regular", Consolas, "Courier New", monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  color: var(--accent);
+}
+.numpad-dir-name { font-weight: 600; }
+.numpad-dir-dept { margin-left: auto; color: var(--text-dim); font-size: 0.85rem; }

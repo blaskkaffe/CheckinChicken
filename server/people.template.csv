@@ -9,6 +9,11 @@
 #   when their own area is the selected board filter (hidden from
 #   every other area and from "all areas"). Blank = shows
 #   everywhere.
+# code: optional - a 3-digit number for number-pad check-in (department
+#   digit 1-9 + a 2-digit running number 00-99, e.g. "127" = department
+#   1, person 27 - see README's "Number pad input"). Must be unique
+#   across the whole roster. Blank = this person can't be checked in by
+#   number, touch/click still works as normal.
 #
 # Re-running this import is safe - matches existing people by name +
 # department + location, updates in place, never deletes.
@@ -16,12 +21,12 @@
 # The running server does NOT reload this file automatically - restart
 # it after importing, or later admin-page edits will overwrite your
 # import.
-name,department,role,phone,location,restrictToLocation
-Anna Svensson,Kök,Kökschef,070-123 45 67,Område A,
-Erik Lindqvist,Kök,Kock,,Område A,
-Maria Johansson,Kök,Köksbiträde,,Område A,
-Johan Karlsson,Servering,Chef,070-234 56 78,Område A,
-Sara Nilsson,Servering,Servitör,,Område A,
-Oskar Berg,Servering,Servitör,,Område A,
-Lena Petersson,Lager,Lagerchef,,Område B,
-David Olsson,Lager,Truckförare,,Område B,
+name,department,role,phone,location,restrictToLocation,code
+Anna Svensson,Kök,Kökschef,070-123 45 67,Område A,,101
+Erik Lindqvist,Kök,Kock,,Område A,,102
+Maria Johansson,Kök,Köksbiträde,,Område A,,103
+Johan Karlsson,Servering,Chef,070-234 56 78,Område A,,201
+Sara Nilsson,Servering,Servitör,,Område A,,202
+Oskar Berg,Servering,Servitör,,Område A,,203
+Lena Petersson,Lager,Lagerchef,,Område B,,301
+David Olsson,Lager,Truckförare,,Område B,,302

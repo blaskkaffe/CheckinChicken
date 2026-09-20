@@ -56,13 +56,16 @@
         <p class="dim small">
           Ordningen nedan (använd pilarna för att flytta någon upp eller ner inom sin avdelning) styr bara i vilken ordning personer visas inom sin avdelning/roll på tavlan.
         </p>
+        <p class="dim small">
+          "Nummer" är valfritt och används för att checka in med siffror istället för att peka/klicka på tavlan - tryck personens 3-siffriga nummer och sedan en statussiffra (t.ex. <code>1271</code> = avdelning 1, person 27, status 1/inne). Tryck <code>*</code> på tavlan när inget är inskrivet för att se allas nummer. Se README.md, "Number pad input".
+        </p>
 
         <button class="ghost-btn" id="addBtn">+ Lägg till person</button>
 
         <div class="table-scroll">
           <table class="roster">
             <thead>
-              <tr><th></th><th></th><th>Namn</th><th>Område</th><th>Avdelning</th><th>Roll</th><th>Status</th><th></th></tr>
+              <tr><th></th><th></th><th>Namn</th><th>Nummer</th><th>Område</th><th>Avdelning</th><th>Roll</th><th>Status</th><th></th></tr>
             </thead>
             <tbody id="rosterBody"></tbody>
           </table>
@@ -76,10 +79,14 @@
           och tavlor.
         </p>
 
+        <p class="dim small">
+          "Sifferkod" nedan är vilken siffra (efter personens nummer) som väljer den statusen på tavlans nummerinmatning - se README.md, "Number pad input". Ordningen i listan avgör koden, precis som ordningen avgör var statusen visas i statuspopupen.
+        </p>
+
         <h2>Inne / Ute</h2>
         <div class="table-scroll">
           <table class="roster status-roster" id="primaryTable">
-            <thead><tr><th></th><th>Namn</th><th></th></tr></thead>
+            <thead><tr><th></th><th>Namn</th><th>Sifferkod</th><th></th></tr></thead>
             <tbody id="primaryBody"></tbody>
           </table>
         </div>
@@ -88,7 +95,7 @@
         <button class="ghost-btn" id="addStatusBtn">+ Lägg till status</button>
         <div class="table-scroll">
           <table class="roster status-roster" id="statusTableEl">
-            <thead><tr><th></th><th></th><th>Namn</th><th>Extra</th><th>Frånvarande</th><th>Prickar</th><th></th></tr></thead>
+            <thead><tr><th></th><th></th><th>Namn</th><th>Sifferkod</th><th>Extra</th><th>Frånvarande</th><th>Prickar</th><th></th></tr></thead>
             <tbody id="statusBody"></tbody>
           </table>
         </div>
@@ -181,6 +188,13 @@
           <label>Roll<input id="fRole" type="text" /></label>
           <label>Telefonnummer (valfritt)<input id="fPhone" type="tel" /></label>
         </div>
+        <label>Nummer för nummerinmatning (valfritt)
+          <span class="field-with-btn">
+            <input id="fCode" type="text" inputmode="numeric" maxlength="3" placeholder="t.ex. 127" />
+            <button type="button" class="ghost-btn small" id="fCodeSuggest">Föreslå</button>
+          </span>
+        </label>
+        <p class="dim small">3 siffror: avdelning (1-9) + löpnummer (00-99). Används för att checka in på tavlan med siffertangenter istället för att peka/klicka - se README.md.</p>
         <label class="checkbox-label"><input id="fActive" type="checkbox" checked /> Aktiv</label>
         <p class="dim small">Kryssa ur "Aktiv" och spara för att inaktivera - personen slutar visas på tavlan och kan inte längre checka in, men finns kvar i listan så du kan aktivera igen senare.</p>
         <label>Område (valfritt)<input id="fLocation" type="text" list="locationList" placeholder="t.ex. Område A" /></label>

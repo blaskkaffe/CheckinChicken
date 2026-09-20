@@ -178,7 +178,21 @@
     overlay.classList.remove('visible');
     person = null;
   }
-  window.StatusPopup = { open, close, isOpen };
+
+  // Same as open(id), but immediately picks a secondary status too - used
+  // by numpad.js when someone types a status digit-code that needs a time/
+  // date/note (something a numpad alone can't capture): it opens straight
+  // to that status's own detail/note screen instead of the plain menu, so
+  // finishing it is one screen, not two. A no-op if the code isn't a real
+  // secondary status (defensive only - numpad.js already checks this
+  // itself before calling).
+  function openWithStatus(id, code) {
+    open(id);
+    if (!person) return;
+    const def = statusDefs.secondary.find((s) => s.code === code);
+    if (def) chooseSecondary(def);
+  }
+  window.StatusPopup = { open, close, isOpen, openWithStatus };
 
   async function finalize(payload) {
     if (!person) return close();

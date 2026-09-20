@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="/board.css" />
 <link rel="stylesheet" href="/statuspopup.css" />
 <link rel="stylesheet" href="/boardsettings.css" />
+<link rel="stylesheet" href="/numpad.css" />
 <script src="/theme.js"></script>
 </head>
 <body>
@@ -175,6 +176,35 @@
     </div>
   </div>
 
+  <!-- Number-pad readout: a small, non-blocking toast shown while typing a
+       check-in on a keyboard/numpad instead of touching the board - see
+       numpad.js. Hidden (and inert - pointer-events:none, numpad.css)
+       whenever nothing's being typed, so it never gets in the way of
+       normal touch use. -->
+  <div id="numpadReadout" class="numpad-readout" hidden>
+    <div class="numpad-digits" id="npDigits"></div>
+    <div class="numpad-person" id="npPerson" hidden>
+      <span id="npAvatar"></span>
+      <span class="numpad-name" id="npName"></span>
+    </div>
+    <div class="numpad-msg" id="npMsg"></div>
+  </div>
+
+  <!-- Number-pad directory: "*" with nothing typed lists every active
+       person's number (see numpad.js's buildDirectory) - so a number is
+       always discoverable without a separate cheat sheet. Same popup
+       shell as the status popup above. -->
+  <div id="numpadDirectory" class="popup-overlay">
+    <div class="popup-backdrop"></div>
+    <div class="popup-card">
+      <div class="numpad-directory">
+        <h2>Personnummer</h2>
+        <p class="numpad-directory-hint">Tryck ett nummer för att välja den personen, eller en siffra på tangentbordet/numpaden för att skriva direkt.</p>
+        <div class="numpad-directory-list" id="npDirList"></div>
+      </div>
+    </div>
+  </div>
+
   <script src="/avatar.js"></script>
   <script src="/popup.js"></script>
   <script src="/keyboard.js"></script>
@@ -182,5 +212,6 @@
   <script src="/board.js"></script>
   <script src="/boardsettings.js"></script>
   <script src="/statuspopup.js"></script>
+  <script src="/numpad.js"></script>
 </body>
 </html>

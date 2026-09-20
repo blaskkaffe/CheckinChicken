@@ -177,6 +177,10 @@ table.roster th, table.roster td {
 table.roster th { color: var(--text-dim); font-weight: 600; font-size: var(--fs-sm); }
 table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
 .pill-inactive { color: var(--text-dim); font-size: 0.85em; }
+/* Number-pad codes (roster's "Nummer" column, statuses' "Sifferkod") -
+   tabular-nums so a column of them lines up, monospace so they read as a
+   code rather than a word. */
+.mono-cell { font-variant-numeric: tabular-nums; font-family: ui-monospace, "SFMono-Regular", Consolas, "Courier New", monospace; }
 
 .reorder-cell { white-space: nowrap; }
 /* A comfortable tap target, not just a legible glyph. Shape/fill/hover/
@@ -265,6 +269,12 @@ table.roster tr:hover { background: var(--panel-2); cursor: pointer; }
   outline: none; border-color: var(--accent);
 }
 .checkbox-label { flex-direction: row !important; align-items: center; gap: 0.6em !important; }
+/* Nummer field (add/edit person modal) - the input plus a "Föreslå" button
+   that fills it in, side by side rather than the button on its own row
+   below (this is a one-off field, not worth a whole extra .field-row). */
+.field-with-btn { display: flex; gap: min(2vw, 10px); align-items: center; }
+.field-with-btn input { flex: 1; min-width: 0; }
+.field-with-btn button { flex: none; }
 /* Centered, not right-aligned - a right-aligned button row left a big,
    visually unbalanced gap on the left side of these centered dialogs
    (unlike a full-width page form, where trailing right-aligned actions

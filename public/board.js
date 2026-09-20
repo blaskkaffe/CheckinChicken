@@ -16,11 +16,23 @@
   const connPill = document.getElementById('connPill');
   const connLabel = document.getElementById('connLabel');
 
-  // Lets statuspopup.js (a separate script/file, loaded after this one)
-  // look a person up by id without a second fetch of its own, and stay
+  // Lets statuspopup.js/numpad.js (separate scripts, loaded after this
+  // one) look people up without a second fetch of their own, and stay
   // current automatically since this is a live reference into the same Map
   // this file already keeps up to date over SSE.
-  window.BoardPeople = { get: (id) => people.get(id) };
+  window.BoardPeople = {
+    get: (id) => people.get(id),
+    list: () => [...people.values()],
+    // Number-pad lookup (see numpad.js) - `code` is the 3-digit string set
+    // on the admin page's "Nummer" field (server.js validates it's unique
+    // among active people, so at most one match).
+    byCode: (code) => {
+      for (const p of people.values()) {
+        if (p.active !== false && p.code && p.code === code) return p;
+      }
+      return null;
+    },
+  };
 
   // ------------------------------------------------------------- clock ---
   // Swedish convention: weekday and date spelled out, 24-hour time, plus

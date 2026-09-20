@@ -100,6 +100,7 @@ Edit `config.json`. Fields:
 | `allowNameBrowse` | `true` | Unused (reserved). |
 | `phoneVisibility` | `"always"` | `"always"` \| `"hash"` \| `"off"` — see [Phone numbers](#phone-numbers). |
 | `boardClickToEdit` | `true` | Per-server default; override per screen with `?input=on`/`?input=off`. |
+| `numericInput` | `true` | Number-pad check-in on the board — see [Number pad input](#number-pad-input). |
 | `theme` | `"dark"` | Seeds `data/theme.json` on first boot only. |
 | `popupIdleTimeoutMs` | `300000` | Seeds `data/settings.json` on first boot only. |
 | `onscreenKeyboardAdmin` | `false` | Seeds `data/settings.json` on first boot only. |
@@ -116,7 +117,7 @@ exceptions after first boot — see the admin page).
 Edit `server/people.template.csv`. Columns:
 
 ```
-name,department,role,phone,location,restrictToLocation
+name,department,role,phone,location,restrictToLocation,code
 ```
 
 `name` and `department` are required. `location` is the coop name, shown
@@ -125,6 +126,9 @@ coops](#multiple-coops) for what a "coop" can represent; leave blank if
 unused.
 `restrictToLocation`: `1`/`true`/`yes`/`ja`/`x` = checked, anything else =
 unchecked.
+`code`: optional 3-digit number-pad check-in code, unique across the
+roster — see [Number pad input](#number-pad-input). Leave blank if
+unused; it can always be added later from the admin page instead.
 
 ```bash
 node server/import-people.js server/people.template.csv
@@ -460,6 +464,40 @@ button, which just navigates there.
   locale.
 - Popup closes on save, or auto-closes after `popupIdleTimeoutMs` of
   inactivity (default 5 min, admin "Inställningar" tab).
+
+### Number pad input
+
+An alternative to touch/click for checking someone in: type their 3-digit
+number on any keyboard's digit row, or a full physical/USB numpad — no
+tapping an on-screen button first, no navigating a menu. Works on
+`board.html` any time nothing else has keyboard focus.
+
+Give someone a number on the admin page's "Personal" tab (the "Nummer"
+field, with a "Föreslå" button that picks one for you): 3 digits,
+department (1-9) + a running number (00-99) — e.g. `127` is department 1,
+person 27. Leave it blank and that person just isn't reachable by number;
+touch/click keeps working exactly as before either way.
+
+Typing on the board:
+
+| Keys | Does |
+| --- | --- |
+| `1` `2` `7` | Selects that person (shows their name/photo in a small readout) |
+| then `1` | Checks them in (Inne) |
+| then `0` | Checks them out (Ute) |
+| then `#` | Toggles Inne/Ute directly — the fastest path, 3 digits + `#` |
+| then two more digits (`20`–`99`) | Picks a status from the admin "Statusar" list, in that list's own order — `20` is the first one, `21` the second, and so on (see the "Sifferkod" column on that tab). A status that needs a time/date/note hands off to the normal popup, already open on that one field, since a numpad alone can't type free text. |
+| `*` with nothing typed | Opens a directory of everyone's number, grouped for browsing/tapping |
+| `*` with something typed | Clears the current entry (same "back out" role it has in every popup here) |
+| `Backspace` | Removes the last digit typed (a bare numpad has no backspace key — use `*` there) |
+
+So `1271` in one breath is: department 1, person 27, status 1 → checked in
+— the example this feature is built around. An unmatched number or status
+code just shows a brief error and clears itself; nothing is ever half-saved.
+
+Off by default only if you set `numericInput: false` in `config.json` — on
+by default otherwise, since it costs nothing when nobody's using it (the
+board just isn't listening for stray keypresses).
 
 ### System clock
 

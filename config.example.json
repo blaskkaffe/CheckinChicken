@@ -18,6 +18,9 @@
   "_comment_boardClickToEdit": "Per-server default for tap-to-edit on the board. Override per screen with ?input=off or ?input=on in that screen's board.html URL.",
   "boardClickToEdit": true,
 
+  "_comment_numericInput": "Per-server default for number-pad check-in on the board (type a person's 3-digit number on a keyboard/numpad instead of touching/clicking - see README's 'Number pad input'). Set false to disable the key listener entirely.",
+  "numericInput": true,
+
   "_comment_theme": "Optional. One of server/themes.js's ids ('dark', 'christmas', 'light'). Seeds data/theme.json on first boot only; admin 'Utseende' tab is the source of truth after that.",
   "theme": "dark",
 

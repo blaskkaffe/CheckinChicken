@@ -311,6 +311,7 @@
         </td>
         <td>${window.avatarHtml(p, 'avatar-xs')}</td>
         <td>${esc(p.name)}${p.restrictToLocation ? ` <span class="pill-inactive" title="Visas bara i ${esc(p.location || 'sitt område')}">bara ${esc(p.location || 'eget område')}</span>` : ''}</td>
+        <td class="mono-cell">${p.code ? esc(p.code) : '<span class="dim">–</span>'}</td>
         <td>${esc(p.location || '')}</td>
         <td>${esc(p.department)}</td>
         <td>${esc(p.role)}</td>
@@ -350,6 +351,7 @@
     $('fDept').value = person?.department || '';
     $('fRole').value = person?.role || '';
     $('fPhone').value = person?.phone || '';
+    $('fCode').value = person?.code || '';
     $('fActive').checked = person ? person.active !== false : true;
     $('fLocation').value = person?.location || '';
     $('fRestrict').checked = !!person?.restrictToLocation;
@@ -361,11 +363,41 @@
   }
   function closeModal() { $('modalBackdrop').style.display = 'none'; closePopupChrome(); }
 
+  // Picks a free 3-digit code for the person currently being added/edited:
+  // reuses whichever department digit (1-9) is already in use by someone
+  // else in the same department, if any, so a department's people cluster
+  // under one leading digit (see README's "Number pad input"); otherwise
+  // the lowest digit no department has claimed yet. Then the lowest free
+  // 2-digit running number under that digit. Just a starting point - the
+  // field stays freely editable.
+  function suggestCode() {
+    const department = $('fDept').value.trim();
+    const used = new Set(roster.filter((p) => p.id !== editingId && p.code).map((p) => p.code));
+    let deptDigit = null;
+    if (department) {
+      const sibling = roster.find((p) => p.id !== editingId && (p.department || '') === department && p.code);
+      if (sibling) deptDigit = sibling.code[0];
+    }
+    if (!deptDigit) {
+      const usedDigits = new Set([...used].map((c) => c[0]));
+      for (let d = 1; d <= 9; d++) {
+        if (!usedDigits.has(String(d))) { deptDigit = String(d); break; }
+      }
+      deptDigit = deptDigit || '9'; // every digit already claimed by some department - pile onto the last one
+    }
+    for (let n = 1; n <= 99; n++) {
+      const candidate = deptDigit + String(n).padStart(2, '0');
+      if (!used.has(candidate)) return candidate;
+    }
+    return ''; // deptDigit's whole 00-99 range is taken - nothing sensible to suggest
+  }
+
   async function saveModal() {
     const name = $('fName').value.trim();
     const department = $('fDept').value.trim();
     const role = $('fRole').value.trim();
     const phone = $('fPhone').value.trim();
+    const code = $('fCode').value.trim();
     const active = $('fActive').checked;
     const location = $('fLocation').value.trim();
     const restrictToLocation = $('fRestrict').checked;
@@ -373,7 +405,10 @@
     if (!name) return ($('modalError').textContent = 'Namn krävs.');
     if (phone.length > 40) return ($('modalError').textContent = 'Telefonnumret ser för långt ut.');
     if (location.length > 60) return ($('modalError').textContent = 'Områdets namn ser för långt ut.');
-    const payload = { id: editingId, name, department, role, phone, active, location, restrictToLocation };
+    if (code && !/^[1-9][0-9]{2}$/.test(code)) {
+      return ($('modalError').textContent = 'Numret måste vara 3 siffror: avdelning (1-9) + löpnummer (00-99), t.ex. 127.');
+    }
+    const payload = { id: editingId, name, department, role, phone, code, active, location, restrictToLocation };
     if (pendingPhoto !== undefined) payload.photo = pendingPhoto;
 
     try {
@@ -409,11 +444,25 @@
     return '<span class="dim">–</span>';
   }
 
+  // Matches numpad.js's own digit-code scheme exactly (see its
+  // secondaryDigitCode): IN/UTE are the fixed single digits 1/0; every
+  // other status gets a 2-digit code built from its position in the list
+  // (2-9 as the leading digit, 0-9 as the second) - so reordering a status
+  // here (the up/down arrows below) changes its digit code too, same as
+  // it already changes where the status shows up on the popup.
+  function primaryDigitCode(code) {
+    return code === 'IN' ? '1' : code === 'OUT' ? '0' : '';
+  }
+  function secondaryDigitCode(index) {
+    return `${2 + Math.floor(index / 10)}${index % 10}`;
+  }
+
   function renderPrimaryTable() {
     $('primaryBody').innerHTML = statusDefs.primary.map((s) => `
       <tr data-code="${esc(s.code)}">
         <td><span class="color-swatch" style="background:${esc(s.color)}"></span></td>
         <td>${esc(s.label)}</td>
+        <td class="mono-cell">${esc(primaryDigitCode(s.code))}</td>
         <td>redigera</td>
       </tr>
     `).join('');
@@ -433,6 +482,7 @@
         </td>
         <td><span class="color-swatch" style="background:${esc(s.color)}"></span></td>
         <td>${esc(s.label)}</td>
+        <td class="mono-cell">${esc(secondaryDigitCode(i))}</td>
         <td>${extraSummary(s)}</td>
         <td>${s.checksOut ? '✓' : '<span class="dim">–</span>'}</td>
         <td>${s.dots ? esc(String(s.dots)) : '<span class="dim">–</span>'}</td>
@@ -681,7 +731,7 @@
   // Off by default on the admin page (a real keyboard is normally at hand
   // here) - see settings.onscreenKeyboardAdmin, editable in Inställningar.
   function wireOnscreenKeyboards() {
-    [$('fName'), $('fDept'), $('fRole'), $('fPhone'), $('sLabel'), $('sColorHex'), $('sPrefix')].forEach((el) => {
+    [$('fName'), $('fDept'), $('fRole'), $('fPhone'), $('fCode'), $('sLabel'), $('sColorHex'), $('sPrefix')].forEach((el) => {
       if (el) kbHandles.push(window.attachOnscreenKeyboard(el, { enabled: !!settings.onscreenKeyboardAdmin }));
     });
   }
@@ -740,6 +790,7 @@
   $('addBtn').addEventListener('click', () => openModal(null));
   $('modalCancel').addEventListener('click', closeModal);
   $('modalSave').addEventListener('click', saveModal);
+  $('fCodeSuggest').addEventListener('click', () => { $('fCode').value = suggestCode(); });
 
   $('fPhotoInput').addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0];
