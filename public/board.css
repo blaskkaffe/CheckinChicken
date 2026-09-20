@@ -428,12 +428,40 @@ body {
    the dept-name's reference 6.6cqw - see .board's --cap comment) keeps
    the pill's proportions identical no matter how the board happens to
    be laid out. */
+/* .badge is the TAP TARGET, not the visual pill any more - .badge-pill
+   (below) is the small colored pill people actually see; .badge itself is
+   invisible and stretches to fill the WHOLE row's height (align-self:
+   stretch, overriding .person-row-top's own align-items:flex-start just
+   for this one item), so a finger landing anywhere in this column - not
+   just squarely on the small pill - still registers as a toggle tap. This
+   is specifically for touchscreens (iPad/iPhone kiosk screens - see
+   README's "Setup"): the pill's own height was never bigger than
+   --avatar-size, which on a two-line row (a wrapped secondary-status
+   pellet pushes .person-row-main to a second line - see its own comment)
+   left the ENTIRE bottom half of this column untappable, exactly where a
+   finger tapping "the badge area" would naturally land.
+   Width/horizontal position are untouched on purpose: .badge is still
+   exactly the second flex item in .person-row-top, right after
+   .person-row-main (which the pellet is the last, right-aligned thing
+   inside of - see .person-row-top's own comment), so the existing flex
+   `gap` between them is already "the same distance from the pellet" on
+   every row, wrapped pellet or not - nothing here needed to change to
+   get that, only the height did. */
 .badge {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch; /* .badge-pill fills the column's width, same as it always has */
+  justify-content: flex-start; /* .badge-pill stays pinned to the top - unchanged visual position */
+  align-self: stretch; /* the actual fix: this column now spans the row's full height */
+  min-width: var(--pill-min-width);
+  flex: none;
+  cursor: pointer;
+}
+.badge-pill {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   height: var(--avatar-size);
-  min-width: var(--pill-min-width);
   gap: 0.3em;
   font-size: min(calc(5cqw * var(--scale)), calc(var(--cap) * 0.758));
   font-weight: 800;
@@ -441,16 +469,9 @@ body {
   padding: 0 min(calc(2.2cqw * var(--scale)), calc(var(--cap) * 0.333));
   border-radius: 999px;
   white-space: nowrap;
-  /* No margin-left:auto needed to pin this flush right any more - it's
-     simply the second (non-growing) flex item in .person-row-top, next
-     to .person-row-main which claims all the rest of the width (see
-     .person-row-top's own comment). That's also what makes it immovable:
-     there's no flex-wrap on .person-row-top itself for this to ever drop
-     out of. */
-  flex: none;
 }
-.badge.in { background: var(--green); color: #06170e; }
-.badge.out { background: var(--badge-out-bg); color: var(--badge-out-fg); }
+.badge-pill.in { background: var(--green); color: #06170e; }
+.badge-pill.out { background: var(--badge-out-bg); color: var(--badge-out-fg); }
 
 /* Hover/tap affordance - see board.js's wireClickToEdit(). The whole row
    is now the tap target (not just the name/photo), so the hover highlight
@@ -458,12 +479,14 @@ body {
    distinct hover (it's a separate, more specific action: toggle in place
    rather than open the popup). Only kicks in where a pointer is actually
    available (a touchscreen doesn't have hover), so it never gets in the
-   way on a TV nobody can tap. */
+   way on a TV nobody can tap. Targets .badge-pill (not .badge itself,
+   which has no background of its own any more) so hovering anywhere in
+   the enlarged invisible column still highlights the visible pill. */
 @media (hover: hover) {
   .person-row:hover .person-name { color: var(--accent); }
-  .badge:hover { filter: brightness(1.12); }
+  .badge:hover .badge-pill { filter: brightness(1.12); }
 }
-.person-row, .badge { cursor: pointer; }
+.person-row { cursor: pointer; }
 
 /* PLUPP1/PLUPP2's red dots (see board.js's PLUPP_DOTS) - sit between the
    name and the INNE/UTE badge, alongside the normal colored pellet (inline

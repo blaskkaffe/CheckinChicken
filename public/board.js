@@ -460,9 +460,13 @@
   function personRowHtml(p, opts) {
     const forMeasurement = !!(opts && opts.forMeasurement);
     const checkedIn = !!p.status?.checkedIn;
+    // .badge is the tap target (sized/positioned in board.css - stretches
+    // to the row's full height so it's reliably tappable on a touchscreen,
+    // not just the small pill itself); .badge-pill is what's actually
+    // visible. See board.css's .badge comment for why they're split.
     const primaryBadge = checkedIn
-      ? `<span class="badge in" style="color:${inBadgeTextColor()}">${esc(primaryLabel('IN'))}</span>`
-      : `<span class="badge out">${esc(primaryLabel('OUT'))}</span>`;
+      ? `<span class="badge"><span class="badge-pill in" style="color:${inBadgeTextColor()}">${esc(primaryLabel('IN'))}</span></span>`
+      : `<span class="badge"><span class="badge-pill out">${esc(primaryLabel('OUT'))}</span></span>`;
 
     // dots (0-3, set per-status on the admin page's "Statusar" tab - see
     // server/status-store.js): a plain, undefined-meaning flag like
