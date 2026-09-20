@@ -38,6 +38,17 @@ only two pages.
 
 ## Setup
 
+Written for a fresh Debian/Ubuntu-family Linux install (this covers
+Raspberry Pi OS too) with `apt` and `sudo` available — the most common
+"plain Linux box" for this kind of always-on LAN server. On another
+distro, swap the `apt` commands for your package manager's equivalent
+(`dnf`, `pacman`, ...); everything else below is the same.
+
+Nine steps, start to finish: install Node.js, get the code onto the
+machine, configure it, add your roster, start the server, open the
+firewall, find the machine's own address, point every screen at it, then
+manage people day to day from the admin page.
+
 ### 1. Install Node.js on the server machine
 
 ```bash
@@ -48,9 +59,29 @@ node --version
 
 Only the server machine needs Node.js. Screens only need a browser.
 
-### 2. Copy this folder onto the server machine
+### 2. Get CheckinChicken onto the server machine
 
-E.g. to `/home/pi/CheckinChicken`.
+If this machine has internet access (even just during setup — none is
+needed once it's running):
+
+```bash
+cd ~
+git clone https://github.com/blaskkaffe/CheckinChicken.git
+cd CheckinChicken
+```
+
+No internet on this machine at all? Copy the folder over some other
+way instead — a USB drive, or `scp` from a machine that does have it:
+
+```bash
+scp -r CheckinChicken pi@<server-ip>:~/
+```
+
+Either way you should end up with a `CheckinChicken` folder on the
+server machine (e.g. `/home/pi/CheckinChicken`) containing `server/`,
+`public/`, `package.json`, and so on. Nothing needs building or
+`npm install`-ing — it's plain Node.js with zero external dependencies,
+ready to run as soon as it's copied over.
 
 ### 3. Configure
 
@@ -123,7 +154,14 @@ Output:
 [checkin] admin:  http://<this-machine-ip>:8080/admin.html
 ```
 
-To run as a service:
+`0.0.0.0` means it's already listening on every network interface on
+this machine, not just `localhost` — that part needs no extra setup.
+What usually still stands between "the server is running" and "another
+screen can actually load it" is the next two steps: the firewall, and
+knowing which address to type in.
+
+To run as a service (so it survives a reboot and restarts itself if it
+ever crashes) instead of leaving a terminal open:
 
 ```bash
 sudo cp systemd/checkinchicken.service /etc/systemd/system/
@@ -131,9 +169,58 @@ sudo systemctl daemon-reload
 sudo systemctl enable --now checkinchicken
 ```
 
-Edit the `WorkingDirectory`/`User` in `checkinchicken.service` first.
+Edit the `WorkingDirectory`/`User` in `checkinchicken.service` first —
+`WorkingDirectory` should be wherever you put the folder in step 2, and
+`User` an ordinary (non-root) account that owns it.
 
-### 6. Point every screen at it
+Check it's actually up:
+
+```bash
+systemctl status checkinchicken
+```
+
+### 6. Open the firewall
+
+Skip this if `curl http://localhost:8080/api/version` works from the
+server machine itself but nothing else can reach it — that's the
+firewall blocking the port from the *outside*, the single most common
+reason "the server is running but no other screen can see it".
+
+Check whether a firewall is even active first — plenty of fresh installs
+have none, in which case there's nothing to do here:
+
+```bash
+sudo ufw status
+```
+
+`Status: inactive` → nothing to do, skip to step 7. Otherwise, allow the
+port CheckinChicken uses (`8080` unless you changed `config.json`'s
+`port`):
+
+```bash
+sudo ufw allow 8080/tcp
+```
+
+(On a `firewalld`-based distro — Fedora, RHEL, and family — instead use
+`sudo firewall-cmd --add-port=8080/tcp --permanent && sudo firewall-cmd --reload`.)
+
+### 7. Find this machine's address
+
+Every other screen needs this machine's own LAN IP address to connect
+to:
+
+```bash
+hostname -I
+```
+
+Prints one or more addresses (usually just one on a simple home/office
+network) — e.g. `192.168.1.42`. That's `<server-ip>` in every URL
+below. It's assigned by your router and can change after a reboot
+unless you set a static/reserved IP for this machine in the router's
+settings (worth doing once the server's placement is final, so every
+kiosk screen doesn't need re-pointing later).
+
+### 8. Point every screen at it
 
 ```
 http://<server-ip>:8080/board.html
@@ -152,7 +239,7 @@ Same URL for every screen, in every coop. For an unattended kiosk
 - `?title=<text>` — give this one screen its own header title instead of
   the server's `locationName` (see [Screen settings](#screen-settings)).
 
-### 7. Manage people later
+### 9. Manage people later
 
 `http://<server-ip>:8080/admin.html` → enter `adminPasscode`. Add,
 edit, or deactivate a person (deactivated people stay in the list, greyed
@@ -423,6 +510,9 @@ page — "Klockan uppdaterad." confirms it worked.
 - **Board shows nothing**: confirm `node server/server.js` is running,
   and you're browsing to the server machine's IP, not `localhost` from a
   different device.
+- **Works on the server itself, but no other screen can connect**:
+  almost always the firewall — see step 6. Double-check the IP too
+  (step 7); it can change after a reboot unless you've reserved it.
 - **Connection pill shows "återansluter…"**: live connection to the
   server dropped. Board keeps showing last-known data and reconnects
   automatically.
