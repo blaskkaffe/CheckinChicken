@@ -77,6 +77,16 @@ function sanitizeFields(body) {
   let detailPrefix = String(body.detailPrefix ?? '').trim().slice(0, 20);
   if (kind !== 'time' && kind !== 'date') detailPrefix = '';
 
+  // What the status popup's time field starts at for this status, instead
+  // of blank - see server/statuses.js's own comment on defaultTime.
+  // Meaningless (and cleared) for anything but a 'time' status, same as
+  // detailPrefix above being cleared for anything but 'time'/'date'.
+  let defaultTime = String(body.defaultTime ?? '').trim();
+  if (kind !== 'time') defaultTime = '';
+  else if (defaultTime && !/^([01]\d|2[0-3]):[0-5]\d$/.test(defaultTime)) {
+    return { error: 'Starttiden måste vara HH:MM, t.ex. 07:30.' };
+  }
+
   let dots = Math.round(Number(body.dots) || 0);
   if (!Number.isFinite(dots) || dots < 0) dots = 0;
   if (dots > 3) return { error: 'Max 3 prickar.' };
@@ -90,6 +100,7 @@ function sanitizeFields(body) {
       needsDate: kind === 'date',
       needsNote: kind === 'note',
       detailPrefix,
+      defaultTime,
       dots,
     },
   };

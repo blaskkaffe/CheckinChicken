@@ -88,6 +88,14 @@
       mm: initM ? Number(initM) : null,
     };
     const RANGES = { hh: [0, 23], mm: [0, 59] };
+    // The minute stepper jumps by 15, not 1 - these statuses (Kommer sent,
+    // Går tidigare, ...) are an approximate "around this time", nudged
+    // from a sensible defaultTime (server/statuses.js), not a precise
+    // reading the way the system clock's own seconds-accurate fields are -
+    // single-minute steps would just be a lot of extra tapping to get
+    // anywhere. Typing an exact minute directly still works, same as
+    // always - this only changes what +/- do.
+    const STEP = { hh: 1, mm: 15 };
 
     function currentValue() {
       return (state.hh !== null && state.mm !== null) ? `${pad2(state.hh)}:${pad2(state.mm)}` : '';
@@ -104,9 +112,10 @@
     function wrapStep(key, dir) {
       const [lo, hi] = RANGES[key];
       const span = hi - lo + 1;
+      const step = STEP[key];
       const now = new Date();
       const base = state[key] !== null ? state[key] : (key === 'hh' ? now.getHours() : now.getMinutes());
-      state[key] = ((base - lo + dir) % span + span) % span + lo;
+      state[key] = ((base - lo + dir * step) % span + span) % span + lo;
     }
 
     const inputs = {};

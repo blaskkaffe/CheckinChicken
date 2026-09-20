@@ -401,7 +401,7 @@
   }
 
   function extraSummary(s) {
-    if (s.needsTime) return 'Tid' + (s.detailPrefix ? ` (${esc(s.detailPrefix)})` : '');
+    if (s.needsTime) return 'Tid' + (s.defaultTime ? ` (start ${esc(s.defaultTime)})` : '') + (s.detailPrefix ? ` (${esc(s.detailPrefix)})` : '');
     // "Datum" covers both: the popup itself offers a Dag/Vecka choice at
     // pick-time (see statuspopup.js) rather than that being decided here.
     if (s.needsDate) return 'Datum (dag/vecka)' + (s.detailPrefix ? ` (${esc(s.detailPrefix)})` : '');
@@ -473,6 +473,7 @@
   function applyKindVisibility() {
     const kind = $('sKind').value;
     $('sPrefixRow').style.display = (kind === 'time' || kind === 'date') ? '' : 'none';
+    $('sDefaultTimeRow').style.display = kind === 'time' ? '' : 'none';
   }
 
   // IN/UTE (scope 'primary') are structural: always exactly two, can't be
@@ -485,7 +486,7 @@
     $('sKindRow').style.display = isPrimary ? 'none' : '';
     $('sChecksOutRow').style.display = isPrimary ? 'none' : '';
     $('sDotsRow').style.display = isPrimary ? 'none' : '';
-    if (isPrimary) $('sPrefixRow').style.display = 'none';
+    if (isPrimary) { $('sPrefixRow').style.display = 'none'; $('sDefaultTimeRow').style.display = 'none'; }
   }
 
   function openStatusModal(scope, def) {
@@ -499,6 +500,7 @@
     const kind = def?.needsTime ? 'time' : def?.needsDate ? 'date' : def?.needsNote ? 'note' : 'none';
     $('sKind').value = kind;
     $('sPrefix').value = def?.detailPrefix || '';
+    $('sDefaultTime').value = def?.defaultTime || '';
     $('sChecksOut').checked = !!def?.checksOut;
     $('sDots').value = String(def?.dots || 0);
     applyStatusModalVisibility(scope);
@@ -520,6 +522,7 @@
     if (editingStatusScope !== 'primary') {
       payload.kind = $('sKind').value;
       payload.detailPrefix = $('sPrefix').value.trim();
+      payload.defaultTime = $('sDefaultTime').value.trim();
       payload.checksOut = $('sChecksOut').checked;
       payload.dots = Number($('sDots').value) || 0;
     }

@@ -344,6 +344,13 @@ screen-settings popup.
   e.g. `Semester` with prefix `tillbaka` and week `V645` reads "Semester
   · tillbaka V645" on the popup and the board pellet (or "tillbaka 24/12" if
   a day was picked instead).
+- **Starttid** (time only, optional): what the status popup's time field
+  starts at instead of blank — e.g. `Kommer sent` → `07:30`, `Går
+  tidigare` → `16:30`, so checking in just means nudging from a sensible
+  starting point rather than entering a time from scratch every time.
+  Leave blank for no default (starts blank, same as before this existed).
+  The +/- steppers on that field move in 15-minute jumps; typing an exact
+  minute still works.
 - A status can't be deleted while assigned to someone.
 - Internal code is generated from the label at creation and does not
   change on rename.

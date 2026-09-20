@@ -114,10 +114,16 @@
       state.detailKind = def.needsTime ? 'time' : 'date';
       state.detailSecondaryCode = def.code;
       state.detailPrefix = def.detailPrefix || '';
-      state.detailValue = def.needsTime ? '' : null;
+      // needsTime starts pre-filled at this status's own configured
+      // defaultTime (admin's "Statusar" tab - server/statuses.js's own
+      // defaultTime comment), or blank if none is set - same blank-until-
+      // chosen safety buildTimeInput always had otherwise. needsDate has
+      // no equivalent "default" (a status/detail concept, not a date
+      // that'd ever make sense pre-filled).
+      state.detailValue = def.needsTime ? (def.defaultTime || '') : null;
       $('spDetailPrompt').textContent = def.label;
       const build = def.needsTime ? window.buildTimeInput : window.buildDateOrWeekInput;
-      build($('spDetailInput'), { onChange: (v) => { state.detailValue = v; } });
+      build($('spDetailInput'), { initial: def.needsTime ? def.defaultTime : undefined, onChange: (v) => { state.detailValue = v; } });
       return showScreen('detail');
     }
     if (def.needsNote) {

@@ -22,6 +22,13 @@
 // Deliberately open-ended: this system doesn't define what one or two dots
 // mean, that's for whoever's using it to decide between themselves. Leave
 // it out for a status that shouldn't show dots.
+//
+// defaultTime (needsTime statuses only): what the status popup's time
+// field starts at instead of blank - e.g. Kommer sent almost always means
+// "some time around the usual start of the day", not literally any hour,
+// so starting at 07:30 and nudging from there beats starting from
+// scratch every time. Optional - leave it out and that status's time
+// field starts blank instead, same as before this existed.
 
 const PRIMARY = [
   { code: 'IN', label: 'Inne', color: '#2a9d5c' },
@@ -34,8 +41,8 @@ const PRIMARY = [
 // person can still override it afterwards.
 const SECONDARY = [
   { code: 'FYS', label: 'FYS', color: '#2a9d8f' },
-  { code: 'LATE', label: 'Kommer sent', color: '#f4a261', needsTime: true },
-  { code: 'EARLY_LEAVE', label: 'Går tidigare', color: '#f4a261', needsTime: true },
+  { code: 'LATE', label: 'Kommer sent', color: '#f4a261', needsTime: true, defaultTime: '07:30' },
+  { code: 'EARLY_LEAVE', label: 'Går tidigare', color: '#f4a261', needsTime: true, defaultTime: '16:30' },
   // detailPrefix: prepended to the entered date before it's stored, so the
   // board pellet and the popup's own "current status" line both read as a
   // sentence ("Tjänsteresa · tillbaka 24/12") instead of a bare date. See

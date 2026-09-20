@@ -219,6 +219,12 @@
              klocka, se board.js) - valet görs på statuspopupen när
              statusen väljs (se statuspopup.js), inte här. -->
         <label id="sPrefixRow" style="display:none">Prefix före tiden/datumet (valfritt)<input id="sPrefix" type="text" maxlength="20" placeholder="t.ex. tillbaka" /></label>
+        <!-- Only for "Tid" statuses (not "Datum") - what the status
+             popup's time field starts at instead of blank, e.g. Kommer
+             sent -> 07:30, Går tidigare -> 16:30. Leave blank for no
+             default (the field starts blank, same as before this
+             existed) - see server/statuses.js's own defaultTime comment. -->
+        <label id="sDefaultTimeRow" style="display:none">Starttid i statuspopupen (valfritt)<input id="sDefaultTime" type="text" maxlength="5" placeholder="t.ex. 07:30" /></label>
         <label id="sChecksOutRow" class="checkbox-label"><input id="sChecksOut" type="checkbox" /> Räknas som frånvarande (checkar automatiskt ut)</label>
         <label id="sDotsRow">Prickar bredvid namnet på tavlan
           <select id="sDots">

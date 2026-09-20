@@ -508,7 +508,7 @@ const server = http.createServer(async (req, res) => {
 
       // ---- admin: manage the status menu ----
       // Add or edit a status. Body: { code?, label, color, kind,
-      // detailPrefix, dots, checksOut }. `code` present and not IN/OUT ->
+      // detailPrefix, defaultTime, dots, checksOut }. `code` present and not IN/OUT ->
       // edit that status; `code` present and IS IN/OUT -> only label/color
       // are touched (see updatePrimary - IN/OUT can't be added, removed,
       // or reordered, since so much else assumes there are exactly two and
