@@ -21,6 +21,18 @@
   text-align: center;
 }
 
+/* Two screens sharing the popup, one visible at a time - same pattern as
+   statuspopup.css's .sp-screen (see board.html/boardsettings.js). */
+.bs-screen { display: none; flex-direction: column; }
+.bs-screen.active { display: flex; }
+
+/* ABOUT screen: name, logo, version, GitHub link, all centered - simple
+   enough (nothing to edit, nothing to scan left-to-right) that it doesn't
+   need the left-aligned section/heading layout the settings screen uses. */
+#bs-screen-about { align-items: center; text-align: center; gap: 1.4vh; }
+.bs-about-logo { width: min(60%, 220px); height: auto; }
+.bs-about-version { margin: 0; font-variant-numeric: tabular-nums; }
+
 .bs-section { margin-bottom: 2.4vh; }
 .bs-section:last-child { margin-bottom: 0; }
 .bs-section h3 { margin: 0 0 0.3em 0; font-size: 1.05rem; font-weight: 700; }

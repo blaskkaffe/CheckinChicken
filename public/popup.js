@@ -44,13 +44,13 @@
   // actually both at once - most "monospace" fonts are sans, most serif
   // fonts aren't fixed-width) rather than the close button's X glyph.
   // Currently only used by boardsettings.js (the popup opened by tapping
-  // the clock) to reveal the running version - see this button's own
-  // `onClick`.
+  // the clock) to switch to its "about" screen (name, running version,
+  // logo, GitHub link) - see this button's own `onClick`.
   window.createPopupInfoButton = function (onClick) {
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'popup-info';
-    btn.setAttribute('aria-label', 'Version');
+    btn.setAttribute('aria-label', 'Om CheckinChicken');
     btn.innerHTML = '<span aria-hidden="true">i</span>';
     btn.addEventListener('click', onClick);
     return btn;

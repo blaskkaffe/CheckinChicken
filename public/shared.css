@@ -395,6 +395,7 @@ button {
   white-space: nowrap;
   padding: 0.7em 1.4em;
   font-size: 1rem;
+  text-decoration: none; /* only matters for the odd <a class="ghost-btn"> (boardsettings.js's GitHub link) - every other user of this shape is already a <button> */
 }
 .primary-btn {
   padding: 0.8em 1.6em;

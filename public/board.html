@@ -109,57 +109,67 @@
     <div class="popup-backdrop"></div>
     <div class="popup-card" id="boardSettingsCard">
       <div class="board-settings">
-        <h2 class="bs-title">Skärminställningar</h2>
 
-        <section class="bs-section">
-          <h3>Skärmens namn</h3>
-          <p class="bs-hint">Namnet högst upp på den här skärmen, istället för serverns eget. Tomt = använd serverns namn.</p>
-          <div class="bs-title-row">
-            <input type="text" id="bsTitleInput" class="bs-title-input" maxlength="60" />
-            <button type="button" class="ghost-btn small" id="bsTitleReset">Återställ</button>
-          </div>
+        <!-- MAIN: every screen setting, one screen - same "one screen at a
+             time inside a popup" idea as statuspopup.html's .sp-screen. -->
+        <section id="bs-screen-main" class="bs-screen active">
+          <h2 class="bs-title">Skärminställningar</h2>
+
+          <section class="bs-section">
+            <h3>Skärmens namn</h3>
+            <p class="bs-hint">Namnet högst upp på den här skärmen, istället för serverns eget. Tomt = använd serverns namn.</p>
+            <div class="bs-title-row">
+              <input type="text" id="bsTitleInput" class="bs-title-input" maxlength="60" />
+              <button type="button" class="ghost-btn small" id="bsTitleReset">Återställ</button>
+            </div>
+          </section>
+
+          <section id="bsLocationSection" class="bs-section">
+            <h3>Område</h3>
+            <p class="bs-hint">Vilka områden den här skärmen visar - välj flera för att visa dem tillsammans.</p>
+            <div class="bs-choices" id="bsLocations"></div>
+          </section>
+
+          <section class="bs-section">
+            <h3>Storlek på tavlan</h3>
+            <p class="bs-hint">Om automatiken inte träffar rätt - justera för hand.</p>
+            <div class="bs-stepper">
+              <button type="button" class="bs-step" id="bsSizeDown" aria-label="Mindre">−</button>
+              <span class="bs-readout" id="bsSizeReadout">100%</span>
+              <button type="button" class="bs-step" id="bsSizeUp" aria-label="Större">+</button>
+              <button type="button" class="ghost-btn small" id="bsSizeReset">Auto</button>
+            </div>
+          </section>
+
+          <section class="bs-section">
+            <h3>Veckonummer</h3>
+            <p class="bs-hint">Hur veckan visas i klockan uppe till höger.</p>
+            <div class="bs-choices" id="bsWeekFormat"></div>
+          </section>
+
+          <section class="bs-section bs-admin-section">
+            <p class="bs-hint bs-admin-hint">Tema, bakgrundsbild, personal med mera ändras på adminsidan.</p>
+            <!-- Same navigation the old header gear icon did (theme.js's
+                 initConfigButton) - see boardsettings.js. admin.html has its
+                 own passcode gate; this is just the shortcut there. -->
+            <button type="button" class="ghost-btn" id="bsAdminBtn">Adminsidan →</button>
+          </section>
         </section>
 
-        <section id="bsLocationSection" class="bs-section">
-          <h3>Område</h3>
-          <p class="bs-hint">Vilka områden den här skärmen visar - välj flera för att visa dem tillsammans.</p>
-          <div class="bs-choices" id="bsLocations"></div>
-        </section>
-
-        <section class="bs-section">
-          <h3>Storlek på tavlan</h3>
-          <p class="bs-hint">Om automatiken inte träffar rätt - justera för hand.</p>
-          <div class="bs-stepper">
-            <button type="button" class="bs-step" id="bsSizeDown" aria-label="Mindre">−</button>
-            <span class="bs-readout" id="bsSizeReadout">100%</span>
-            <button type="button" class="bs-step" id="bsSizeUp" aria-label="Större">+</button>
-            <button type="button" class="ghost-btn small" id="bsSizeReset">Auto</button>
-          </div>
-        </section>
-
-        <section class="bs-section">
-          <h3>Veckonummer</h3>
-          <p class="bs-hint">Hur veckan visas i klockan uppe till höger.</p>
-          <div class="bs-choices" id="bsWeekFormat"></div>
-        </section>
-
-        <section class="bs-section bs-admin-section">
-          <p class="bs-hint bs-admin-hint">Tema, bakgrundsbild, personal med mera ändras på adminsidan.</p>
-          <!-- Same navigation the old header gear icon did (theme.js's
-               initConfigButton) - see boardsettings.js. admin.html has its
-               own passcode gate; this is just the shortcut there. -->
-          <button type="button" class="ghost-btn" id="bsAdminBtn">Adminsidan →</button>
-        </section>
-
-        <!-- Hidden until the "i" button (top corner, next to the close
-             button - see boardsettings.js) is tapped, which fills this in
-             from GET /api/version and reveals it. Not fetched up front -
-             this whole popup opens with no server round trip at all
-             otherwise (see the comment at the top of boardsettings.js),
-             and the version is the one thing here actually worth an
-             extra request for. -->
-        <section id="bsVersionSection" class="bs-section" hidden>
-          <p class="bs-hint" id="bsVersionText">Hämtar version …</p>
+        <!-- ABOUT: replaces the screen above entirely while open (see
+             boardsettings.js's showAbout/showScreen) rather than appending
+             below it - reached via the "i" button (top corner, next to the
+             close button), left again only by closing the whole popup (the
+             red X), same as every other "i" info button in the app. Version
+             is fetched from GET /api/version lazily, the first time this
+             screen is opened (and cached after that) - not up front on
+             open(), so opening the settings popup itself still costs no
+             server round trip. -->
+        <section id="bs-screen-about" class="bs-screen">
+          <h2 class="bs-title">CheckinChicken</h2>
+          <img src="/logo.png" alt="CheckinChicken logo" class="bs-about-logo" />
+          <p class="bs-hint bs-about-version" id="bsVersionText">Hämtar version …</p>
+          <a href="https://github.com/blaskkaffe/CheckinChicken" target="_blank" rel="noopener" class="ghost-btn small">GitHub →</a>
         </section>
       </div>
     </div>
