@@ -97,7 +97,6 @@ Edit `config.json`. Fields:
 | `locationName` | — | Shown in the server's startup log, and as the board's own title (unless a screen overrides it for itself — see [Screen settings](#screen-settings)). |
 | `port` | `8080` | |
 | `adminPasscode` | `0000` | Change this. Entered on an on-screen numpad. |
-| `allowNameBrowse` | `true` | Unused (reserved). |
 | `phoneVisibility` | `"always"` | `"always"` \| `"hash"` \| `"off"` — see [Phone numbers](#phone-numbers). |
 | `boardClickToEdit` | `true` | Per-server default; override per screen with `?input=on`/`?input=off`. |
 | `numericInput` | `true` | Number-pad check-in on the board — see [Number pad input](#number-pad-input). |

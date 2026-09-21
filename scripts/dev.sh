@@ -30,7 +30,6 @@ cat > "$DEV_DIR/config.json" << JSON
   "locationName": "Test (dev)",
   "port": 9100,
   "adminPasscode": "1234",
-  "allowNameBrowse": true,
   "phoneVisibility": "always",
   "boardClickToEdit": true
 }

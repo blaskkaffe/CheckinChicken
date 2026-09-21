@@ -9,9 +9,6 @@
   "_comment_adminPasscode": "Simple passcode required to open the admin (roster editing) screen, entered on a big on-screen numpad. Change this.",
   "adminPasscode": "0000",
 
-  "_comment_allowNameBrowse": "Reserved, currently unused.",
-  "allowNameBrowse": true,
-
   "_comment_phoneVisibility": "'always' (default): shown on the status popup. 'hash': placeholder text only. 'off': not shown.",
   "phoneVisibility": "always",
 

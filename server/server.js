@@ -41,7 +41,6 @@ const {
   locationName = 'Incheckning',
   port = 8080,
   adminPasscode = '0000',
-  allowNameBrowse = true,
   // How a coworker's phone number is surfaced from their status popup: it's
   // shown by default, right below their department/role line - set to
   // 'hash' for the old "hidden until tapped" behavior, or 'off' to hide it
@@ -330,7 +329,7 @@ const server = http.createServer(async (req, res) => {
     // ---- read-only info everyone can fetch ----
     if (method === 'GET' && pathname === '/api/config') {
       return sendJson(res, 200, {
-        locationName, allowNameBrowse, phoneVisibility, boardClickToEdit, numericInput,
+        locationName, phoneVisibility, boardClickToEdit, numericInput,
       });
     }
 
