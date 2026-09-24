@@ -44,10 +44,10 @@ Raspberry Pi OS too) with `apt` and `sudo` available — the most common
 distro, swap the `apt` commands for your package manager's equivalent
 (`dnf`, `pacman`, ...); everything else below is the same.
 
-Nine steps, start to finish: install Node.js, get the code onto the
-machine, configure it, add your roster, start the server, open the
-firewall, find the machine's own address, point every screen at it, then
-manage people day to day from the admin page.
+Ten steps, start to finish: install Node.js, get the code onto the
+machine, configure it, generate a TLS certificate, add your roster, start
+the server, open the firewall, find the machine's own address, point
+every screen at it, then manage people day to day from the admin page.
 
 ### 1. Install Node.js on the server machine
 
@@ -111,7 +111,46 @@ Config is read once, at startup. Changing `config.json` requires a
 restart (`theme`, `popupIdleTimeoutMs`, `onscreenKeyboardAdmin` are
 exceptions after first boot — see the admin page).
 
-### 4. Add people
+### 4. Generate a TLS certificate
+
+The server only speaks HTTPS — every screen connects over `https://`, not
+`http://` — so it needs a certificate and key before it will start at
+all. A self-signed one is fine here (this is a private LAN with no public
+certificate authority to ask):
+
+```bash
+mkdir -p certs
+openssl req -x509 -newkey rsa:2048 -sha256 -days 3650 -nodes \
+  -keyout certs/key.pem -out certs/cert.pem \
+  -subj "/CN=checkinchicken" \
+  -addext "subjectAltName=IP:<server-ip>"
+```
+
+Replace `<server-ip>` with this machine's LAN IP (see step 8 below if you
+don't know it yet). If you've also set up a friendly `.local` name (see
+[Friendly `.local` address (mDNS)](#friendly-local-address-mdns) under
+step 8), add it too — comma-separated, e.g.
+`-addext "subjectAltName=IP:192.168.1.42,DNS:checkin.local"` — so browsers
+don't additionally complain about a hostname mismatch on top of the
+self-signed warning below.
+
+`openssl` ships with virtually every Linux distro already; if
+`command -v openssl` comes up empty, `sudo apt install -y openssl` first.
+
+The server looks for `certs/cert.pem` and `certs/key.pem` (relative to
+where you put the folder in step 2) and refuses to start without them —
+see step 6. To use a different path, set the `CHECKIN_CERT`/`CHECKIN_KEY`
+environment variables (see [Environment
+variables](#environment-variables)).
+
+Because the certificate is self-signed, every browser will show a
+"connection is not private" (or similar) warning the first time it visits
+— expected here, not a bug; click through it. For an unattended kiosk
+screen with no address bar to click past, see [Kiosk screens and the
+certificate warning](#kiosk-screens-and-the-certificate-warning) under
+step 9.
+
+### 5. Add people
 
 Edit `server/people.template.csv`. Columns:
 
@@ -140,18 +179,21 @@ overwritten the next time anyone is edited from the admin page.
 Alternative: skip this step and use the admin page (`/admin.html`) after
 starting the server.
 
-### 5. Start the server
+### 6. Start the server
 
 ```bash
 node server/server.js
 ```
 
+Fails immediately with "Missing TLS certificate/key" if step 4 was
+skipped — go back and generate one first.
+
 Output:
 
 ```
-[checkin] <locationName> listening on http://0.0.0.0:8080
-[checkin] board:  http://<this-machine-ip>:8080/board.html
-[checkin] admin:  http://<this-machine-ip>:8080/admin.html
+[checkin] <locationName> listening on https://0.0.0.0:8080
+[checkin] board:  https://<this-machine-ip>:8080/board.html
+[checkin] admin:  https://<this-machine-ip>:8080/admin.html
 ```
 
 `0.0.0.0` means it's already listening on every network interface on
@@ -179,12 +221,13 @@ Check it's actually up:
 systemctl status checkinchicken
 ```
 
-### 6. Open the firewall
+### 7. Open the firewall
 
-Skip this if `curl http://localhost:8080/api/version` works from the
+Skip this if `curl -k https://localhost:8080/api/version` works from the
 server machine itself but nothing else can reach it — that's the
 firewall blocking the port from the *outside*, the single most common
-reason "the server is running but no other screen can see it".
+reason "the server is running but no other screen can see it". (`-k`
+just tells `curl` not to reject the self-signed certificate from step 4.)
 
 Check whether a firewall is even active first — plenty of fresh installs
 have none, in which case there's nothing to do here:
@@ -193,7 +236,7 @@ have none, in which case there's nothing to do here:
 sudo ufw status
 ```
 
-`Status: inactive` → nothing to do, skip to step 7. Otherwise, allow the
+`Status: inactive` → nothing to do, skip to step 8. Otherwise, allow the
 port CheckinChicken uses (`8080` unless you changed `config.json`'s
 `port`):
 
@@ -204,7 +247,7 @@ sudo ufw allow 8080/tcp
 (On a `firewalld`-based distro — Fedora, RHEL, and family — instead use
 `sudo firewall-cmd --add-port=8080/tcp --permanent && sudo firewall-cmd --reload`.)
 
-### 7. Find this machine's address
+### 8. Find this machine's address
 
 Every other screen needs this machine's own LAN IP address to connect
 to:
@@ -220,11 +263,53 @@ unless you set a static/reserved IP for this machine in the router's
 settings (worth doing once the server's placement is final, so every
 kiosk screen doesn't need re-pointing later).
 
-### 8. Point every screen at it
+#### Friendly `.local` address (mDNS)
+
+Optional alternative (or addition) to a static IP: give this machine a
+name that resolves on its own over mDNS (a.k.a. Bonjour/Zeroconf —
+`avahi` on Linux), so every screen can use e.g.
+`https://checkin.local:8080/board.html` instead of an IP address that
+might change.
+
+Raspberry Pi OS ships with `avahi-daemon` already installed and running,
+so a fresh Pi is reachable at `https://raspberrypi.local:8080/...` (its
+default hostname) with nothing to install. On a plain Debian/Ubuntu
+install:
+
+```bash
+sudo apt install -y avahi-daemon
+sudo systemctl enable --now avahi-daemon
+```
+
+The `.local` name is just this machine's hostname with `.local` appended
+— check or change it with:
+
+```bash
+hostnamectl status                      # current hostname
+sudo hostnamectl set-hostname checkin   # optional: rename it
+```
+
+A hostname change needs a reboot (or at least `sudo systemctl restart
+avahi-daemon`) to take effect. After that, `https://checkin.local:8080/`
+works the same as `https://<server-ip>:8080/` everywhere in this guide —
+same firewall rule (step 7), same certificate caveats. If you generate
+your certificate (step 4) before setting this up, regenerate it
+afterwards with the `.local` name added to `subjectAltName` to avoid an
+extra hostname-mismatch warning on top of the self-signed one.
+
+Not every device resolves `.local` names reliably (some Android phones
+and locked-down corporate Wi-Fi don't) — keep the plain IP (and a
+reserved/static one, per above) as the fallback if any screen fails to
+connect by name.
+
+### 9. Point every screen at it
 
 ```
-http://<server-ip>:8080/board.html
+https://<server-ip>:8080/board.html
 ```
+
+(or `https://<hostname>.local:8080/board.html` — see [Friendly `.local`
+address (mDNS)](#friendly-local-address-mdns) above.)
 
 Same URL for every screen, in every coop. For an unattended kiosk
 (fullscreen, no address bar, restarts on reboot), use
@@ -239,13 +324,25 @@ Same URL for every screen, in every coop. For an unattended kiosk
 - `?title=<text>` — give this one screen its own header title instead of
   the server's `locationName` (see [Screen settings](#screen-settings)).
 
-### 9. Manage people later
+#### Kiosk screens and the certificate warning
 
-`http://<server-ip>:8080/admin.html` → enter `adminPasscode`. Add,
+A self-signed certificate (step 4) is a problem for an unattended kiosk
+screen specifically: there's no address bar to type past, and no mouse to
+click "Advanced → Proceed" on the browser's warning page.
+`systemd/kiosk-browser.sh` already launches Chromium with
+`--ignore-certificate-errors` to skip that warning automatically —
+nothing extra to do for a kiosk screen set up that way. On a screen using
+an ordinary browser window instead, either click through the one-time
+warning by hand, or import `certs/cert.pem` into that browser/OS's
+trusted certificate store to stop it appearing at all.
+
+### 10. Manage people later
+
+`https://<server-ip>:8080/admin.html` → enter `adminPasscode`. Add,
 edit, or deactivate a person (deactivated people stay in the list, greyed
 out, and can be reactivated). Edits apply to every open screen
 immediately — no restart needed (this path goes through the live server,
-unlike CSV import in step 4).
+unlike CSV import in step 5).
 
 Roster table sort order: coop, department, `order`, name. ▲/▼
 reorders within the same coop + department.
@@ -272,6 +369,8 @@ Both the passcode screen and the admin page have a back-arrow button
 |---|---|---|
 | `CHECKIN_CONFIG` | `config.json` | Path to config file. |
 | `CHECKIN_DATA_DIR` | `data/` | Path to data directory. |
+| `CHECKIN_CERT` | `certs/cert.pem` | Path to the TLS certificate — see [Generate a TLS certificate](#4-generate-a-tls-certificate). |
+| `CHECKIN_KEY` | `certs/key.pem` | Path to the TLS private key. |
 
 ## Features
 
@@ -518,8 +617,22 @@ page — "Klockan uppdaterad." confirms it worked.
   and you're browsing to the server machine's IP, not `localhost` from a
   different device.
 - **Works on the server itself, but no other screen can connect**:
-  almost always the firewall — see step 6. Double-check the IP too
-  (step 7); it can change after a reboot unless you've reserved it.
+  almost always the firewall — see step 7. Double-check the IP too
+  (step 8); it can change after a reboot unless you've reserved it.
+- **Server won't start: "Missing TLS certificate/key"**: no
+  `certs/cert.pem`/`certs/key.pem` (or whatever `CHECKIN_CERT`/
+  `CHECKIN_KEY` point at) yet — see [Generate a TLS
+  certificate](#4-generate-a-tls-certificate).
+- **Browser warns "connection is not private" / certificate error**:
+  expected — the certificate is self-signed (no public CA on a private
+  LAN) — see [Generate a TLS certificate](#4-generate-a-tls-certificate).
+  Click through it, or see [Kiosk screens and the certificate
+  warning](#kiosk-screens-and-the-certificate-warning) for an unattended
+  screen.
+- **`.local` address doesn't resolve**: mDNS isn't installed/running (see
+  [Friendly `.local` address (mDNS)](#friendly-local-address-mdns)), or
+  that specific device just doesn't support mDNS — fall back to the
+  plain IP (step 8).
 - **Connection pill shows "återansluter…"**: live connection to the
   server dropped. Board keeps showing last-known data and reconnects
   automatically.
@@ -528,7 +641,7 @@ page — "Klockan uppdaterad." confirms it worked.
   `popupIdleTimeoutMs`, `onscreenKeyboardAdmin`, which are read from
   `data/settings.json`/`data/theme.json` and apply live from the admin
   page).
-- **CSV import didn't show up**: restart the server (see step 4).
+- **CSV import didn't show up**: restart the server (see step 5).
 - **System clock save fails**: server process lacks OS permission to
   change the time — see [System clock](#system-clock).
 - **Background picture doesn't show**: check the Utseende tab's opacity

@@ -9,7 +9,7 @@
 // board.js's visible()/render()) rather than by running a separate server
 // per coop.
 
-const http = require('http');
+const https = require('https');
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
@@ -37,6 +37,22 @@ if (!fs.existsSync(CONFIG_PATH)) {
   process.exit(1);
 }
 const config = JSON.parse(fs.readFileSync(CONFIG_PATH, 'utf8'));
+
+// The server only ever speaks HTTPS (see README.md, "Generate a TLS
+// certificate") - there's no plain-http fallback to fall into by accident.
+// Self-signed is fine and expected here (offline LAN, no public CA to ask),
+// but that means a cert/key have to actually exist on disk first.
+const CERT_PATH = process.env.CHECKIN_CERT || path.join(__dirname, '..', 'certs', 'cert.pem');
+const KEY_PATH = process.env.CHECKIN_KEY || path.join(__dirname, '..', 'certs', 'key.pem');
+if (!fs.existsSync(CERT_PATH) || !fs.existsSync(KEY_PATH)) {
+  console.error(`Missing TLS certificate/key at ${CERT_PATH} / ${KEY_PATH}`);
+  console.error('Generate a self-signed certificate first. See README.md, "Generate a TLS certificate".');
+  process.exit(1);
+}
+const httpsOptions = {
+  key: fs.readFileSync(KEY_PATH),
+  cert: fs.readFileSync(CERT_PATH),
+};
 const {
   locationName = 'Incheckning',
   port = 8080,
@@ -313,7 +329,7 @@ function setSystemClock(datetimeLocal) {
 
 // ------------------------------------------------------------- routes -----
 
-const server = http.createServer(async (req, res) => {
+const server = https.createServer(httpsOptions, async (req, res) => {
   const url = new URL(req.url, `http://${req.headers.host}`);
   const { pathname } = url;
   const method = req.method;
@@ -619,7 +635,7 @@ const server = http.createServer(async (req, res) => {
 });
 
 server.listen(port, () => {
-  console.log(`[checkin] ${locationName} listening on http://0.0.0.0:${port}`);
-  console.log(`[checkin] board:  http://<this-machine-ip>:${port}/board.html`);
-  console.log(`[checkin] admin:  http://<this-machine-ip>:${port}/admin.html`);
+  console.log(`[checkin] ${locationName} listening on https://0.0.0.0:${port}`);
+  console.log(`[checkin] board:  https://<this-machine-ip>:${port}/board.html`);
+  console.log(`[checkin] admin:  https://<this-machine-ip>:${port}/admin.html`);
 });

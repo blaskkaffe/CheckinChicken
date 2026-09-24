@@ -46,7 +46,7 @@ HOST="${1:-localhost:8080}"
 INPUT_OVERRIDE="${2:-}"
 LOCATION_OVERRIDE="${3:-}"
 TITLE_OVERRIDE="${4:-}"
-URL="http://${HOST}/board.html"
+URL="https://${HOST}/board.html"
 PARAMS=()
 if [ "$INPUT_OVERRIDE" = "off" ] || [ "$INPUT_OVERRIDE" = "on" ]; then
   PARAMS+=("input=${INPUT_OVERRIDE}")
@@ -63,6 +63,10 @@ fi
 
 # --disable-pinch and --overscroll-history-navigation=0 stop stray touches
 # on a touchscreen from accidentally zooming or navigating back.
+# --ignore-certificate-errors skips the "connection is not private"
+# interstitial for the server's self-signed certificate (see README.md,
+# "Generate a TLS certificate") - there's no address bar or mouse on a
+# kiosk screen to click past it otherwise.
 exec chromium-browser \
   --kiosk \
   --noerrdialogs \
@@ -70,6 +74,7 @@ exec chromium-browser \
   --disable-session-crashed-bubble \
   --disable-pinch \
   --overscroll-history-navigation=0 \
+  --ignore-certificate-errors \
   --incognito \
   "$URL"
 
