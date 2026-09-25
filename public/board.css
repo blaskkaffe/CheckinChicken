@@ -227,9 +227,9 @@ body {
    områden" is selected AND more than one coop is actually in use
    (see board.js's render()/showLocationLabels), so a single-coop
    install/view looks exactly like it always has, no empty label line. One
-   level "louder" than .role-label below it (accent color, not just dim
-   text) since it's the top of the location → department → role → name
-   hierarchy, not a peer of role. */
+   level "louder" than .person-title below it (accent color, not just dim
+   text) since it's the top of the location → department → name
+   hierarchy, not a peer of a person's own title. */
 .dept-location {
   font-size: min(calc(3.6cqw * var(--scale)), calc(var(--cap) * 0.545));
   text-transform: uppercase;
@@ -268,14 +268,6 @@ body {
   flex: none;
 }
 
-.role-group + .role-group { margin-top: calc(0.9vh * var(--scale)); }
-.role-label {
-  font-size: min(calc(4cqw * var(--scale)), calc(var(--cap) * 0.606));
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text-dim);
-  margin: calc(0.7vh * var(--scale)) 0 calc(0.35vh * var(--scale)) 0;
-}
 
 /* No photo: just a name and its status, as large and high-contrast as
    the row can hold - legible at a glance from across a room, not just up
@@ -390,6 +382,23 @@ body {
    here stands out at a glance even before reading the IN/OUT badge. */
 .person-row.in .person-name { font-weight: 800; }
 .person-row.out .person-name { font-weight: 500; }
+
+/* A person's title (their `role`), shown inline right after their name -
+   OFF by default (see board.js's personRowHtml/titleVisible), turned on
+   either board-wide for a whole role or for one specific person from the
+   admin page's Inställningar tab / that person's own edit form. Styled
+   like the old always-on role heading it replaces (dim, uppercase,
+   letter-spaced) but small and inline rather than its own heading line,
+   since it's now the exception on a row rather being shown for everyone. */
+.person-title {
+  flex: none;
+  font-size: min(calc(4cqw * var(--scale)), calc(var(--cap) * 0.606));
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+}
 
 /* .badge (INNE/UTE) and .pellet (colored secondary status) are plain solid
    blocks now - square corners, not a rounded pill - closer to an

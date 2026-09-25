@@ -21,6 +21,16 @@ const DEFAULTS = {
   // the same on-screen Swedish keyboard as the board/status popup - see
   // public/keyboard.js.
   onscreenKeyboardAdmin: false,
+  // Which `role` values (see a person's own "Roll" field) always show
+  // their title inline on the board, for every person with that role - set
+  // from the admin page's Inställningar tab. Empty by default: a person's
+  // title is normally left off the board entirely (it was found to take up
+  // room and read as clutter), and only shows for a role picked here, or
+  // for one specific person flagged individually (see a person's own
+  // `showTitle` field in server/store.js, edited from their own row in the
+  // admin page's roster) - e.g. a single "chef" role that's worth calling
+  // out even though most roles aren't.
+  visibleTitleRoles: [],
 };
 
 function pickKnown(obj) {
@@ -77,6 +87,13 @@ class SettingsStore {
     }
     next.popupIdleTimeoutMs = Math.round(ms);
     next.onscreenKeyboardAdmin = !!next.onscreenKeyboardAdmin;
+    // Trimmed, de-duplicated, non-empty strings only - same cheap
+    // "validate the shape" reasoning as server.js's own request handling -
+    // and capped in count/length so a bad request can't bloat settings.json.
+    const roles = Array.isArray(next.visibleTitleRoles) ? next.visibleTitleRoles : [];
+    next.visibleTitleRoles = [...new Set(
+      roles.map((r) => String(r).trim()).filter(Boolean).map((r) => r.slice(0, 40))
+    )].slice(0, 40);
     this._write(next);
     return this.get();
   }

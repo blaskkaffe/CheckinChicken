@@ -89,6 +89,17 @@
     $('bsSizeUp').disabled = window.BoardSettings.manualScaleAtMax();
   }
 
+  // ------------------------------------------------------- column count --
+  // 0 = "Auto" (the readout shows the word, not "0") - same stepper
+  // pattern as renderSize() above, see board.js's manualColumns for what
+  // this actually changes.
+  function renderColumns() {
+    const n = window.BoardSettings.getColumns();
+    $('bsColumnsReadout').textContent = n === 0 ? 'Auto' : String(n);
+    $('bsColumnsDown').disabled = window.BoardSettings.columnsAtMin();
+    $('bsColumnsUp').disabled = window.BoardSettings.columnsAtMax();
+  }
+
   // ------------------------------------------------------- week format --
   // Same pill-button pattern as the coop picker above - see board.js's
   // weekShowYear for what this actually changes (the clock's "V45" vs
@@ -152,6 +163,7 @@
     renderTitle();
     renderLocations();
     renderSize();
+    renderColumns();
     renderWeekFormat();
   }
   function close() { overlay.classList.remove('visible'); }
@@ -166,6 +178,10 @@
   $('bsSizeDown').addEventListener('click', () => { window.BoardSettings.adjustManualScale(-1); renderSize(); });
   $('bsSizeUp').addEventListener('click', () => { window.BoardSettings.adjustManualScale(1); renderSize(); });
   $('bsSizeReset').addEventListener('click', () => { window.BoardSettings.resetManualScale(); renderSize(); });
+
+  $('bsColumnsDown').addEventListener('click', () => { window.BoardSettings.adjustColumns(-1); renderColumns(); });
+  $('bsColumnsUp').addEventListener('click', () => { window.BoardSettings.adjustColumns(1); renderColumns(); });
+  $('bsColumnsReset').addEventListener('click', () => { window.BoardSettings.resetColumns(); renderColumns(); });
 
   // 'change' (fires on blur/Enter), not 'input' - applying on every
   // keystroke would rewrite the header text mid-typing for no benefit,

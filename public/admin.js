@@ -98,6 +98,13 @@
     return [...new Set(roster.map((p) => p.location).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
   }
 
+  // Distinct, non-blank `role` values currently in the roster - fills the
+  // Inställningar tab's "Titel på tavlan" checkbox list (renderSettingsForm
+  // below), same idea as locationOptions() just above.
+  function distinctRoles() {
+    return [...new Set(roster.map((p) => p.role).filter(Boolean))].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
+  }
+
   // ------------------------------------------------------------- gate ----
   // A big touch-friendly numpad, same look as the old per-person PIN pad
   // used to have, instead of a small text field - the admin passcode is
@@ -188,6 +195,13 @@
     if (seq !== rosterFetchSeq) return;
     roster = next;
     renderRoster();
+    // Keeps the Inställningar tab's role checkbox list current with
+    // whatever roles actually exist right now (a role can be added/renamed/
+    // removed from any person's own edit form) - harmless to call even
+    // when that tab isn't the one currently open. Deliberately NOT
+    // renderSettingsForm() here - see its own comment on why that would
+    // risk clobbering an in-progress, unsaved edit to the fields below it.
+    renderTitleRolesChecklist();
   }
 
   function connectEvents() {
@@ -280,7 +294,7 @@
   function stripStatus(p) {
     return {
       id: p.id, name: p.name, department: p.department, role: p.role, order: p.order, active: p.active,
-      location: p.location, restrictToLocation: p.restrictToLocation,
+      location: p.location, restrictToLocation: p.restrictToLocation, showTitle: p.showTitle,
     };
   }
 
@@ -353,6 +367,7 @@
     $('fActive').checked = person ? person.active !== false : true;
     $('fLocation').value = person?.location || '';
     $('fRestrict').checked = !!person?.restrictToLocation;
+    $('fShowTitle').checked = !!person?.showTitle;
     $('fPhotoInput').value = '';
     renderPhotoPreview(person);
     $('modalError').textContent = '';
@@ -369,11 +384,12 @@
     const active = $('fActive').checked;
     const location = $('fLocation').value.trim();
     const restrictToLocation = $('fRestrict').checked;
+    const showTitle = $('fShowTitle').checked;
 
     if (!name) return ($('modalError').textContent = 'Namn krävs.');
     if (phone.length > 40) return ($('modalError').textContent = 'Telefonnumret ser för långt ut.');
     if (location.length > 60) return ($('modalError').textContent = 'Områdets namn ser för långt ut.');
-    const payload = { id: editingId, name, department, role, phone, active, location, restrictToLocation };
+    const payload = { id: editingId, name, department, role, phone, active, location, restrictToLocation, showTitle };
     if (pendingPhoto !== undefined) payload.photo = pendingPhoto;
 
     try {
@@ -639,9 +655,24 @@
     window.applySettings && window.applySettings(settings);
   }
 
+  // Just the role checklist, not the rest of the form below - split out so
+  // refreshRoster() (called on every 'person' SSE event, most of which have
+  // nothing to do with settings at all) can keep this list current with
+  // whatever roles actually exist without also stomping on unsaved edits
+  // to the idle-timeout/keyboard fields renderSettingsForm() below fills in
+  // from the last-SAVED settings.
+  function renderTitleRolesChecklist() {
+    const roles = distinctRoles();
+    const visible = new Set(settings.visibleTitleRoles || []);
+    $('sTitleRoles').innerHTML = roles.length
+      ? roles.map((r) => `<label class="checkbox-label"><input type="checkbox" class="title-role-check" value="${esc(r)}" ${visible.has(r) ? 'checked' : ''} /> ${esc(r)}</label>`).join('')
+      : '<p class="dim small">Inga roller att välja - fyll i "Roll" på en person i personallistan först.</p>';
+  }
+
   function renderSettingsForm() {
     $('sIdleMinutes').value = Math.round((settings.popupIdleTimeoutMs || 300000) / 60000);
     $('sOnscreenKbAdmin').checked = !!settings.onscreenKeyboardAdmin;
+    renderTitleRolesChecklist();
   }
 
   async function saveSettings() {
@@ -650,16 +681,19 @@
     if (!Number.isFinite(minutes) || minutes < 1 || minutes > 60) {
       return ($('settingsError').textContent = 'Tidsgränsen måste vara mellan 1 och 60 minuter.');
     }
+    const visibleTitleRoles = [...document.querySelectorAll('.title-role-check:checked')].map((el) => el.value);
     try {
       settings = await api('/api/admin/settings', {
         method: 'POST',
         body: JSON.stringify({
           popupIdleTimeoutMs: minutes * 60000,
           onscreenKeyboardAdmin: $('sOnscreenKbAdmin').checked,
+          visibleTitleRoles,
         }),
       });
       window.applySettings && window.applySettings(settings);
       applyOnscreenKeyboardSetting();
+      renderSettingsForm();
     } catch (e) {
       $('settingsError').textContent = e.message;
     }

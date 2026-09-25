@@ -461,6 +461,13 @@ const server = http.createServer(async (req, res) => {
         // Off by default - everyone shows everywhere, same as before this
         // feature existed.
         const restrictToLocation = body.restrictToLocation !== undefined ? !!body.restrictToLocation : !!existing.restrictToLocation;
+        // showTitle = "always show this ONE person's title (role) on the
+        // board, regardless of the admin-wide visibleTitleRoles list" (see
+        // server/settings-store.js) - for a single person worth calling
+        // out (a chef, a manager) without turning their whole role on for
+        // everyone who shares it. Off by default, same pattern as
+        // restrictToLocation above.
+        const showTitle = body.showTitle !== undefined ? !!body.showTitle : !!existing.showTitle;
         const record = {
           ...existing,
           id,
@@ -477,6 +484,7 @@ const server = http.createServer(async (req, res) => {
           phone: body.phone !== undefined ? String(body.phone) : (existing.phone ?? ''),
           location,
           restrictToLocation,
+          showTitle,
           status: existing.status || { checkedIn: false, secondary: null, detail: '', note: '', updatedAt: Date.now() },
           deleted: false,
         };

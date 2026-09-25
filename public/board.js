@@ -12,6 +12,15 @@
   // boardsettings.js).
   let locationFilter = new Set();
 
+  // Admin-wide (server.js's settingsStore, edited from the Inställningar
+  // tab), unlike everything else in this "per-device" section above - a
+  // role in here shows its title inline on every person row with that
+  // role, on every screen, not just this one. See personRowHtml's
+  // titleVisible below, and a person's own individual `showTitle`
+  // override, which isn't stored here (it rides along with each person's
+  // own record instead - see server.js).
+  let visibleTitleRoles = new Set();
+
   const boardEl = document.getElementById('board');
   const connPill = document.getElementById('connPill');
   const connLabel = document.getElementById('connLabel');
@@ -89,8 +98,16 @@
   setInterval(fmtClock, 1000 * 15);
   fmtClock();
 
+  // visibleTitleRoles (see its own comment above) straight from
+  // server/settings-store.js's response shape - shared by the initial
+  // fetch in boot() and the live 'settings' SSE update in connectEvents()
+  // below, so the two never drift out of sync with each other.
+  function applyServerSettings(s) {
+    visibleTitleRoles = new Set(s.visibleTitleRoles || []);
+  }
+
   async function boot() {
-    const [c, defs, ppl] = await Promise.all([
+    const [c, defs, ppl, settings] = await Promise.all([
       fetch('/api/config').then((r) => r.json()),
       fetch('/api/statuses').then((r) => r.json()),
       // This same list feeds both the board rows below (which never
@@ -98,6 +115,7 @@
       // lookup (which does, per config.json's phoneVisibility) - see
       // server.js's /api/people handler.
       fetch('/api/people').then((r) => r.json()),
+      fetch('/api/settings').then((r) => r.json()),
     ]);
     cfg = c;
     loadTitleOverride();
@@ -105,6 +123,7 @@
     statusDefs = defs;
     secondaryByCode = new Map(defs.secondary.map((s) => [s.code, s]));
     people = new Map(ppl.map((p) => [p.id, p]));
+    applyServerSettings(settings);
     // config.json's boardClickToEdit is a per-SERVER default, identical for
     // every board.html tab that connects to it - so it alone can't tell
     // apart "the wall-mounted display" from "the counter-height touch
@@ -118,6 +137,7 @@
       : cfg.boardClickToEdit !== false;
     loadLocationFilter();
     loadManualScale();
+    loadManualColumns();
     render();
     connectEvents();
     wireClickToEdit();
@@ -270,6 +290,40 @@
     render();
   }
 
+  // -------------------------------------------------------- column count -
+  // A manual override for how many columns the board is split into, same
+  // per-device idea (and same stepper UI, in the board-settings popup) as
+  // the size adjustment just above. 0 is the special "Auto" value -
+  // renderBalancedColumns() below still searches for whichever column
+  // count fits best on its own, exactly as it always has; any other value
+  // skips that search and uses that exact count instead (capped at the
+  // number of departments actually on screen, so a count nobody needs
+  // never renders an empty column - see renderBalancedColumns' own
+  // comment). Unlike the size adjustment, this can't overflow OR
+  // under-fill by construction: fitToScreen()'s own scale/width safety
+  // nets run against whatever column arrangement it's handed, manual or
+  // automatic alike.
+  const COLUMNS_KEY = 'checkin:columns';
+  const MANUAL_COLUMNS_MAX = 8;
+  let manualColumns = 0; // 0 = Auto
+
+  function loadManualColumns() {
+    try {
+      const saved = parseInt(localStorage.getItem(COLUMNS_KEY), 10);
+      if (Number.isInteger(saved) && saved >= 0) manualColumns = saved;
+    } catch (e) { /* ignore - defaults to 0 (Auto) */ }
+  }
+
+  function saveManualColumns() {
+    try { localStorage.setItem(COLUMNS_KEY, String(manualColumns)); } catch (e) { /* ignore */ }
+  }
+
+  function setManualColumns(count) {
+    manualColumns = Math.min(MANUAL_COLUMNS_MAX, Math.max(0, Math.round(count)));
+    saveManualColumns();
+    render();
+  }
+
   // ---------------------------------------------- board-settings popup API
   // boardsettings.js (a separate script, loaded after this one - see
   // board.html) is the popup opened by tapping the clock: the coop
@@ -301,6 +355,12 @@
     resetManualScale() { setManualScale(1); },
     manualScaleAtMin: () => manualScaleFactor <= MANUAL_SCALE_MIN + 1e-9,
     manualScaleAtMax: () => manualScaleFactor >= MANUAL_SCALE_MAX - 1e-9,
+    // 0 = Auto - see manualColumns' own comment above.
+    getColumns: () => manualColumns,
+    adjustColumns(delta) { setManualColumns(manualColumns + delta); },
+    resetColumns() { setManualColumns(0); },
+    columnsAtMin: () => manualColumns <= 0,
+    columnsAtMax: () => manualColumns >= MANUAL_COLUMNS_MAX,
     getWeekShowYear: () => weekShowYear,
     setWeekShowYear(show) {
       weekShowYear = !!show;
@@ -375,9 +435,16 @@
     es.addEventListener('theme', (e) => window.applyTheme(JSON.parse(e.data).theme));
     // A theme's background picture/opacity was changed - see theme.js.
     es.addEventListener('backgrounds', () => window.refreshBackgrounds());
-    // Popup idle-timeout (or the admin on-screen-keyboard toggle) changed -
-    // see public/popup.js.
-    es.addEventListener('settings', (e) => window.applySettings && window.applySettings(JSON.parse(e.data)));
+    // Popup idle-timeout, the admin on-screen-keyboard toggle (both handled
+    // by public/popup.js), or visibleTitleRoles (this file's own) changed -
+    // re-render so a role newly turned on/off for board-wide titles shows
+    // up immediately rather than waiting for a reload.
+    es.addEventListener('settings', (e) => {
+      const s = JSON.parse(e.data);
+      applyServerSettings(s);
+      render();
+      window.applySettings && window.applySettings(s);
+    });
     es.onopen = () => {
       everConnected = true;
       connPill.style.display = 'none';
@@ -480,6 +547,18 @@
       ? `<span class="plupp-dots" aria-hidden="true">${'●'.repeat(pluppCount)}</span>`
       : '';
 
+    // A person's title (their `role`) is left off the board by default - it
+    // used to always show as a heading above every role's own little group
+    // of rows, which took up room and read as clutter on a busy department.
+    // Now it only shows inline, right after the name, for a role picked
+    // board-wide (visibleTitleRoles, admin-editable - see its own comment
+    // above) or for one specific person flagged individually (their own
+    // `showTitle` field, set from their own row in the admin page) - e.g. a
+    // single chef worth calling out without turning the whole "Kock" role
+    // on for everyone who shares it.
+    const titleVisible = !!p.role && (visibleTitleRoles.has(p.role) || !!p.showTitle);
+    const titleHtml = titleVisible ? `<span class="person-title">${esc(p.role)}</span>` : '';
+
     let pelletHtml = '';
     if (statusDef) {
       const detail = p.status.detail || p.status.note || '';
@@ -509,6 +588,7 @@
       <div class="person-row-top">
         <div class="person-row-main">
           <span class="person-name">${esc(p.name)}</span>
+          ${titleHtml}
           ${pluppHtml}
           ${pelletHtml}
         </div>
@@ -594,19 +674,15 @@
       );
       const inCount = members.filter((m) => m.status?.checkedIn).length;
 
-      const byRole = new Map();
-      for (const m of members) {
-        const role = m.role || 'Övrigt';
-        if (!byRole.has(role)) byRole.set(role, []);
-        byRole.get(role).push(m);
-      }
-
-      const buildRoleHtml = (forMeasurement) => [...byRole.entries()].map(([role, members2]) => `
-        <div class="role-group">
-          <div class="role-label">${esc(role)}</div>
-          ${members2.map((m) => personRowHtml(m, { forMeasurement })).join('')}
-        </div>
-      `).join('');
+      // No more per-role heading/grouping here - that used to always show
+      // (one heading per role, however many roles a department happened to
+      // have), which is exactly the "takes up room, reads as clutter" a
+      // role's own title now defaults to NOT showing at all (see
+      // personRowHtml's titleVisible). `members` is still sorted by role
+      // first (above), so people who share a role still land next to each
+      // other in the list - just without a heading forcing that grouping
+      // into view whether it's wanted or not.
+      const buildRoleHtml = (forMeasurement) => members.map((m) => personRowHtml(m, { forMeasurement })).join('');
 
       const locationHtml = showLocationLabels
         ? `<div class="dept-location">${esc(location || 'Ej tilldelat område')}</div>`
@@ -740,6 +816,31 @@
     return lo;
   }
 
+  // Packs `deptNames` into exactly `c` columns and measures the largest
+  // --scale that fits them (capped by both height and width, per
+  // findWidthSafeScale's own comment) - the one candidate-scoring step
+  // shared by the manual column count and the automatic search below, so
+  // neither can ever disagree with fitToScreen()'s own real final pass.
+  function buildCandidate(c, order, weights, deptHtml, available) {
+    const cols = packColumns(order, weights, c);
+    boardEl.style.setProperty('--scale', '1');
+    boardEl.innerHTML = buildColumnsHtml(cols, deptHtml);
+    const needed = measureNeeded();
+    const heightScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, (available / needed) * 0.99));
+    // Growing a narrow (many-column) candidate to fill spare height can
+    // outgrow that column's own fixed pixel width before it fills the
+    // available height (and a long name can do this even without
+    // growing at all) - a plain height/needed ratio doesn't see that,
+    // and would keep rating a too-narrow candidate as "great, just grow
+    // it" right up until the real fitToScreen() pass below claws it back
+    // down for real, leaving the narrow columns short of the bottom of
+    // the screen after all. Cap by the same width check fitToScreen()
+    // itself uses, so a candidate's score reflects what it can ACTUALLY
+    // reach.
+    const scale = findWidthSafeScale(heightScale);
+    return { columns: c, cols, scale };
+  }
+
   // `deptHtml` is only ever used here to size things (both the weights
   // below and every candidate's trial render) - it's meant to be the
   // MEASUREMENT map (every row assumed to carry a representative status
@@ -756,32 +857,28 @@
     // it, so this stays valid while different candidates are swapped
     // through it below.
     const available = boardEl.clientHeight || window.innerHeight;
-    const maxColumns = Math.max(1, Math.min(deptNames.length, Math.floor(width / COL_MIN_WIDTH)));
     const weights = measureDeptWeights(deptNames, deptHtml);
     const order = [...deptNames].sort((a, b) => weights.get(b) - weights.get(a));
 
+    // A manual column count (board-settings popup, tap the clock) skips
+    // the search below entirely and just scores that one count directly -
+    // capped at the number of departments actually on screen, so asking
+    // for more columns than there are departments never renders an empty
+    // one. Still goes through the exact same buildCandidate() (and so the
+    // exact same fitToScreen() safety nets afterwards) as the automatic
+    // choice - it just isn't compared against any other count.
+    if (manualColumns > 0) {
+      return buildCandidate(Math.min(manualColumns, deptNames.length), order, weights, deptHtml, available);
+    }
+
+    const maxColumns = Math.max(1, Math.min(deptNames.length, Math.floor(width / COL_MIN_WIDTH)));
     let best = null;
     for (let c = 1; c <= maxColumns; c++) {
-      const cols = packColumns(order, weights, c);
-      boardEl.style.setProperty('--scale', '1');
-      boardEl.innerHTML = buildColumnsHtml(cols, deptHtml);
-      const needed = measureNeeded();
-      const heightScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, (available / needed) * 0.99));
-      // Growing a narrow (many-column) candidate to fill spare height can
-      // outgrow that column's own fixed pixel width before it fills the
-      // available height (and a long name can do this even without
-      // growing at all) - a plain height/needed ratio doesn't see that,
-      // and would keep rating a too-narrow candidate as "great, just grow
-      // it" right up until the real fitToScreen() pass below claws it back
-      // down for real, leaving the narrow columns short of the bottom of
-      // the screen after all. Cap by the same width check fitToScreen()
-      // itself uses, so a candidate's score reflects what it can ACTUALLY
-      // reach.
-      const scale = findWidthSafeScale(heightScale);
+      const candidate = buildCandidate(c, order, weights, deptHtml, available);
       // A >=2% larger achievable scale is a real win; within that, prefer
       // fewer (wider, easier-to-read-at-a-glance) columns for the same fit.
-      if (!best || scale > best.scale * 1.02 || (scale > best.scale * 0.98 && c < best.columns)) {
-        best = { columns: c, cols, scale };
+      if (!best || candidate.scale > best.scale * 1.02 || (candidate.scale > best.scale * 0.98 && c < best.columns)) {
+        best = candidate;
       }
     }
 
