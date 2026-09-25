@@ -277,38 +277,37 @@ body {
   margin: calc(0.7vh * var(--scale)) 0 calc(0.35vh * var(--scale)) 0;
 }
 
-/* Two-line layout on purpose: the name never competes for space with a
-   long status pellet. Top line is always just [avatar, name, IN/OUT badge] -
-   that alone practically never needs to truncate. If there's a secondary
-   status (which can be long, e.g. "Semester · 24/09"), it drops to its
-   own line underneath, indented to line up under the name. A name is
-   never sacrificed to make room for a pellet. */
+/* No photo: just a name and its status, as large and high-contrast as
+   the row can hold - legible at a glance from across a room, not just up
+   close. Two-line layout on purpose: the name never competes for space
+   with a long status pellet. Top line is always just [name, IN/OUT
+   badge] - that alone practically never needs to truncate. If there's a
+   secondary status (which can be long, e.g. "Semester · 24/09"), it
+   drops to its own line underneath, indented to line up under the name.
+   A name is never sacrificed to make room for a pellet. */
 .person-row {
-  /* Shared by .avatar-sm below (a descendant of this row, so the custom
-     property inherits into it) - the avatar's own capped size, computed
-     once here rather than separately. 1.439 is 9.5cqw's own ratio to the
-     dept-name's 6.6cqw (see .board's --cap comment) - the avatar keeps
-     the same size relationship to the rest of the card either way. */
-  --avatar-size: min(calc(9.5cqw * var(--scale)), calc(var(--cap) * 1.439));
-  /* Shared floor for .badge's and .pellet's own min-width below, so
-     neither pill can ever render narrower than the other. Expressed as a
-     straight multiple of --avatar-size rather than its own cqw/cap
-     formula: every capped rule in this file uses the same ratio-to-cap
-     pattern (coefficient/6.6), which means any two of them stay
-     proportional to each other at every scale, cqw-driven or cap-driven
-     alike - so "1.815 × avatar-size" reproduces exactly what the badge's
-     own width already was (it used to be a bare 6.2ch, measured via
-     Playwright at 1.815-1.816× its height across landscape, portrait and
-     narrow layouts) without needing its own separate formula. */
-  --pill-min-width: calc(var(--avatar-size) * 1.815);
+  /* Shared height for .badge-pill and .pellet below (a plain block, not a
+     pill - see their own comments), so both read as the same size
+     regardless of which label is longer. Sized generously now that
+     there's no photo competing for the row's height. 1.303 is 8.6cqw's
+     own ratio to the dept-name's 6.6cqw (see .board's --cap comment). */
+  --tile-h: min(calc(8.6cqw * var(--scale)), calc(var(--cap) * 1.303));
+  /* Shared minimum width for .badge and .pellet, so neither block ever
+     renders narrower than the other - same ratio-to-cap pattern as
+     --tile-h above, just expressed as a multiple of it instead of its own
+     formula. */
+  --tag-min-width: calc(var(--tile-h) * 1.9);
   /* Top/bottom padding uses --gap-unit instead of a bare vh, same fix and
      same reasoning as .hdr/.board (see body's own comment on --gap-unit) -
      this is the single most-repeated element on the board, so a bare-vh
      top/bottom that balloons in portrait was the most visible instance of
-     this bug. Left/right stays plain vw, same precedent as the other two. */
-  padding: calc(0.45 * var(--gap-unit) * var(--scale)) calc(0.7vw * var(--scale));
-  border-radius: 8px;
-  border-left: calc(0.35vw * var(--scale)) solid transparent;
+     this bug. Left/right stays plain vw, same precedent as the other two -
+     kept narrow so the name/badge/pellet, all sized off the row's own
+     content width via cqw, get as much of the row's own width as
+     possible. */
+  padding: calc(0.5 * var(--gap-unit) * var(--scale)) calc(0.35vw * var(--scale));
+  border-radius: 6px;
+  border-left: calc(0.4vw * var(--scale)) solid transparent;
 }
 .person-row:nth-child(odd) { background: var(--row-alt); }
 /* Clearer at a glance than the small INNE/UTE pill alone: a checked-in
@@ -328,41 +327,35 @@ body {
   background: linear-gradient(var(--row-alt), var(--row-alt)), var(--badge-in-bg);
 }
 
-.avatar-sm {
-  width: var(--avatar-size);
-  height: var(--avatar-size);
-  font-size: min(calc(3.6cqw * var(--scale)), calc(var(--cap) * 0.545));
-}
-
 /* Two flex ITEMS, not one wrapping row: .person-row-main (below) on the
    left, and the badge on the right - see personRowHtml's own comment for
    why splitting them like this is what keeps the badge pinned in place.
    align-items:flex-start (not center) is what pins the badge to the TOP
-   - i.e. the same line as the avatar/name - rather than letting it drift
-   toward the vertical center once .person-row-main wraps onto a second
-   line for the pellet; .person-row-main's own line(s) are already exactly
-   avatar-size tall (nothing in it is ever taller than the avatar), so
-   this looks identical to plain centering whenever there's no second
-   line to speak of. */
+   - i.e. the same line as the name - rather than letting it drift toward
+   the vertical center once .person-row-main wraps onto a second line for
+   the pellet; .person-row-main's own line(s) are already exactly --tile-h
+   tall (nothing in it is ever taller than the name/dots), so this looks
+   identical to plain centering whenever there's no second line to speak
+   of. */
 .person-row-top {
   display: flex;
   align-items: flex-start;
   gap: calc(1.8cqw * var(--scale));
 }
 
-/* avatar, name, the plupp dots, and (when there's a status set) the pellet -
-   this is the part that's allowed to wrap. flex:1 1 auto claims whatever
-   width the OUTER row (.person-row-top) doesn't give to the badge, which
-   is exactly the space this needs to lay itself out and decide, on its
-   own, whether the pellet fits after the name on line one or has to wrap
-   to a line two underneath - the badge is a sibling, entirely outside
-   this box, so it's never a candidate to be pushed onto that second line
+/* name, the plupp dots, and (when there's a status set) the pellet - this
+   is the part that's allowed to wrap. flex:1 1 auto claims whatever width
+   the OUTER row (.person-row-top) doesn't give to the badge, which is
+   exactly the space this needs to lay itself out and decide, on its own,
+   whether the pellet fits after the name on line one or has to wrap to a
+   line two underneath - the badge is a sibling, entirely outside this
+   box, so it's never a candidate to be pushed onto that second line
    itself. The row-gap half of `gap` below is what used to be
    .person-row-tag's own margin-top, from when the pellet was a separate
    element below the row rather than just wrapping here - it's a single
    cqw-based value now (matching column-gap) rather than a separate
    vh-based one, so the vertical gap above a wrapped pellet and the
-   horizontal gap between avatar/name/dots stay the same physical
+   horizontal gap between the name and dots stay the same physical
    distance as each other at every column width/scale, instead of two
    unrelated formulas (one tied to the viewport, one to the column) that
    only ever matched by coincidence. */
@@ -380,12 +373,15 @@ body {
    a pellet to ever sit inline next to it. Sized to its own content instead
    (flex-grow:0), so a short name leaves real spare space on the line for
    the pellet to use; a long name still shrinks (flex-shrink:1) and
-   ellipsizes exactly as before once the row actually runs out of room. */
+   ellipsizes exactly as before once the row actually runs out of room.
+   Bold and sized as large as the column allows now that there's no photo
+   taking up half the row - reading a name should never require getting
+   close to the screen. */
 .person-name {
   flex: 0 1 auto;
   min-width: 0;
-  font-size: min(calc(6cqw * var(--scale)), calc(var(--cap) * 0.909));
-  font-weight: 600;
+  font-size: min(calc(7.8cqw * var(--scale)), calc(var(--cap) * 1.182));
+  font-weight: 700;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -393,67 +389,34 @@ body {
 /* Checked-in names read bolder than checked-out ones, so who's actually
    here stands out at a glance even before reading the IN/OUT badge. */
 .person-row.in .person-name { font-weight: 800; }
-.person-row.out .person-name { font-weight: 400; }
+.person-row.out .person-name { font-weight: 500; }
 
-/* .badge (INNE/UTE) and .pellet (colored secondary status) share the same
-   height and the same minimum width (`--pill-min-width`, set on
-   .person-row - see its own comment), so both read as the same visual
-   size on the board regardless of which word is longer - "INNE" and
-   "UTE" land on identical-sized pills, and a short pellet like "FYS"
-   is never narrower (and so never harder to read at a glance) than the
-   badge sitting right next to it.
+/* .badge (INNE/UTE) and .pellet (colored secondary status) are plain solid
+   blocks now - square corners, not a rounded pill - closer to an
+   arrivals-board tag than a chip, and both share the same height/minimum
+   width (--tile-h/--tag-min-width, set on .person-row - see its own
+   comment) so they read as the same size on the board regardless of which
+   label is longer.
 
-   Height is `var(--avatar-size)` - the SAME custom property the profile
-   photo's own diameter uses (see .person-row/.avatar-sm) - rather than
-   being left to fall out of font-size + padding the way it used to.
-   Those two used to only ever match by coincidence: the avatar's
-   diameter is capped directly against --cap, while the badge's old
-   vertical padding was plain cqw with no cap of its own, so above a
-   certain scale the avatar stopped growing while the badge's padding
-   (and so its height) kept going - same width-scaling, different
-   vertical behavior, which is exactly why they used to line up
-   horizontally but drift apart vertically. Sharing one variable for
-   BOTH makes that impossible - whatever height the avatar ends up at,
-   the pill is exactly that tall too, always.
-
-   The horizontal padding needs the same capping treatment, for the same
-   reason: a sparse board (few departments, few people - one wide column
-   instead of the many narrow ones a busy board splits into) drives cqw
-   values way up before --scale's own ceiling catches them, and height
-   stops growing first (capped, via --avatar-size above) while
-   uncapped cqw padding kept right on going - stretching the pill wider
-   without getting any taller, a visibly different width:height ratio
-   than the same badge on a normal, many-row board. Capping the padding
-   the same way (0.333 = 2.2/6.6, this rule's own coefficient against
-   the dept-name's reference 6.6cqw - see .board's --cap comment) keeps
-   the pill's proportions identical no matter how the board happens to
-   be laid out. */
-/* .badge is the TAP TARGET, not the visual pill any more - .badge-pill
-   (below) is the small colored pill people actually see; .badge itself is
-   invisible and stretches to fill the WHOLE row's height (align-self:
-   stretch, overriding .person-row-top's own align-items:flex-start just
-   for this one item), so a finger landing anywhere in this column - not
-   just squarely on the small pill - still registers as a toggle tap. This
-   is specifically for touchscreens (iPad/iPhone kiosk screens - see
-   README's "Setup"): the pill's own height was never bigger than
-   --avatar-size, which on a two-line row (a wrapped secondary-status
-   pellet pushes .person-row-main to a second line - see its own comment)
-   left the ENTIRE bottom half of this column untappable, exactly where a
-   finger tapping "the badge area" would naturally land.
-   Width/horizontal position are untouched on purpose: .badge is still
-   exactly the second flex item in .person-row-top, right after
-   .person-row-main (which the pellet is the last, right-aligned thing
-   inside of - see .person-row-top's own comment), so the existing flex
-   `gap` between them is already "the same distance from the pellet" on
-   every row, wrapped pellet or not - nothing here needed to change to
-   get that, only the height did. */
+   .badge is the TAP TARGET, not the visual block itself - .badge-pill
+   (below) is what's actually visible; .badge itself is invisible and
+   stretches to fill the WHOLE row's height (align-self: stretch,
+   overriding .person-row-top's own align-items:flex-start just for this
+   one item), so a finger landing anywhere in this column - not just
+   squarely on the small block - still registers as a toggle tap. This is
+   specifically for touchscreens (iPad/iPhone kiosk screens - see
+   README's "Setup"): the block's own height was never bigger than
+   --tile-h, which on a two-line row (a wrapped secondary-status pellet
+   pushes .person-row-main to a second line - see its own comment) left
+   the ENTIRE bottom half of this column untappable, exactly where a
+   finger tapping "the badge area" would naturally land. */
 .badge {
   display: flex;
   flex-direction: column;
   align-items: stretch; /* .badge-pill fills the column's width, same as it always has */
   justify-content: flex-start; /* .badge-pill stays pinned to the top - unchanged visual position */
   align-self: stretch; /* the actual fix: this column now spans the row's full height */
-  min-width: var(--pill-min-width);
+  min-width: var(--tag-min-width);
   flex: none;
   cursor: pointer;
 }
@@ -461,27 +424,27 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: var(--avatar-size);
+  height: var(--tile-h);
   gap: 0.3em;
-  font-size: min(calc(5cqw * var(--scale)), calc(var(--cap) * 0.758));
+  font-size: min(calc(5.6cqw * var(--scale)), calc(var(--cap) * 0.848));
   font-weight: 800;
-  letter-spacing: 0.02em;
+  letter-spacing: 0.03em;
   padding: 0 min(calc(2.2cqw * var(--scale)), calc(var(--cap) * 0.333));
-  border-radius: 999px;
+  border-radius: 4px;
   white-space: nowrap;
 }
 .badge-pill.in { background: var(--green); color: #06170e; }
 .badge-pill.out { background: var(--badge-out-bg); color: var(--badge-out-fg); }
 
 /* Hover/tap affordance - see board.js's wireClickToEdit(). The whole row
-   is now the tap target (not just the name/photo), so the hover highlight
-   and pointer cursor cover the full row too - the badge keeps its own
+   is now the tap target (not just the name), so the hover highlight and
+   pointer cursor cover the full row too - the badge keeps its own
    distinct hover (it's a separate, more specific action: toggle in place
    rather than open the popup). Only kicks in where a pointer is actually
    available (a touchscreen doesn't have hover), so it never gets in the
    way on a TV nobody can tap. Targets .badge-pill (not .badge itself,
    which has no background of its own any more) so hovering anywhere in
-   the enlarged invisible column still highlights the visible pill. */
+   the enlarged invisible column still highlights the visible block. */
 @media (hover: hover) {
   .person-row:hover .person-name { color: var(--accent); }
   .badge:hover .badge-pill { filter: brightness(1.12); }
@@ -495,7 +458,7 @@ body {
 .plupp-dots {
   flex: none;
   color: var(--red);
-  font-size: min(calc(3.4cqw * var(--scale)), calc(var(--cap) * 0.515));
+  font-size: min(calc(3.6cqw * var(--scale)), calc(var(--cap) * 0.545));
   letter-spacing: calc(0.4cqw * var(--scale));
   line-height: 1;
 }
@@ -507,46 +470,25 @@ body {
 
    margin-left:auto pushes the pellet to the far right of whichever line
    it's actually on - flush against the badge when it fits alongside the
-   name (avatar/name/dots stay put on the left, the pellet jumps the gap
+   name (the name/dots stay put on the left, the pellet jumps the gap
    between them and the badge rather than sitting right after the name),
    and flush right on its own line when it wraps below, rather than
    trailing directly behind the name/dots either way.
 
-   Height is `var(--avatar-size)` - the same fix .badge's own height
-   already got (see its comment) - rather than being left to fall out of
-   font-size + line-height + vertical padding the way this rule used to.
-   That derived height and the badge's `var(--avatar-size)` are two
-   completely different formulas - one mixes this rule's own cqw
-   coefficients against --cap, the other is the avatar's own cqw
-   coefficient against --cap - so they only ever lined up by coincidence
-   at one particular aspect ratio, which is exactly why the pellet and
-   badge could look the same height in portrait and visibly different in
-   landscape (or vice versa, depending on the board's own layout) instead
-   of always matching. Sharing the one variable both already share for
-   width-scaling purposes makes the mismatch impossible instead of
-   coincidental.
-
-   min-width is that same sharing trick applied to width: `--pill-min-width`
-   (set on .person-row, see its own comment) is what .badge's own minimum
-   width already reduces to, so a short pellet like "FYS" now has the
-   exact same floor the badge does - it can't render any narrower, or any
-   harder to read, no matter how short its label is.
-
-   Horizontal padding is a bit more generous than the badge's own (0.348 =
-   2.3/6.6, up from 0.273 = 1.8/6.6) - still capped the same proportional
-   way, against the dept-name's reference 6.6cqw (see .board's --cap
-   comment), so it keeps scaling with the pellet's own text at every board
-   size, just with a little more breathing room around it than before. */
+   Height/min-width share --tile-h/--tag-min-width with .badge above (see
+   .person-row's own comment on both), so the two blocks always match -
+   there's no separate formula here to drift out of sync with the
+   badge's. */
 .pellet {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: var(--avatar-size);
-  min-width: var(--pill-min-width);
+  height: var(--tile-h);
+  min-width: var(--tag-min-width);
   gap: 0.3em;
-  font-size: min(calc(4.2cqw * var(--scale)), calc(var(--cap) * 0.636));
+  font-size: min(calc(4.6cqw * var(--scale)), calc(var(--cap) * 0.697));
   padding: 0 min(calc(2.3cqw * var(--scale)), calc(var(--cap) * 0.348));
-  border-radius: 999px;
+  border-radius: 4px;
   color: #0b0e16;
   font-weight: 700;
   white-space: nowrap;

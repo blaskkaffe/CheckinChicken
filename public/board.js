@@ -494,21 +494,20 @@
     // glance from across a room without having to find and read the pill.
     //
     // .person-row-top is TWO flex items, not one wrapping row: the badge
-    // on its own, and everything else (avatar, name, dots, pellet) boxed up
-    // in .person-row-main next to it. Because the badge sits OUTSIDE
+    // on its own, and everything else (name, dots, pellet) boxed up in
+    // .person-row-main next to it. Because the badge sits OUTSIDE
     // .person-row-main's own flex-wrap, it can never be pushed down onto
     // a second line the way a plain "everything in one wrapping row"
     // layout would - it always stays put, pinned top-right, exactly where
     // it's always been. The pellet is the last thing inside .person-row-main,
     // so it lands right before the badge (same line) when there's room, or
-    // wraps to its own line underneath - alongside avatar/name, never
+    // wraps to its own line underneath - alongside the name, never
     // alongside the badge - when there isn't. No JS decides which; it
     // falls out of ordinary flex wrapping given each row's actual
     // rendered width (see board.css for both pieces).
     return `<div class="person-row ${checkedIn ? 'in' : 'out'}" data-id="${esc(p.id)}">
       <div class="person-row-top">
         <div class="person-row-main">
-          ${window.avatarHtml(p, 'avatar-sm')}
           <span class="person-name">${esc(p.name)}</span>
           ${pluppHtml}
           ${pelletHtml}
