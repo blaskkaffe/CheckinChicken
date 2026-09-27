@@ -29,7 +29,15 @@
   // look a person up by id without a second fetch of its own, and stay
   // current automatically since this is a live reference into the same Map
   // this file already keeps up to date over SSE.
-  window.BoardPeople = { get: (id) => people.get(id) };
+  window.BoardPeople = {
+    get: (id) => people.get(id),
+    // See applyOptimisticStatus/revertOptimisticStatus's own comments
+    // (further down) - statuspopup.js's finalize() uses these so choosing
+    // a status from the full popup gets the exact same instant, no-
+    // network-round-trip feedback as a plain INNE/UTE tap does.
+    applyOptimistic: (id, payload) => applyOptimisticStatus(id, payload),
+    revertOptimistic: (id, previousStatus) => revertOptimisticStatus(id, previousStatus),
+  };
 
   // ------------------------------------------------------------- clock ---
   // Swedish convention: weekday and date spelled out, 24-hour time, plus
@@ -385,6 +393,48 @@
   };
 
   // ------------------------------------------------------- click to edit -
+  // Mirrors server.js's applyStatusChoice() (same "does this status mean
+  // you're not physically at work" rule, via a secondary status' own
+  // `checksOut` field, read here from secondaryByCode) - applies a status
+  // choice to THIS file's own `people` Map and re-renders immediately,
+  // instead of waiting for the round trip to the server and the 'person'
+  // SSE event it broadcasts back. That round trip still happens (see
+  // toggleCheckedIn/statuspopup.js's finalize, both callers of this) and
+  // its eventual 'person' event (connectEvents below) still overwrites
+  // this with the server's own copy - completely harmless, since server
+  // and client compute the exact same result from the exact same rule -
+  // but a tap or a status-popup choice no longer has to wait on a network
+  // round trip before the board visually reflects it at all. Returns the
+  // person's PREVIOUS status, for the caller to restore via
+  // revertOptimisticStatus() if its own request then fails.
+  function applyOptimisticStatus(id, { primary, secondaryCode, detail, note }) {
+    const p = people.get(id);
+    if (!p) return null;
+    const previousStatus = p.status;
+    let checkedIn = p.status?.checkedIn ?? false;
+    if (primary === 'IN') checkedIn = true;
+    else if (primary === 'OUT') checkedIn = false;
+    else if (secondaryCode) {
+      if (secondaryByCode.get(secondaryCode)?.checksOut) checkedIn = false;
+    }
+    people.set(id, {
+      ...p,
+      status: { checkedIn, secondary: secondaryCode || null, detail: detail || '', note: note || '', updatedAt: Date.now() },
+    });
+    render();
+    return previousStatus;
+  }
+
+  // A failed request (offline, server unreachable) shouldn't leave the
+  // board showing a change that never actually happened - puts the
+  // optimistic guess back the way it was.
+  function revertOptimisticStatus(id, previousStatus) {
+    const p = people.get(id);
+    if (!p) return;
+    people.set(id, { ...p, status: previousStatus });
+    render();
+  }
+
   // Tap a person's INNE/UTE badge to toggle it directly - the single most
   // common action, one tap, no menu. Tap anywhere else in their row (name,
   // photo, the secondary status pellet, or just blank space in the row) opens
@@ -397,11 +447,12 @@
     const p = people.get(id);
     if (!p) return;
     const primary = p.status?.checkedIn ? 'OUT' : 'IN';
+    const previousStatus = applyOptimisticStatus(id, { primary });
     fetch('/api/checkin/set', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id, primary }),
-    }).catch(() => { /* a failed tap just leaves the badge as it was */ });
+    }).catch(() => revertOptimisticStatus(id, previousStatus));
   }
 
   function wireClickToEdit() {

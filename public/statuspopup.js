@@ -180,23 +180,22 @@
   }
   window.StatusPopup = { open, close, isOpen };
 
-  async function finalize(payload) {
+  // No confirmation screen and no delay: applyOptimistic (board.js) puts
+  // the new status on the board itself immediately - not waiting for the
+  // round trip to the server and back over SSE the way this used to -
+  // so there's nothing left to linger here for; closing right away no
+  // longer means the board's about to show something stale in the
+  // meantime.
+  function finalize(payload) {
     if (!person) return close();
-    try {
-      await fetch('/api/checkin/set', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: person.id, ...payload }),
-      });
-    } catch (e) {
-      // The board itself just keeps showing whatever the last known-good
-      // state was - see README's offline/sync notes; nothing more to do
-      // here.
-    }
-    // No confirmation screen and no delay: the new status is already
-    // visible on the board itself (pushed over SSE) the instant it lands,
-    // so lingering here would only slow the next person down.
+    const id = person.id;
+    const previousStatus = window.BoardPeople.applyOptimistic(id, payload);
     close();
+    fetch('/api/checkin/set', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...payload }),
+    }).catch(() => window.BoardPeople.revertOptimistic(id, previousStatus));
   }
 
   function boot() {
