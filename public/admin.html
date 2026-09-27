@@ -135,6 +135,13 @@
           </div>
 
           <div class="settings-card">
+            <h2>Personallista</h2>
+            <p class="dim small">Ändringar (incheckningar, statusar, redigeringar) sparas till disk i omgångar istället för direkt vid varje ändring - snabbare för personalen, och skonsammare mot lagringen (särskilt en SD-kortbaserad server) vid många incheckningar i rad.</p>
+            <label>Spara till disk var (sekunder)<input id="sRosterSaveSeconds" type="number" min="1" max="300" step="1" /></label>
+            <p class="dim small">En vanlig omstart (t.ex. en uppdatering) sparar ändå direkt - bara ett strömavbrott mitt i kan tappa de allra senaste sekundernas ändringar.</p>
+          </div>
+
+          <div class="settings-card">
             <h2>Popup-fönster</h2>
             <p class="dim small">Statuspopupen (och adminsidans egna dialogrutor) stänger sig själva efter en stund utan aktivitet.</p>
             <label>Stäng automatiskt efter (minuter)<input id="sIdleMinutes" type="number" min="1" max="60" step="1" /></label>
@@ -142,7 +149,7 @@
             <p class="dim small">
               Tryck på klockan uppe till höger på tavlan för att öppna skärminställningar - område att visa och tavlans storlek, utan adminkod. Allt annat, inklusive tema och bakgrundsbild, ändras bara härifrån med adminkoden som vanligt.
             </p>
-            <p class="dim small">Sparar även Titel-inställningen i kortet ovan.</p>
+            <p class="dim small">Sparar även Titel- och Personallista-inställningarna i korten ovan.</p>
             <button class="primary-btn" id="settingsSave">Spara</button>
             <p id="settingsError" class="error"></p>
           </div>

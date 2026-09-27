@@ -672,6 +672,7 @@
   function renderSettingsForm() {
     $('sIdleMinutes').value = Math.round((settings.popupIdleTimeoutMs || 300000) / 60000);
     $('sOnscreenKbAdmin').checked = !!settings.onscreenKeyboardAdmin;
+    $('sRosterSaveSeconds').value = Math.round((settings.rosterSaveIntervalMs || 5000) / 1000);
     renderTitleRolesChecklist();
   }
 
@@ -681,6 +682,10 @@
     if (!Number.isFinite(minutes) || minutes < 1 || minutes > 60) {
       return ($('settingsError').textContent = 'Tidsgränsen måste vara mellan 1 och 60 minuter.');
     }
+    const rosterSaveSeconds = Number($('sRosterSaveSeconds').value);
+    if (!Number.isFinite(rosterSaveSeconds) || rosterSaveSeconds < 1 || rosterSaveSeconds > 300) {
+      return ($('settingsError').textContent = 'Sparintervallet måste vara mellan 1 och 300 sekunder.');
+    }
     const visibleTitleRoles = [...document.querySelectorAll('.title-role-check:checked')].map((el) => el.value);
     try {
       settings = await api('/api/admin/settings', {
@@ -689,6 +694,7 @@
           popupIdleTimeoutMs: minutes * 60000,
           onscreenKeyboardAdmin: $('sOnscreenKbAdmin').checked,
           visibleTitleRoles,
+          rosterSaveIntervalMs: rosterSaveSeconds * 1000,
         }),
       });
       window.applySettings && window.applySettings(settings);

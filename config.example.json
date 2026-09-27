@@ -25,5 +25,8 @@
   "popupIdleTimeoutMs": 300000,
 
   "_comment_onscreenKeyboardAdmin": "Optional. Show the on-screen keyboard on the admin page's own text fields. Seeds data/settings.json on first boot only.",
-  "onscreenKeyboardAdmin": false
+  "onscreenKeyboardAdmin": false,
+
+  "_comment_rosterSaveIntervalMs": "Optional. How often (milliseconds) a check-in/roster edit actually gets written to disk - batched rather than on every single change. Seeds data/settings.json on first boot only; admin 'Inställningar' tab is the source of truth after that.",
+  "rosterSaveIntervalMs": 5000
 }

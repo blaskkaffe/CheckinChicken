@@ -67,18 +67,25 @@ const {
   // settings.json yet). See server/settings-store.js.
   popupIdleTimeoutMs: seedPopupIdleTimeoutMs = undefined,
   onscreenKeyboardAdmin: seedOnscreenKeyboardAdmin = undefined,
+  rosterSaveIntervalMs: seedRosterSaveIntervalMs = undefined,
 } = config;
 
 const DATA_DIR = process.env.CHECKIN_DATA_DIR || path.join(__dirname, '..', 'data');
 const PUBLIC_DIR = path.join(__dirname, '..', 'public');
 
-const store = new Store(DATA_DIR);
-const statusStore = new StatusStore(DATA_DIR);
-const themeStore = new ThemeStore(DATA_DIR, seedTheme);
+// settingsStore constructed before store, not after (its previous
+// position) - store's own constructor needs settingsStore.get()'s
+// rosterSaveIntervalMs right away, to start its periodic disk-save timer
+// at whatever was last configured rather than always the hardcoded
+// default until the next unrelated settings save happened to reset it.
 const settingsStore = new SettingsStore(DATA_DIR, {
   popupIdleTimeoutMs: seedPopupIdleTimeoutMs,
   onscreenKeyboardAdmin: seedOnscreenKeyboardAdmin,
+  rosterSaveIntervalMs: seedRosterSaveIntervalMs,
 });
+const store = new Store(DATA_DIR, { saveIntervalMs: settingsStore.get().rosterSaveIntervalMs });
+const statusStore = new StatusStore(DATA_DIR);
+const themeStore = new ThemeStore(DATA_DIR, seedTheme);
 const backgroundStore = new BackgroundStore(DATA_DIR);
 
 // ------------------------------------------------------------- SSE hub ----
@@ -596,6 +603,9 @@ const server = http.createServer(async (req, res) => {
         const body = await readBody(req);
         try {
           const updated = settingsStore.set(body);
+          // Takes effect immediately - see store.js's setSaveIntervalMs() -
+          // rather than only after the next server restart.
+          store.setSaveIntervalMs(updated.rosterSaveIntervalMs);
           broadcastSettings();
           return sendJson(res, 200, updated);
         } catch (err) {
@@ -631,3 +641,17 @@ server.listen(port, () => {
   console.log(`[checkin] board:  http://<this-machine-ip>:${port}/board.html`);
   console.log(`[checkin] admin:  http://<this-machine-ip>:${port}/admin.html`);
 });
+
+// The roster is only written to disk every rosterSaveIntervalMs now, not on
+// every single check-in (see store.js's applyLocal/_flushIfDirty), so a
+// clean shutdown - `systemctl restart/stop`, Ctrl+C, or a code update -
+// needs to flush whatever's still only in memory itself, or it'd be lost
+// until the next change happens to trigger a write. Only an actual crash or
+// power loss (nothing catches those) still risks losing the last few
+// seconds' worth.
+function shutdown() {
+  store.flush();
+  process.exit(0);
+}
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);

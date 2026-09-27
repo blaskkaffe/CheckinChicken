@@ -31,6 +31,17 @@ const DEFAULTS = {
   // admin page's roster) - e.g. a single "chef" role that's worth calling
   // out even though most roles aren't.
   visibleTitleRoles: [],
+  // How often a check-in/edit actually gets written to disk, in
+  // milliseconds - see server/store.js's applyLocal()/_flushIfDirty() for
+  // why this is batched instead of every single change: a plain INNE/UTE
+  // tap (by far the most common edit) used to write the WHOLE roster to
+  // disk synchronously on every tap, which scales with the roster's own
+  // size (profile photos especially) and blocks the server while it
+  // happens. 5 seconds by default - short enough that a crash or power
+  // loss (the only way this delay actually loses anything - a clean
+  // shutdown flushes immediately, see store.js's flush()) only ever
+  // costs a few seconds of the very latest changes.
+  rosterSaveIntervalMs: 5000,
 };
 
 function pickKnown(obj) {
@@ -94,6 +105,11 @@ class SettingsStore {
     next.visibleTitleRoles = [...new Set(
       roles.map((r) => String(r).trim()).filter(Boolean).map((r) => r.slice(0, 40))
     )].slice(0, 40);
+    const saveMs = Number(next.rosterSaveIntervalMs);
+    if (!Number.isFinite(saveMs) || saveMs < 1000 || saveMs > 300000) {
+      throw new Error('Sparintervallet måste vara mellan 1 och 300 sekunder.');
+    }
+    next.rosterSaveIntervalMs = Math.round(saveMs);
     this._write(next);
     return this.get();
   }

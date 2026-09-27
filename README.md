@@ -103,13 +103,15 @@ Edit `config.json`. Fields:
 | `theme` | `"dark"` | Seeds `data/theme.json` on first boot only. |
 | `popupIdleTimeoutMs` | `300000` | Seeds `data/settings.json` on first boot only. |
 | `onscreenKeyboardAdmin` | `false` | Seeds `data/settings.json` on first boot only. |
+| `rosterSaveIntervalMs` | `5000` | Seeds `data/settings.json` on first boot only. See [Roster save interval](#roster-save-interval). |
 
 Coops are not configured here — see
 [Multiple coops](#multiple-coops).
 
 Config is read once, at startup. Changing `config.json` requires a
-restart (`theme`, `popupIdleTimeoutMs`, `onscreenKeyboardAdmin` are
-exceptions after first boot — see the admin page).
+restart (`theme`, `popupIdleTimeoutMs`, `onscreenKeyboardAdmin`,
+`rosterSaveIntervalMs` are exceptions after first boot — see the admin
+page).
 
 ### 4. Add people
 
@@ -378,6 +380,22 @@ Shown for free-text fields on a touch device (currently: the "Annat"
 status note field). Off by default on the admin page
 (`onscreenKeyboardAdmin` setting) since it's normally used with a
 physical keyboard.
+
+### Roster save interval
+
+Every check-in and roster edit updates the board (over the live
+connection) immediately, but is only written to `data/people.json`
+itself in batches — at most once per `rosterSaveIntervalMs` (default 5
+seconds, admin "Inställningar" tab), rather than on every single
+change. A quiet board costs no writes at all; a burst of check-ins (a
+shift change) costs one write instead of one per person — friendlier to
+the storage, especially an SD card, and the server never blocks on disk
+I/O in the middle of a check-in.
+
+A clean shutdown (`systemctl stop`/`restart`, Ctrl+C, or updating the
+code) always flushes any unsaved change first, so this only actually
+risks losing anything on a genuine crash or power loss — and even then,
+at most the last `rosterSaveIntervalMs` worth of changes.
 
 ### Board layout
 
