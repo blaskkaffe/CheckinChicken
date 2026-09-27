@@ -709,9 +709,11 @@
   // coop+department pair instead of a bare department "just works"
   // here unchanged.
   //
-  // Column COUNT is chosen by actually trying every count from 1 up to
-  // however many fit at a readable width, and measuring - for real, in the
-  // DOM - how tall the tallest resulting column comes out at scale=1.
+  // Column COUNT is chosen by actually trying every count from a minimum
+  // (never so wide a column that it stops being worth splitting further -
+  // see MAX_COL_WIDTH_FRACTION_* below) up to however many fit at a
+  // readable width, and measuring - for real, in the DOM - how tall the
+  // tallest resulting column comes out at scale=1.
   // Whichever count lets fitToScreen() below reach the LARGEST final scale
   // (i.e. fills the screen most fully) wins. This can't be predicted from
   // width alone: row height is set in `cqw` (% of the COLUMN's own width -
@@ -748,6 +750,25 @@
   // rendered column height stays reasonably even across columns too - see
   // measureDeptWeights() below for what "tallest" is measured against.
   const COL_MIN_WIDTH = 220; // never pack columns narrower than this - a readability floor
+
+  // The OTHER end of that same trade-off: with only a handful of people (a
+  // couple of departments, a few rows each), the search below can reach
+  // MAX_SCALE just fine with only 1-2 columns, and "prefer fewer, wider
+  // columns when the fit is comparable" (see its own comment further down)
+  // then happily stretches those 1-2 columns edge to edge - a wall of
+  // mostly-empty width per row, with the leftover vertical space that a
+  // sparse board never needed just left blank underneath instead. A column
+  // is never genuinely more readable for being wider than roughly a third
+  // of the board's own width in landscape (or half of it in portrait,
+  // where there's much less width to begin with) - past that it's just
+  // unused space either side of a normal-width row. Expressed here as a
+  // MINIMUM COLUMN COUNT (the smallest c that keeps every column at or
+  // under that fraction) rather than a separate max-width rule, so it's
+  // just another floor on the same search loop below instead of a second
+  // competing constraint - still capped by however many departments there
+  // actually are to spread across (see minColumns itself further down).
+  const MAX_COL_WIDTH_FRACTION_LANDSCAPE = 1 / 3;
+  const MAX_COL_WIDTH_FRACTION_PORTRAIT = 1 / 2;
 
   // Headcount alone underrates a department's real weight: every
   // department also carries its own fixed chrome (a heading, and a label
@@ -874,8 +895,19 @@
     }
 
     const maxColumns = Math.max(1, Math.min(deptNames.length, Math.floor(width / COL_MIN_WIDTH)));
+    // Landscape vs portrait read straight off the board's own box (already
+    // measured above), same as everywhere else in this file that cares
+    // about orientation - see MAX_COL_WIDTH_FRACTION_* above for why this
+    // sets a MINIMUM column count. Never above maxColumns: a board with
+    // fewer departments than this floor calls for just uses all of them
+    // (packColumns/buildColumnsHtml never render an empty column), which
+    // is the one case a sparse board still can't avoid a wide column -
+    // there's nothing more to spread it across.
+    const isLandscape = width >= available;
+    const minColumnsForWidth = Math.ceil(1 / (isLandscape ? MAX_COL_WIDTH_FRACTION_LANDSCAPE : MAX_COL_WIDTH_FRACTION_PORTRAIT));
+    const minColumns = Math.min(minColumnsForWidth, maxColumns);
     let best = null;
-    for (let c = 1; c <= maxColumns; c++) {
+    for (let c = minColumns; c <= maxColumns; c++) {
       const candidate = buildCandidate(c, order, weights, deptHtml, available);
       // A >=2% larger achievable scale is a real win; within that, prefer
       // fewer (wider, easier-to-read-at-a-glance) columns for the same fit.
