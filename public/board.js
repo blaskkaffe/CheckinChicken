@@ -254,17 +254,18 @@
   }
 
   // ---------------------------------------------------------- board size -
-  // A manual nudge on top of fitToScreen()'s own automatic sizing, for
+  // A manual nudge on top of computeFitScale()'s own automatic sizing, for
   // whenever that isn't quite satisfactory (a person managing the screen
   // would rather trade some empty space for bigger text, or fit things a
   // little denser than the automatic fit alone would choose) - set from
   // the board-settings popup (tap the clock), same idea as locationFilter
   // above: a per-DEVICE preference remembered in localStorage, not a
   // server setting, since it's about one physical screen's own comfort.
-  // Implemented by scaling BASE_MIN_SCALE/BASE_MAX_SCALE (see fitToScreen
-  // below) up or down together - the entire existing "never overflow
-  // vertically, never overflow a column's width, converge to fill the
-  // available height" machinery then just runs inside a shifted range, so
+  // Implemented by scaling BASE_MIN_SCALE/BASE_MAX_SCALE (see
+  // computeFitScale below) up or down together - the entire existing
+  // "never overflow vertically, never overflow a column's width, converge
+  // to fill the available height" machinery then just runs inside a
+  // shifted range, so
   // turning it down is always safe (the fit loop still converges, just to
   // a smaller result) and turning it up is still capped by the real
   // content/screen fit the moment there genuinely isn't room to grow into
@@ -301,9 +302,9 @@
   // number of departments actually on screen, so a count nobody needs
   // never renders an empty column - see renderBalancedColumns' own
   // comment). Unlike the size adjustment, this can't overflow OR
-  // under-fill by construction: fitToScreen()'s own scale/width safety
-  // nets run against whatever column arrangement it's handed, manual or
-  // automatic alike.
+  // under-fill by construction: computeFitScale/applyRealContent's own
+  // scale/width safety nets run against whatever column arrangement it's
+  // handed, manual or automatic alike.
   const COLUMNS_KEY = 'checkin:columns';
   const MANUAL_COLUMNS_MAX = 8;
   let manualColumns = 0; // 0 = Auto
@@ -498,7 +499,7 @@
   // currently configured secondary statuses. Used only to stand in for
   // "no status set" when MEASURING how much room to give each row (see
   // personRowHtml's `forMeasurement` and renderBalancedColumns/
-  // fitToScreen below) - never actually shown. Picking the single widest
+  // computeFitScale below) - never actually shown. Picking the single widest
   // one rather than, say, an average, means the measurement never
   // UNDERESTIMATES a row's worst-case width - the real pellet actually
   // shown later (if any) is always this wide or narrower, so basing
@@ -525,7 +526,7 @@
   }
 
   // `forMeasurement`: used only by the sizing pass (see renderBalancedColumns/
-  // fitToScreen) to stand in a representative pellet for anyone who doesn't
+  // computeFitScale) to stand in a representative pellet for anyone who doesn't
   // currently have a status set, so the board is sized as if every row
   // might carry one - see measurementPelletHtml's own comment for why. The
   // actually-displayed HTML (forMeasurement left off/false) is completely
@@ -626,6 +627,50 @@
     return isAll || locationFilter.has(loc);
   }
 
+  // The last successful SLOW-path result (see render() below): which
+  // department goes in which column, and the scale that was computed
+  // against the worst-case measurement content for that arrangement.
+  // Reused on every render() call whose computeLayoutSignature() output
+  // still matches - i.e. every render that's just a person's status
+  // flipping, the overwhelming majority of them - so the expensive
+  // column-count search and its own from-scratch scale convergence only
+  // ever run when something that could actually change either one has
+  // changed. null whenever there's nothing to reuse (no one on the board
+  // yet, or nothing has been rendered this page load).
+  let cachedLayout = null;
+
+  // A cheap fingerprint (string concatenation and a couple of sorts - no
+  // DOM reads, so this costs nothing like the reflow-driven measuring
+  // elsewhere in this file) of everything that can actually change the
+  // AUTOMATIC column count or scale. Deliberately NOT anything in
+  // `p.status` (checkedIn/secondary/detail/note): this board already
+  // sizes itself against a worst-case "everyone has the widest possible
+  // status" measurement (see measurementPelletHtml/personRowHtml's
+  // `forMeasurement`), so a person's real current status never needs a
+  // different column count or scale than that measurement already
+  // accounted for - only the SET of visible people and the identity
+  // fields that change a row's rendered WIDTH or which card it belongs to
+  // (name/department/location/role/showTitle), the coop filter, the
+  // per-device layout settings, the secondary-status list (that same
+  // worst-case measurement's own source), the admin-wide title-visible
+  // roles, and the screen's own size actually need to invalidate it.
+  function computeLayoutSignature(activePeople) {
+    const peopleKey = activePeople
+      .map((p) => `${p.id}|${p.name}|${p.department || ''}|${p.location || ''}|${p.role || ''}|${p.showTitle ? 1 : 0}`)
+      .sort()
+      .join('\n');
+    const secondaryKey = statusDefs.secondary
+      .map((d) => `${d.code}:${d.label}:${d.needsTime ? 1 : 0}:${d.needsDate ? 1 : 0}:${d.needsNote ? 1 : 0}:${d.detailPrefix || ''}`)
+      .join(',');
+    const titleRolesKey = [...visibleTitleRoles].sort().join(',');
+    const filterKey = locationFilter.size ? [...locationFilter].sort().join(',') : 'ALL';
+    return [
+      peopleKey, secondaryKey, titleRolesKey, filterKey,
+      manualColumns, colWidthCapLandscape, colWidthCapPortrait, manualScaleFactor,
+      boardEl.clientWidth, boardEl.clientHeight,
+    ].join('§');
+  }
+
   function render() {
     ensureValidLocationFilter();
     MIN_SCALE = BASE_MIN_SCALE * manualScaleFactor;
@@ -633,6 +678,7 @@
     const active = [...people.values()].filter(visible);
     if (!active.length) {
       boardEl.innerHTML = `<div class="empty-hint">Ingen är tillagd ännu. Öppna adminsidan eller importera en personallista (CSV).</div>`;
+      cachedLayout = null; // nothing left to reuse once someone's actually on the board again
       return;
     }
 
@@ -666,47 +712,80 @@
 
     const groupKeys = [...groups.keys()].sort((a, b) => a.localeCompare(b, 'sv', { numeric: true }));
 
-    // Two parallel versions of each department card's HTML: `groupHtml`
-    // (real - only people who actually have a status set show a pellet) is
-    // what actually gets displayed. `groupHtmlForMeasurement` stands a
-    // representative pellet (see measurementPelletHtml) in for EVERYONE who
-    // doesn't currently have one, and is used ONLY to decide how much
-    // room to give the board (see renderBalancedColumns/fitToScreen) -
-    // sizing the board as if every row might carry a status, rather than
-    // however many happen to right now, keeps the layout from swinging
-    // wildly (or leaving the board looking sparsely filled) as people's
-    // statuses come and go through the day.
-    const groupEntries = groupKeys.map((key) => {
+    // Per-group data and HTML pieces shared by both the real content
+    // (built once, always needed either way) and, on the slow path only,
+    // the measurement content further down - see groupHtml/
+    // groupHtmlForMeasurement's own comments for what those two are.
+    const groupInfo = groupKeys.map((key) => {
       const { location, dept, members: raw } = groups.get(key);
+      // Sorted by role first even though there's no per-role heading any
+      // more (a role's own title is opt-in now - see personRowHtml's
+      // titleVisible) - people who share a role still land next to each
+      // other in the list this way, just without a heading forcing that
+      // grouping into view whether it's wanted or not.
       const members = raw.sort((a, b) =>
         (a.role || '').localeCompare(b.role || '', 'sv', { numeric: true }) || (a.order - b.order) || a.name.localeCompare(b.name, 'sv', { numeric: true })
       );
       const inCount = members.filter((m) => m.status?.checkedIn).length;
-
-      // No more per-role heading/grouping here - that used to always show
-      // (one heading per role, however many roles a department happened to
-      // have), which is exactly the "takes up room, reads as clutter" a
-      // role's own title now defaults to NOT showing at all (see
-      // personRowHtml's titleVisible). `members` is still sorted by role
-      // first (above), so people who share a role still land next to each
-      // other in the list - just without a heading forcing that grouping
-      // into view whether it's wanted or not.
-      const buildRoleHtml = (forMeasurement) => members.map((m) => personRowHtml(m, { forMeasurement })).join('');
-
       const locationHtml = showLocationLabels
         ? `<div class="dept-location">${esc(location || 'Ej tilldelat område')}</div>`
         : '';
       const headerHtml = `<h2><span class="dept-name">${esc(dept)}</span><span class="count">${inCount}/${members.length} inne</span></h2>`;
-
-      const html = `<section class="dept">${locationHtml}${headerHtml}${buildRoleHtml(false)}</section>`;
-      const htmlForMeasurement = `<section class="dept">${locationHtml}${headerHtml}${buildRoleHtml(true)}</section>`;
-      return [key, html, htmlForMeasurement];
+      return { key, members, locationHtml, headerHtml };
     });
-    const groupHtml = new Map(groupEntries.map(([key, html]) => [key, { html }]));
-    const groupHtmlForMeasurement = new Map(groupEntries.map(([key, , htmlForMeasurement]) => [key, { html: htmlForMeasurement }]));
 
-    const best = renderBalancedColumns(groupKeys, groupHtmlForMeasurement);
-    fitToScreen(best.cols, groupHtml, groupHtmlForMeasurement);
+    // The real, actually-displayed content - only people who currently
+    // have a status set show a pellet. Built every render regardless of
+    // which path below is taken; it's the ONLY html the fast path
+    // (unchanged layout - see cachedLayout/computeLayoutSignature above)
+    // ever needs.
+    const groupHtml = new Map(groupInfo.map((g) => [g.key, {
+      html: `<section class="dept">${g.locationHtml}${g.headerHtml}${g.members.map((m) => personRowHtml(m, { forMeasurement: false })).join('')}</section>`,
+    }]));
+
+    // Read once and threaded through everything below instead of each
+    // function re-reading it - boardEl's own box comes from the
+    // surrounding flex layout, not from whatever's currently inside it
+    // (see .board's own comment in board.css), so it stays valid
+    // regardless of which content ends up swapped into it during this
+    // same render() call.
+    const width = boardEl.clientWidth || window.innerWidth;
+    const available = boardEl.clientHeight || window.innerHeight;
+    const signature = computeLayoutSignature(active);
+
+    // Fast path: nothing that could change the ideal column count/scale
+    // has changed since the last render (see computeLayoutSignature) -
+    // skip straight to swapping in the fresh real content at the
+    // already-known scale instead of redoing the full column-count
+    // search and its own from-scratch scale convergence, both of which
+    // measure the DOM (a forced layout reflow) many times over and used
+    // to make every single status change - by far the most common kind
+    // of render - cost as much as adding or removing someone. See
+    // applyRealContent's own comment for why this can never leave the
+    // board actually overflowing even though it skips that search.
+    if (cachedLayout && cachedLayout.signature === signature) {
+      applyRealContent(cachedLayout.cols, groupHtml, cachedLayout.scale, available);
+      return;
+    }
+
+    // Slow path: something structural changed (the roster, the coop
+    // filter, a board-settings/size/column choice, the secondary-status
+    // list, the admin-wide title-visible roles, or the screen itself
+    // resized). `groupHtmlForMeasurement` stands a representative pellet
+    // (see measurementPelletHtml) in for everyone who doesn't currently
+    // have one, and is used ONLY to decide how much room to give the
+    // board - sizing it as if every row might carry a status, rather than
+    // however many happen to right now, keeps the layout from swinging
+    // wildly (or leaving the board looking sparsely filled) as people's
+    // statuses come and go through the day. Only ever built here, never
+    // on the fast path above.
+    const groupHtmlForMeasurement = new Map(groupInfo.map((g) => [g.key, {
+      html: `<section class="dept">${g.locationHtml}${g.headerHtml}${g.members.map((m) => personRowHtml(m, { forMeasurement: true })).join('')}</section>`,
+    }]));
+    const best = renderBalancedColumns(groupKeys, groupHtmlForMeasurement, width, available);
+    const scale = computeFitScale(best.cols, groupHtmlForMeasurement, available);
+    applyRealContent(best.cols, groupHtml, scale, available);
+    cachedLayout = { signature, cols: best.cols, scale };
   }
 
   // ------------------------------------------------------- balanced columns
@@ -721,7 +800,7 @@
   // see colWidthCapLandscape/colWidthCapPortrait below) up to however many
   // fit at a readable width, and measuring - for real, in the DOM - how
   // tall the tallest resulting column comes out at scale=1.
-  // Whichever count lets fitToScreen() below reach the LARGEST final scale
+  // Whichever count lets computeFitScale() below reach the LARGEST final scale
   // (i.e. fills the screen most fully) wins. This can't be predicted from
   // width alone: row height is set in `cqw` (% of the COLUMN's own width -
   // see board.css's .board-col comment), but department padding/margins
@@ -739,7 +818,7 @@
   // (fixed pixel) column width well before it reaches the bottom of the
   // screen - see findWidthSafeScale() below, which caps each candidate's
   // score at what it could actually reach without that happening, the
-  // exact same check fitToScreen() itself does for real afterwards (both
+  // exact same check computeFitScale() itself does for real afterwards (both
   // call the same function, so a candidate's predicted score always
   // matches what actually ends up on screen). Fewer, wider columns stack
   // more per column, need less (or no) scaling up to reach the same final
@@ -858,7 +937,7 @@
 
   // The largest --scale, at most `hi`, that keeps every name inside its
   // own column - shared by the column-count search below AND by
-  // fitToScreen()'s own final correction pass, so a candidate's predicted
+  // computeFitScale()'s own final correction pass, so a candidate's predicted
   // score and what actually ends up on screen always agree (they used to
   // use two different methods - see board.js's git history/README - which
   // is why picking the "best" column count didn't always produce the
@@ -877,7 +956,14 @@
     boardEl.style.setProperty('--scale', String(MIN_SCALE));
     if (hasHorizontalOverflow()) return MIN_SCALE; // nothing more we can do
     let lo = MIN_SCALE, bad = hi;
-    for (let i = 0; i < 10; i++) {
+    // 7 steps over the MIN_SCALE..hi range (well under 1) already narrows
+    // to under a 1% sliver of it - each step is a forced layout reflow
+    // (see hasHorizontalOverflow's own comment), and this runs on every
+    // buildCandidate() call in renderBalancedColumns' search, so cutting
+    // this from a needlessly precise 10 down to a still-plenty-precise 7
+    // meaningfully trims that search's cost without any visible difference
+    // in where it actually lands.
+    for (let i = 0; i < 7; i++) {
       const mid = (lo + bad) / 2;
       boardEl.style.setProperty('--scale', String(mid));
       if (hasHorizontalOverflow()) bad = mid; else lo = mid;
@@ -889,7 +975,7 @@
   // --scale that fits them (capped by both height and width, per
   // findWidthSafeScale's own comment) - the one candidate-scoring step
   // shared by the manual column count and the automatic search below, so
-  // neither can ever disagree with fitToScreen()'s own real final pass.
+  // neither can ever disagree with computeFitScale()'s own real final pass.
   function buildCandidate(c, order, weights, deptHtml, available) {
     const cols = packColumns(order, weights, c);
     boardEl.style.setProperty('--scale', '1');
@@ -901,11 +987,11 @@
     // available height (and a long name can do this even without
     // growing at all) - a plain height/needed ratio doesn't see that,
     // and would keep rating a too-narrow candidate as "great, just grow
-    // it" right up until the real fitToScreen() pass below claws it back
-    // down for real, leaving the narrow columns short of the bottom of
-    // the screen after all. Cap by the same width check fitToScreen()
-    // itself uses, so a candidate's score reflects what it can ACTUALLY
-    // reach.
+    // it" right up until the real computeFitScale() pass below claws it
+    // back down for real, leaving the narrow columns short of the bottom
+    // of the screen after all. Cap by the same width check
+    // computeFitScale() itself uses, so a candidate's score reflects what
+    // it can ACTUALLY reach.
     const scale = findWidthSafeScale(heightScale);
     return { columns: c, cols, scale };
   }
@@ -917,15 +1003,17 @@
   // the real one, so the chosen column count and scale reflect a stable
   // "as if everyone had a status" worst case rather than however many
   // people happen to have one set right now. The caller (render(), via
-  // fitToScreen below) is the one that actually swaps in the real HTML
-  // for display, once a `cols` arrangement has been picked here.
-  function renderBalancedColumns(deptNames, deptHtml) {
-    const width = boardEl.clientWidth || window.innerWidth;
-    // boardEl's own height comes from the surrounding flex layout (see
-    // board.css's .board comment), not from whatever's currently inside
-    // it, so this stays valid while different candidates are swapped
-    // through it below.
-    const available = boardEl.clientHeight || window.innerHeight;
+  // applyRealContent) is the one that actually swaps in the real HTML for
+  // display, once a `cols` arrangement has been picked here.
+  // `width`/`available` are read once in render() (boardEl's own box comes
+  // from the surrounding flex layout, not from whatever's currently
+  // inside it - see board.css's .board comment - so they stay valid while
+  // different candidates are swapped through it below) and threaded
+  // through from there, rather than re-read here, so this and
+  // computeFitScale/applyRealContent (all three called from the same
+  // render() pass) never cost more than the one shared reflow-inducing
+  // read each.
+  function renderBalancedColumns(deptNames, deptHtml, width, available) {
     const weights = measureDeptWeights(deptNames, deptHtml);
     const order = [...deptNames].sort((a, b) => weights.get(b) - weights.get(a));
 
@@ -934,8 +1022,8 @@
     // capped at the number of departments actually on screen, so asking
     // for more columns than there are departments never renders an empty
     // one. Still goes through the exact same buildCandidate() (and so the
-    // exact same fitToScreen() safety nets afterwards) as the automatic
-    // choice - it just isn't compared against any other count.
+    // exact same computeFitScale() safety nets afterwards) as the
+    // automatic choice - it just isn't compared against any other count.
     if (manualColumns > 0) {
       return buildCandidate(Math.min(manualColumns, deptNames.length), order, weights, deptHtml, available);
     }
@@ -962,12 +1050,12 @@
       }
     }
 
-    // No final real-content render here any more - fitToScreen() (below)
-    // re-measures against this same `cols` arrangement (still using the
-    // measurement map, for the same "as if everyone had a status" reason)
-    // and is the one that ends up swapping in the real HTML once it's
-    // settled on a final scale, so writing real content here would just
-    // be thrown away immediately.
+    // No final real-content render here any more - computeFitScale()
+    // (below) re-measures against this same `cols` arrangement (still
+    // using the measurement map, for the same "as if everyone had a
+    // status" reason), and applyRealContent() is the one that ends up
+    // swapping in the real HTML once a final scale has settled, so
+    // writing real content here would just be thrown away immediately.
     return best;
   }
 
@@ -985,8 +1073,8 @@
   // Effective bounds for the CURRENT render - BASE_* above scaled by the
   // board-settings popup's manual size adjustment (manualScaleFactor, see
   // the "board size" section above). Recomputed at the top of render(), so
-  // findWidthSafeScale/renderBalancedColumns/fitToScreen below (all three
-  // reference these, not the BASE_* constants directly) automatically
+  // findWidthSafeScale/renderBalancedColumns/computeFitScale below (all
+  // three reference these, not the BASE_* constants directly) automatically
   // operate inside whichever range is currently in effect - see
   // manualScaleFactor's own comment for why shifting the range this way,
   // rather than multiplying a final result, is what keeps this safe in
@@ -1031,22 +1119,26 @@
     return max + padV;
   }
 
+  // Used to be one function ("fitToScreen") doing both these things back
+  // to back on every render, unconditionally. Split in two so render()'s
+  // fast path (see cachedLayout/computeLayoutSignature above) can run only
+  // the cheap half (applyRealContent) and skip this expensive one entirely
+  // whenever nothing that could change ITS result has actually changed -
+  // this is normally the single most expensive part of a render, since
+  // every iteration below forces a fresh layout reflow (see
+  // findWidthSafeScale/measureNeeded's own comments) and there was no way
+  // to know in advance it would land on the same answer as last time.
+  //
   // `cols` is the column arrangement renderBalancedColumns already settled
   // on. `measureHtml` is the same "as if everyone had a status" map it
-  // used to pick that arrangement (see its own comment) - phase 1 below
-  // reuses it so the FINAL scale is decided against that same stable,
-  // representative worst case, not however many people happen to have a
-  // status set right now. `deptHtml` is the real, actually-displayed
-  // content, swapped in for phase 2 once the scale is settled.
-  function fitToScreen(cols, deptHtml, measureHtml) {
-    // ---- phase 1: converge --scale against the MEASUREMENT content ----
+  // used to pick that arrangement (see its own comment) - reused here so
+  // the scale this converges on reflects that same stable, representative
+  // worst case, not however many people happen to have a status set right
+  // now (applyRealContent below is what actually swaps the real content
+  // in, at the scale this returns).
+  function computeFitScale(cols, measureHtml, available) {
     boardEl.style.setProperty('--scale', '1');
     boardEl.innerHTML = buildColumnsHtml(cols, measureHtml);
-    // boardEl's own height comes from the surrounding flex layout, not
-    // from whatever's currently inside it (see renderBalancedColumns'
-    // comment), so measuring it once here stays valid through both
-    // phases even though the content inside gets swapped out below.
-    const available = boardEl.clientHeight;
     let scale = 1;
     // One damped, converging loop that shrinks OR grows toward whatever
     // scale makes the content just fill the available height: each pass
@@ -1082,15 +1174,31 @@
     // real screen space for no reason (the two methods disagreeing was
     // also what made column-count selection unreliable - see
     // findWidthSafeScale's own comment).
-    scale = findWidthSafeScale(scale);
+    return findWidthSafeScale(scale);
+  }
 
-    // ---- phase 2: swap in the REAL content at that scale ----
-    // A representative measurement pellet is always at least as wide as any
-    // real one (see measurementPelletHtml), so this is normally just a
-    // straight swap with nothing left to correct - but the same safety
-    // passes run again anyway, against the real content this time, so an
-    // unusually long hand-typed note (server.js allows up to 200
-    // characters) still can never leave the board actually overflowing.
+  // The cheap half (see computeFitScale's own comment for the expensive
+  // one) - swap in the REAL content at a scale that's already been
+  // decided, then verify it still fits. A representative measurement
+  // pellet is always at least as wide as any real one (see
+  // measurementPelletHtml), so this is normally just a straight swap with
+  // nothing left to correct - findWidthSafeScale's very first check is
+  // exactly "is it already fine at this scale", one reflow and done, which
+  // is the ordinary case on every render() this runs on. The safety pass
+  // still runs regardless, against the real content, so an unusually long
+  // hand-typed note (server.js allows up to 200 characters) still can
+  // never leave the board actually overflowing, however this scale was
+  // arrived at - including a scale that's just been read back out of
+  // cachedLayout, computed for a previous render's real content rather
+  // than this one's. Returns the scale it actually ends up applying
+  // (<= the one passed in) - render()'s slow path deliberately caches
+  // computeFitScale's own result instead of this return value, so a
+  // shrink caused by one unusually long note doesn't stick around in
+  // cachedLayout once that note is gone; the fast path always starts
+  // fresh from that same measurement-based baseline every time and lets
+  // this function re-decide, for THIS render's real content, whether any
+  // shrinking is actually still needed.
+  function applyRealContent(cols, deptHtml, scale, available) {
     boardEl.innerHTML = buildColumnsHtml(cols, deptHtml);
     boardEl.style.setProperty('--scale', String(scale));
     for (let i = 0; i < 3; i++) {
@@ -1101,6 +1209,7 @@
     }
     scale = findWidthSafeScale(scale);
     boardEl.style.setProperty('--scale', String(scale));
+    return scale;
   }
 
   let resizeTimer = null;
