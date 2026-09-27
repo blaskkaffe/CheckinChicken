@@ -100,6 +100,33 @@
     $('bsColumnsUp').disabled = window.BoardSettings.columnsAtMax();
   }
 
+  // -------------------------------------------------- column width cap --
+  // Same pill-button pattern as the week-format/coop pickers - one
+  // independent choice per orientation (see board.js's colWidthCapLandscape/
+  // colWidthCapPortrait for what this actually changes: how wide the
+  // AUTOMATIC column search - "Antal kolumner" above left on Auto - lets a
+  // column get before splitting into more of them).
+  function colWidthCapLabel(n) {
+    return n === 1 ? 'Ingen gräns' : `1/${n}`;
+  }
+  function renderColWidthCapFor(elId, orientation) {
+    const options = window.BoardSettings.getColWidthCapOptions();
+    const current = window.BoardSettings.getColWidthCap(orientation);
+    $(elId).innerHTML = options.map((n) =>
+      `<button type="button" class="bs-choice ${n === current ? 'active' : ''}" data-n="${n}">${esc(colWidthCapLabel(n))}</button>`
+    ).join('');
+    $(elId).querySelectorAll('button').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        window.BoardSettings.setColWidthCap(orientation, Number(btn.dataset.n));
+        renderColWidthCapFor(elId, orientation); // reflect the new active choice immediately
+      });
+    });
+  }
+  function renderColWidthCap() {
+    renderColWidthCapFor('bsColWidthCapLandscape', 'landscape');
+    renderColWidthCapFor('bsColWidthCapPortrait', 'portrait');
+  }
+
   // ------------------------------------------------------- week format --
   // Same pill-button pattern as the coop picker above - see board.js's
   // weekShowYear for what this actually changes (the clock's "V45" vs
@@ -164,6 +191,7 @@
     renderLocations();
     renderSize();
     renderColumns();
+    renderColWidthCap();
     renderWeekFormat();
   }
   function close() { overlay.classList.remove('visible'); }

@@ -138,6 +138,7 @@
     loadLocationFilter();
     loadManualScale();
     loadManualColumns();
+    loadColWidthCap();
     render();
     connectEvents();
     wireClickToEdit();
@@ -361,6 +362,12 @@
     resetColumns() { setManualColumns(0); },
     columnsAtMin: () => manualColumns <= 0,
     columnsAtMax: () => manualColumns >= MANUAL_COLUMNS_MAX,
+    // Column width cap (see its own comment above renderBalancedColumns) -
+    // a small fixed set of choices (1 = "Ingen gräns", else 1/N of the
+    // board's width), one per orientation.
+    getColWidthCapOptions: () => COL_WIDTH_CAP_OPTIONS,
+    getColWidthCap: (orientation) => (orientation === 'landscape' ? colWidthCapLandscape : colWidthCapPortrait),
+    setColWidthCap,
     getWeekShowYear: () => weekShowYear,
     setWeekShowYear(show) {
       weekShowYear = !!show;
@@ -711,9 +718,9 @@
   //
   // Column COUNT is chosen by actually trying every count from a minimum
   // (never so wide a column that it stops being worth splitting further -
-  // see MAX_COL_WIDTH_FRACTION_* below) up to however many fit at a
-  // readable width, and measuring - for real, in the DOM - how tall the
-  // tallest resulting column comes out at scale=1.
+  // see colWidthCapLandscape/colWidthCapPortrait below) up to however many
+  // fit at a readable width, and measuring - for real, in the DOM - how
+  // tall the tallest resulting column comes out at scale=1.
   // Whichever count lets fitToScreen() below reach the LARGEST final scale
   // (i.e. fills the screen most fully) wins. This can't be predicted from
   // width alone: row height is set in `cqw` (% of the COLUMN's own width -
@@ -758,17 +765,56 @@
   // then happily stretches those 1-2 columns edge to edge - a wall of
   // mostly-empty width per row, with the leftover vertical space that a
   // sparse board never needed just left blank underneath instead. A column
-  // is never genuinely more readable for being wider than roughly a third
-  // of the board's own width in landscape (or half of it in portrait,
-  // where there's much less width to begin with) - past that it's just
-  // unused space either side of a normal-width row. Expressed here as a
-  // MINIMUM COLUMN COUNT (the smallest c that keeps every column at or
-  // under that fraction) rather than a separate max-width rule, so it's
-  // just another floor on the same search loop below instead of a second
-  // competing constraint - still capped by however many departments there
-  // actually are to spread across (see minColumns itself further down).
-  const MAX_COL_WIDTH_FRACTION_LANDSCAPE = 1 / 3;
-  const MAX_COL_WIDTH_FRACTION_PORTRAIT = 1 / 2;
+  // is never genuinely more readable for being wider than some fraction of
+  // the board's own width - past that it's just unused space either side
+  // of a normal-width row - so this is expressed as a MINIMUM COLUMN COUNT
+  // (the smallest c that keeps every column at or under that fraction)
+  // rather than a separate max-width rule, just another floor on the same
+  // search loop below instead of a second competing constraint - still
+  // capped by however many departments there actually are to spread
+  // across (see minColumns itself further down).
+  //
+  // Per-device (like manualColumns/manualScaleFactor further down),
+  // editable from the board-settings popup (tap the clock) - landscape and
+  // portrait each get their own value, since a portrait screen has much
+  // less width to begin with. Stored directly as "at least this many
+  // columns" (the fraction's own denominator - 3 means a column is never
+  // wider than a third of the board) rather than as a fraction, since
+  // that's exactly what the minColumns calculation below needs and skips
+  // a fraction<->column-count conversion at render time. 1 = "Ingen
+  // gräns" (no extra floor beyond the existing height-driven search - the
+  // pre-this-feature behavior).
+  const COL_WIDTH_CAP_OPTIONS = [1, 2, 3, 4, 5];
+  const DEFAULT_COL_WIDTH_CAP_LANDSCAPE = 3;
+  const DEFAULT_COL_WIDTH_CAP_PORTRAIT = 2;
+  const COL_WIDTH_CAP_LANDSCAPE_KEY = 'checkin:colWidthCapLandscape';
+  const COL_WIDTH_CAP_PORTRAIT_KEY = 'checkin:colWidthCapPortrait';
+  let colWidthCapLandscape = DEFAULT_COL_WIDTH_CAP_LANDSCAPE;
+  let colWidthCapPortrait = DEFAULT_COL_WIDTH_CAP_PORTRAIT;
+
+  function loadColWidthCap() {
+    try {
+      const l = parseInt(localStorage.getItem(COL_WIDTH_CAP_LANDSCAPE_KEY), 10);
+      if (COL_WIDTH_CAP_OPTIONS.includes(l)) colWidthCapLandscape = l;
+      const p = parseInt(localStorage.getItem(COL_WIDTH_CAP_PORTRAIT_KEY), 10);
+      if (COL_WIDTH_CAP_OPTIONS.includes(p)) colWidthCapPortrait = p;
+    } catch (e) { /* ignore - defaults above */ }
+  }
+
+  function saveColWidthCap() {
+    try {
+      localStorage.setItem(COL_WIDTH_CAP_LANDSCAPE_KEY, String(colWidthCapLandscape));
+      localStorage.setItem(COL_WIDTH_CAP_PORTRAIT_KEY, String(colWidthCapPortrait));
+    } catch (e) { /* ignore */ }
+  }
+
+  function setColWidthCap(orientation, value) {
+    if (!COL_WIDTH_CAP_OPTIONS.includes(value)) return;
+    if (orientation === 'landscape') colWidthCapLandscape = value;
+    else colWidthCapPortrait = value;
+    saveColWidthCap();
+    render();
+  }
 
   // Headcount alone underrates a department's real weight: every
   // department also carries its own fixed chrome (a heading, and a label
@@ -897,14 +943,14 @@
     const maxColumns = Math.max(1, Math.min(deptNames.length, Math.floor(width / COL_MIN_WIDTH)));
     // Landscape vs portrait read straight off the board's own box (already
     // measured above), same as everywhere else in this file that cares
-    // about orientation - see MAX_COL_WIDTH_FRACTION_* above for why this
-    // sets a MINIMUM column count. Never above maxColumns: a board with
-    // fewer departments than this floor calls for just uses all of them
-    // (packColumns/buildColumnsHtml never render an empty column), which
-    // is the one case a sparse board still can't avoid a wide column -
-    // there's nothing more to spread it across.
+    // about orientation - see colWidthCapLandscape/colWidthCapPortrait's
+    // own comment for why this sets a MINIMUM column count. Never above
+    // maxColumns: a board with fewer departments than this floor calls for
+    // just uses all of them (packColumns/buildColumnsHtml never render an
+    // empty column), which is the one case a sparse board still can't
+    // avoid a wide column - there's nothing more to spread it across.
     const isLandscape = width >= available;
-    const minColumnsForWidth = Math.ceil(1 / (isLandscape ? MAX_COL_WIDTH_FRACTION_LANDSCAPE : MAX_COL_WIDTH_FRACTION_PORTRAIT));
+    const minColumnsForWidth = isLandscape ? colWidthCapLandscape : colWidthCapPortrait;
     const minColumns = Math.min(minColumnsForWidth, maxColumns);
     let best = null;
     for (let c = minColumns; c <= maxColumns; c++) {
