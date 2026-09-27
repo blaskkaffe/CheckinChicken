@@ -278,14 +278,15 @@ body {
    drops to its own line underneath, indented to line up under the name.
    A name is never sacrificed to make room for a pellet. */
 .person-row {
-  /* Shared height for .badge-pill and .pellet below (a plain block, not a
-     pill - see their own comments), so both read as the same size
-     regardless of which label is longer. Sized generously now that
-     there's no photo competing for the row's height. 1.303 is 8.6cqw's
-     own ratio to the dept-name's 6.6cqw (see .board's --cap comment). */
+  /* Shared height for the INNE/UTE switch (.badge-switch) and the
+     secondary-status .pellet below, so both read as the same size
+     regardless of how long the pellet's own label is. Sized generously
+     now that there's no photo competing for the row's height. 1.303 is
+     8.6cqw's own ratio to the dept-name's 6.6cqw (see .board's --cap
+     comment). */
   --tile-h: min(calc(8.6cqw * var(--scale)), calc(var(--cap) * 1.303));
-  /* Shared minimum width for .badge and .pellet, so neither block ever
-     renders narrower than the other - same ratio-to-cap pattern as
+  /* Minimum width for .pellet alone now (the switch has its own fixed
+     width - see .badge-switch's comment) - same ratio-to-cap pattern as
      --tile-h above, just expressed as a multiple of it instead of its own
      formula. */
   --tag-min-width: calc(var(--tile-h) * 1.9);
@@ -400,50 +401,76 @@ body {
   white-space: nowrap;
 }
 
-/* .badge (INNE/UTE) and .pellet (colored secondary status) are plain solid
-   blocks now - square corners, not a rounded pill - closer to an
-   arrivals-board tag than a chip, and both share the same height/minimum
-   width (--tile-h/--tag-min-width, set on .person-row - see its own
-   comment) so they read as the same size on the board regardless of which
-   label is longer.
+/* .badge is the TAP TARGET, not the visual switch itself - .badge-switch
+   (below) is the actual iOS-style toggle people see and tap; .badge
+   itself is invisible and stretches to fill the WHOLE row's height
+   (align-self: stretch, overriding .person-row-top's own
+   align-items:flex-start just for this one item), so a finger landing
+   anywhere in this column - not just squarely on the small switch -
+   still registers as a toggle tap. This is specifically for touchscreens
+   (iPad/iPhone kiosk screens - see README's "Setup"): the switch's own
+   height was never bigger than --tile-h, which on a two-line row (a
+   wrapped secondary-status pellet pushes .person-row-main to a second
+   line - see its own comment) left the ENTIRE bottom half of this column
+   untappable, exactly where a finger tapping "the badge area" would
+   naturally land.
 
-   .badge is the TAP TARGET, not the visual block itself - .badge-pill
-   (below) is what's actually visible; .badge itself is invisible and
-   stretches to fill the WHOLE row's height (align-self: stretch,
-   overriding .person-row-top's own align-items:flex-start just for this
-   one item), so a finger landing anywhere in this column - not just
-   squarely on the small block - still registers as a toggle tap. This is
-   specifically for touchscreens (iPad/iPhone kiosk screens - see
-   README's "Setup"): the block's own height was never bigger than
-   --tile-h, which on a two-line row (a wrapped secondary-status pellet
-   pushes .person-row-main to a second line - see its own comment) left
-   the ENTIRE bottom half of this column untappable, exactly where a
-   finger tapping "the badge area" would naturally land. */
+   align-items:flex-end (rather than the old stretch, back when the
+   visible piece was a pill that filled this column's own width) - the
+   switch has its own fixed width now, so this just hugs it to the
+   column's right edge instead of stretching it. */
 .badge {
   display: flex;
   flex-direction: column;
-  align-items: stretch; /* .badge-pill fills the column's width, same as it always has */
-  justify-content: flex-start; /* .badge-pill stays pinned to the top - unchanged visual position */
-  align-self: stretch; /* the actual fix: this column now spans the row's full height */
-  min-width: var(--tag-min-width);
+  align-items: flex-end;
+  justify-content: flex-start; /* the switch stays pinned to the top - same line as the name */
+  align-self: stretch;
+  min-width: calc(var(--tile-h) * 1.7); /* matches .badge-switch's own width below */
   flex: none;
   cursor: pointer;
 }
-.badge-pill {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+
+/* The actual INNE/UTE control: a sliding switch, same idea as an iOS
+   toggle - a colored track (.badge-switch) and a circular knob
+   (.badge-knob) that slides from left (checked out) to right (checked
+   in) rather than a block of text that just swaps color/label. No text
+   any more - a real toggle switch doesn't have any either, since color
+   and knob position already say which state it's in (the admin-editable
+   IN/OUT label still reaches screen readers via the switch's own
+   aria-label - see board.js's personRowHtml). 1.7 is a standard
+   toggle-switch width:height ratio (close to iOS's own ~1.65:1).*/
+.badge-switch {
+  position: relative;
+  display: inline-block;
+  width: calc(var(--tile-h) * 1.7);
   height: var(--tile-h);
-  gap: 0.3em;
-  font-size: min(calc(5.6cqw * var(--scale)), calc(var(--cap) * 0.848));
-  font-weight: 800;
-  letter-spacing: 0.03em;
-  padding: 0 min(calc(2.2cqw * var(--scale)), calc(var(--cap) * 0.333));
-  border-radius: 4px;
-  white-space: nowrap;
+  border-radius: calc(var(--tile-h) / 2);
+  background: var(--badge-out-bg);
+  transition: background-color 0.15s ease;
 }
-.badge-pill.in { background: var(--green); color: #06170e; }
-.badge-pill.out { background: var(--badge-out-bg); color: var(--badge-out-fg); }
+.badge-switch.in { background: var(--green); }
+/* Inset by 8% of the switch's own height on every side, so the knob
+   reads as sitting just inside the track rather than flush against its
+   edge - the same fixed proportion at every board scale, since both the
+   inset and the knob's own diameter below are expressed as a share of
+   --tile-h rather than a fixed pixel amount. */
+.badge-knob {
+  position: absolute;
+  top: calc(var(--tile-h) * 0.08);
+  left: calc(var(--tile-h) * 0.08);
+  width: calc(var(--tile-h) * 0.84);
+  height: calc(var(--tile-h) * 0.84);
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  transition: transform 0.15s ease;
+}
+/* Slides to the track's right edge, mirroring the same 8%-of-height
+   inset the knob starts with on the left (see .badge-knob above) - the
+   distance between the two rest positions is exactly
+   track-width - knob-diameter - (2 × inset), all in terms of --tile-h:
+   1.7 - 0.84 - 0.16 = 0.7. */
+.badge-switch.in .badge-knob { transform: translateX(calc(var(--tile-h) * 0.7)); }
 
 /* Hover/tap affordance - see board.js's wireClickToEdit(). The whole row
    is now the tap target (not just the name), so the hover highlight and
@@ -451,12 +478,10 @@ body {
    distinct hover (it's a separate, more specific action: toggle in place
    rather than open the popup). Only kicks in where a pointer is actually
    available (a touchscreen doesn't have hover), so it never gets in the
-   way on a TV nobody can tap. Targets .badge-pill (not .badge itself,
-   which has no background of its own any more) so hovering anywhere in
-   the enlarged invisible column still highlights the visible block. */
+   way on a TV nobody can tap. */
 @media (hover: hover) {
   .person-row:hover .person-name { color: var(--accent); }
-  .badge:hover .badge-pill { filter: brightness(1.12); }
+  .badge:hover .badge-switch { filter: brightness(1.12); }
 }
 .person-row { cursor: pointer; }
 
@@ -484,10 +509,11 @@ body {
    and flush right on its own line when it wraps below, rather than
    trailing directly behind the name/dots either way.
 
-   Height/min-width share --tile-h/--tag-min-width with .badge above (see
-   .person-row's own comment on both), so the two blocks always match -
-   there's no separate formula here to drift out of sync with the
-   badge's. */
+   Height shares --tile-h with .badge-switch above (see .person-row's own
+   comment on it), so the pellet and the switch always match, even though
+   the switch's own width no longer scales off a pellet-style label -
+   there's no separate height formula here to drift out of sync with the
+   switch's. */
 .pellet {
   display: inline-flex;
   align-items: center;

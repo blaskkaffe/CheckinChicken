@@ -464,23 +464,12 @@
     return String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   }
 
-  // --green is a solid, fairly saturated fill in both themes (unlike the
-  // translucent --badge-in-bg it replaces on the INNE pill - see
-  // .badge.in in board.css) and its exact shade differs enough between
-  // light and dark mode that no single fixed text color reads well on
-  // both. Read the live value and run it through the same contrast pick
-  // as the status tags (popup.js's window.readableTextOn), instead of
-  // guessing.
-  function inBadgeTextColor() {
-    const green = getComputedStyle(document.documentElement).getPropertyValue('--green').trim();
-    return window.readableTextOn(green);
-  }
-
   // IN/UTE's own label is editable from the admin page's "Statusar" tab
   // (see server/status-store.js) - read it here rather than hardcoding
-  // "INNE"/"UTE", so a renamed label actually shows up on the one screen
-  // most people only ever glance at. Upper-cased to keep the badge's
-  // existing bold, compact look regardless of how it was typed in.
+  // "INNE"/"UTE". The switch itself (see personRowHtml below) shows no
+  // text any more - an iOS-style toggle doesn't either, position and
+  // color already say which state it's in - but a renamed label still
+  // reaches screen readers via the switch's aria-label.
   function primaryLabel(code) {
     const def = statusDefs.primary.find((s) => s.code === code);
     return (def ? def.label : (code === 'IN' ? 'Inne' : 'Ute')).toUpperCase();
@@ -529,11 +518,11 @@
     const checkedIn = !!p.status?.checkedIn;
     // .badge is the tap target (sized/positioned in board.css - stretches
     // to the row's full height so it's reliably tappable on a touchscreen,
-    // not just the small pill itself); .badge-pill is what's actually
-    // visible. See board.css's .badge comment for why they're split.
-    const primaryBadge = checkedIn
-      ? `<span class="badge"><span class="badge-pill in" style="color:${inBadgeTextColor()}">${esc(primaryLabel('IN'))}</span></span>`
-      : `<span class="badge"><span class="badge-pill out">${esc(primaryLabel('OUT'))}</span></span>`;
+    // not just the small switch itself); .badge-switch is the visible
+    // iOS-style sliding toggle, .badge-knob the circle that slides within
+    // it. See board.css's .badge comment for why the tap target and the
+    // switch itself are sized separately.
+    const primaryBadge = `<span class="badge"><span class="badge-switch ${checkedIn ? 'in' : 'out'}" role="switch" aria-checked="${checkedIn}" aria-label="${esc(primaryLabel(checkedIn ? 'IN' : 'OUT'))}"><span class="badge-knob"></span></span></span>`;
 
     // dots (0-3, set per-status on the admin page's "Statusar" tab - see
     // server/status-store.js): a plain, undefined-meaning flag like
