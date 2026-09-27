@@ -402,8 +402,8 @@ body {
 }
 
 /* .badge is the TAP TARGET, not the visual switch itself - .badge-switch
-   (below) is the actual iOS-style toggle people see and tap; .badge
-   itself is invisible and stretches to fill the WHOLE row's height
+   (below) is the track/knob toggle people see and tap; .badge itself is
+   invisible and stretches to fill the WHOLE row's height
    (align-self: stretch, overriding .person-row-top's own
    align-items:flex-start just for this one item), so a finger landing
    anywhere in this column - not just squarely on the small switch -
@@ -425,52 +425,61 @@ body {
   align-items: flex-end;
   justify-content: flex-start; /* the switch stays pinned to the top - same line as the name */
   align-self: stretch;
-  min-width: calc(var(--tile-h) * 1.7); /* matches .badge-switch's own width below */
+  min-width: calc(var(--tag-min-width) * 1.5); /* matches .badge-switch's own width below */
   flex: none;
   cursor: pointer;
 }
 
-/* The actual INNE/UTE control: a sliding switch, same idea as an iOS
-   toggle - a colored track (.badge-switch) and a circular knob
-   (.badge-knob) that slides from left (checked out) to right (checked
-   in) rather than a block of text that just swaps color/label. No text
-   any more - a real toggle switch doesn't have any either, since color
-   and knob position already say which state it's in (the admin-editable
-   IN/OUT label still reaches screen readers via the switch's own
-   aria-label - see board.js's personRowHtml). 1.7 is a standard
-   toggle-switch width:height ratio (close to iOS's own ~1.65:1).*/
+/* The actual INNE/UTE control: a sliding switch - the track (.badge-switch)
+   is a plain neutral groove, always the same color; the knob (.badge-knob)
+   is the old solid-colored INNE/UTE button itself (same block, same bold
+   text), just sliding to the track's left (checked out) or right (checked
+   in) edge instead of stretching to fill it. The track is 1.5× the knob's
+   own width (--tag-min-width, shared with .pellet - see .person-row's
+   comment), so exactly half a knob-width of track shows on whichever side
+   the knob isn't currently on - a fixed, deliberate proportion, not an
+   arbitrary one. */
 .badge-switch {
   position: relative;
   display: inline-block;
-  width: calc(var(--tile-h) * 1.7);
+  width: calc(var(--tag-min-width) * 1.5);
   height: var(--tile-h);
-  border-radius: calc(var(--tile-h) / 2);
-  background: var(--badge-out-bg);
-  transition: background-color 0.15s ease;
+  border-radius: 4px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
 }
-.badge-switch.in { background: var(--green); }
-/* Inset by 8% of the switch's own height on every side, so the knob
-   reads as sitting just inside the track rather than flush against its
-   edge - the same fixed proportion at every board scale, since both the
-   inset and the knob's own diameter below are expressed as a share of
-   --tile-h rather than a fixed pixel amount. */
+/* Flush against the track's inner edge on both axes (offset by -1px to
+   sit on top of, rather than inside, the track's own 1px border above) -
+   the knob is exactly as tall as the track and never inset from it the
+   way a plain iOS knob would be, since it's meant to read as the old
+   full-size button rather than a separate circle floating inside a
+   groove. */
 .badge-knob {
   position: absolute;
-  top: calc(var(--tile-h) * 0.08);
-  left: calc(var(--tile-h) * 0.08);
-  width: calc(var(--tile-h) * 0.84);
-  height: calc(var(--tile-h) * 0.84);
-  border-radius: 50%;
-  background: #fff;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+  top: -1px;
+  left: -1px;
+  width: var(--tag-min-width);
+  height: var(--tile-h);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: min(calc(5.6cqw * var(--scale)), calc(var(--cap) * 0.848));
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
   transition: transform 0.15s ease;
 }
-/* Slides to the track's right edge, mirroring the same 8%-of-height
-   inset the knob starts with on the left (see .badge-knob above) - the
-   distance between the two rest positions is exactly
-   track-width - knob-diameter - (2 × inset), all in terms of --tile-h:
-   1.7 - 0.84 - 0.16 = 0.7. */
-.badge-switch.in .badge-knob { transform: translateX(calc(var(--tile-h) * 0.7)); }
+.badge-switch.out .badge-knob { background: var(--badge-out-bg); color: var(--badge-out-fg); }
+/* Slides exactly half the knob's own width to the right - the same
+   distance the track is wider than the knob (track = knob × 1.5, see
+   .badge-switch's own comment), so the knob ends up flush against the
+   track's RIGHT edge instead of its left one, with that same half-knob
+   strip of track now showing on the left instead of the right. */
+.badge-switch.in .badge-knob {
+  background: var(--green);
+  transform: translateX(calc(var(--tag-min-width) * 0.5));
+}
 
 /* Hover/tap affordance - see board.js's wireClickToEdit(). The whole row
    is now the tap target (not just the name), so the hover highlight and
@@ -478,10 +487,13 @@ body {
    distinct hover (it's a separate, more specific action: toggle in place
    rather than open the popup). Only kicks in where a pointer is actually
    available (a touchscreen doesn't have hover), so it never gets in the
-   way on a TV nobody can tap. */
+   way on a TV nobody can tap. Targets .badge-knob (not .badge-switch
+   itself, which has no color of its own to brighten) so hovering
+   anywhere in the enlarged invisible tap target still highlights the
+   visible button. */
 @media (hover: hover) {
   .person-row:hover .person-name { color: var(--accent); }
-  .badge:hover .badge-switch { filter: brightness(1.12); }
+  .badge:hover .badge-knob { filter: brightness(1.12); }
 }
 .person-row { cursor: pointer; }
 
