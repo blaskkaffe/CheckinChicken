@@ -371,6 +371,9 @@
     $('fPhotoInput').value = '';
     renderPhotoPreview(person);
     $('modalError').textContent = '';
+    // Only on an EXISTING person - "Lägg till person" (person === null)
+    // has nothing to delete yet.
+    $('modalDelete').style.display = person ? '' : 'none';
     $('modalBackdrop').style.display = 'flex';
     openPopupChrome($('modalBackdrop').querySelector('.modal'), closeModal);
   }
@@ -409,6 +412,25 @@
   // button here too, doing the exact same POST with a confirm() dialog in
   // front of it - removed as redundant with the checkbox that already
   // does this.
+
+  // Actually removing someone, unlike "Aktiv" above - server.js's DELETE
+  // handler marks the record `deleted` rather than erasing it outright
+  // (store.getAll()/getById() both filter it out everywhere from then on,
+  // board and admin roster alike), but there's no "show deleted/undo" UI
+  // here, so from this page's own point of view it's final - hence the
+  // confirm() spelling that out, same pattern as deleteStatusFromModal
+  // below.
+  async function deletePersonFromModal() {
+    if (!editingId) return;
+    if (!confirm(`Ta bort ${$('fName').value || 'den här personen'} ur personallistan? Går inte att ångra här - kryssa ur "Aktiv" istället om du bara vill inaktivera.`)) return;
+    try {
+      await api(`/api/admin/people/${encodeURIComponent(editingId)}`, { method: 'DELETE' });
+      await refreshRoster();
+      closeModal();
+    } catch (e) {
+      $('modalError').textContent = e.message;
+    }
+  }
 
   // ----------------------------------------------------- statuses tab ---
   async function loadStatuses() {
@@ -779,6 +801,7 @@
   window.initExitButton($('exitBtn'));
   $('addBtn').addEventListener('click', () => openModal(null));
   $('modalCancel').addEventListener('click', closeModal);
+  $('modalDelete').addEventListener('click', deletePersonFromModal);
   $('modalSave').addEventListener('click', saveModal);
 
   $('fPhotoInput').addEventListener('change', async (e) => {
