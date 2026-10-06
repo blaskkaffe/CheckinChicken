@@ -332,6 +332,14 @@ screen-settings popup.
   delete/reorder). Each can optionally require a time, date, or note; can
   auto-set checked-out; can show 0–3 red dots next to the person's name
   on the board.
+- **Sitter kvar** ("sticky", optional): protects a status from being
+  cleared by a plain Inne/Ute tap (on the board, or the status popup's own
+  Inne/Ute buttons) — meant for something that spans more than a single
+  check-in, like `Semester`/`Tjänsteresa`. Picking a *different* status
+  outright still replaces it; only the "Rensa status" button (status
+  popup, shown whenever that person currently has any secondary status
+  set) actually clears a sticky one — see [Status popup](#status-popup).
+  Off by default, same as every other status.
 - **Date** statuses (e.g. the built-in `Tjänsteresa`/`Semester`) aren't
   limited to a single day — the status popup shows a drawn-to-match
   calendar (Monday-first weeks, with a leftmost week-number column, just a
@@ -476,6 +484,11 @@ button, which just navigates there.
   buttons, department/role, phone number per `phoneVisibility`).
 - Time/date fields use a 24-hour HH:MM picker regardless of device
   locale.
+- **Rensa status**: clears whoever's secondary status (and its detail/
+  note), without touching their Inne/Ute state - only shown when they
+  currently have one set. The one way to clear a "sticky" status (see
+  [Statuses](#statuses-admin-statusar-tab) above); works on a non-sticky
+  one too.
 - Popup closes on save, or auto-closes after `popupIdleTimeoutMs` of
   inactivity (default 5 min, admin "Inställningar" tab).
 

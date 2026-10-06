@@ -101,6 +101,17 @@
     }
     $('spCurrent').textContent = currentStatusLabel(person);
     renderStatusGrid($('spStatusGrid'), [...statusDefs.primary, ...statusDefs.secondary], onMenuChoice);
+    // Only worth showing when there's actually a secondary status to
+    // clear - this is the one way to remove a "sticky" one (admin's
+    // Statusar tab), which a plain Inne/Ute tap no longer clears on its
+    // own (see board.js's applyOptimisticStatus/server.js's
+    // applyStatusChoice), but it clears any secondary status, sticky or
+    // not.
+    $('spClearRow').style.display = person.status?.secondary ? '' : 'none';
+  }
+
+  function clearStatus() {
+    finalize({ clearSecondary: true });
   }
 
   function onMenuChoice(code) {
@@ -216,6 +227,7 @@
     });
 
     card.appendChild(window.createPopupCloseButton(close));
+    $('spClearStatus').addEventListener('click', clearStatus);
     $('spDetailSkip').addEventListener('click', detailSubmit);
     $('spDetailBack').addEventListener('click', () => showScreen('menu'));
     $('spNoteSubmit').addEventListener('click', noteSubmit);

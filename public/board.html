@@ -55,6 +55,14 @@
             <div class="person-header-current" id="spCurrent"></div>
           </div>
           <div class="status-grid" id="spStatusGrid"></div>
+          <!-- Only shown when this person currently has a secondary status
+               set (see statuspopup.js's renderMenu) - clears it (and its
+               detail/note) without touching their INNE/UTE state, the one
+               way to remove a "sticky" status (admin's Statusar tab) that a
+               plain Inne/Ute tap no longer clears on its own. -->
+          <div class="detail-actions" id="spClearRow" style="display:none">
+            <button class="ghost-btn" id="spClearStatus">Rensa status</button>
+          </div>
         </section>
 
         <!-- DETAIL: time or date, for a status that needs one -->

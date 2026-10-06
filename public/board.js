@@ -393,33 +393,51 @@
   };
 
   // ------------------------------------------------------- click to edit -
-  // Mirrors server.js's applyStatusChoice() (same "does this status mean
-  // you're not physically at work" rule, via a secondary status' own
-  // `checksOut` field, read here from secondaryByCode) - applies a status
-  // choice to THIS file's own `people` Map and re-renders immediately,
-  // instead of waiting for the round trip to the server and the 'person'
-  // SSE event it broadcasts back. That round trip still happens (see
-  // toggleCheckedIn/statuspopup.js's finalize, both callers of this) and
-  // its eventual 'person' event (connectEvents below) still overwrites
-  // this with the server's own copy - completely harmless, since server
-  // and client compute the exact same result from the exact same rule -
-  // but a tap or a status-popup choice no longer has to wait on a network
-  // round trip before the board visually reflects it at all. Returns the
-  // person's PREVIOUS status, for the caller to restore via
+  // Mirrors server.js's applyStatusChoice() exactly (same "does this status
+  // mean you're not physically at work" rule via a status' own `checksOut`
+  // field, and the same "sticky" rule - a status marked sticky survives a
+  // plain INNE/UTE toggle, Rensa status/clearSecondary is the only thing
+  // that clears it - both read here from secondaryByCode) - applies a
+  // status choice to THIS file's own `people` Map and re-renders
+  // immediately, instead of waiting for the round trip to the server and
+  // the 'person' SSE event it broadcasts back. That round trip still
+  // happens (see toggleCheckedIn/statuspopup.js's finalize, both callers of
+  // this) and its eventual 'person' event (connectEvents below) still
+  // overwrites this with the server's own copy - completely harmless,
+  // since server and client compute the exact same result from the exact
+  // same rule - but a tap or a status-popup choice no longer has to wait
+  // on a network round trip before the board visually reflects it at all.
+  // Returns the person's PREVIOUS status, for the caller to restore via
   // revertOptimisticStatus() if its own request then fails.
-  function applyOptimisticStatus(id, { primary, secondaryCode, detail, note }) {
+  function applyOptimisticStatus(id, { primary, secondaryCode, detail, note, clearSecondary }) {
     const p = people.get(id);
     if (!p) return null;
     const previousStatus = p.status;
     let checkedIn = p.status?.checkedIn ?? false;
+    let secondary = p.status?.secondary || null;
+    let nextDetail = p.status?.detail || '';
+    let nextNote = p.status?.note || '';
+
+    if (clearSecondary) {
+      secondary = null;
+      nextDetail = '';
+      nextNote = '';
+    } else if (secondaryCode) {
+      secondary = secondaryCode;
+      nextDetail = detail || '';
+      nextNote = note || '';
+      if (secondaryByCode.get(secondaryCode)?.checksOut) checkedIn = false;
+    } else if (primary === 'IN' || primary === 'OUT') {
+      const def = secondary ? secondaryByCode.get(secondary) : null;
+      if (!def?.sticky) { secondary = null; nextDetail = ''; nextNote = ''; }
+    }
+
     if (primary === 'IN') checkedIn = true;
     else if (primary === 'OUT') checkedIn = false;
-    else if (secondaryCode) {
-      if (secondaryByCode.get(secondaryCode)?.checksOut) checkedIn = false;
-    }
+
     people.set(id, {
       ...p,
-      status: { checkedIn, secondary: secondaryCode || null, detail: detail || '', note: note || '', updatedAt: Date.now() },
+      status: { checkedIn, secondary, detail: nextDetail, note: nextNote, updatedAt: Date.now() },
     });
     render();
     return previousStatus;

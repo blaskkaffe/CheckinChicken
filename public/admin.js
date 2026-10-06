@@ -473,6 +473,7 @@
         <td>${esc(s.label)}</td>
         <td>${extraSummary(s)}</td>
         <td>${s.checksOut ? '✓' : '<span class="dim">–</span>'}</td>
+        <td>${s.sticky ? '✓' : '<span class="dim">–</span>'}</td>
         <td>${s.dots ? esc(String(s.dots)) : '<span class="dim">–</span>'}</td>
         <td>redigera</td>
       </tr>
@@ -523,6 +524,7 @@
     const isPrimary = scope === 'primary';
     $('sKindRow').style.display = isPrimary ? 'none' : '';
     $('sChecksOutRow').style.display = isPrimary ? 'none' : '';
+    $('sStickyRow').style.display = isPrimary ? 'none' : '';
     $('sDotsRow').style.display = isPrimary ? 'none' : '';
     if (isPrimary) { $('sPrefixRow').style.display = 'none'; $('sDefaultTimeRow').style.display = 'none'; }
   }
@@ -540,6 +542,7 @@
     $('sPrefix').value = def?.detailPrefix || '';
     $('sDefaultTime').value = def?.defaultTime || '';
     $('sChecksOut').checked = !!def?.checksOut;
+    $('sSticky').checked = !!def?.sticky;
     $('sDots').value = String(def?.dots || 0);
     applyStatusModalVisibility(scope);
     applyKindVisibility();
@@ -562,6 +565,7 @@
       payload.detailPrefix = $('sPrefix').value.trim();
       payload.defaultTime = $('sDefaultTime').value.trim();
       payload.checksOut = $('sChecksOut').checked;
+      payload.sticky = $('sSticky').checked;
       payload.dots = Number($('sDots').value) || 0;
     }
     try {

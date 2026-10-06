@@ -261,23 +261,49 @@ function nextId() {
 // Applies a status choice to a person record, following the "does this
 // status mean you're not physically at work" rule stored on the status
 // itself (checksOut - see server/status-store.js).
-function applyStatusChoice(existing, { primary, secondaryCode, detail, note }) {
+//
+// A plain INNE/UTE toggle (board.js's badge tap, or the status popup's own
+// Inne/Ute buttons) sends just `primary`, no `secondaryCode` - used to mean
+// "and clear whatever secondary status was set" unconditionally. A status
+// marked `sticky` (e.g. a multi-day "Semester"/"Tjänsteresa" someone
+// shouldn't lose by just tapping the board) now survives that - it takes
+// the status popup's explicit "Rensa status" button (clearSecondary) to
+// actually clear a sticky one. A non-sticky status still clears on a plain
+// toggle exactly as before. Choosing a DIFFERENT status outright
+// (secondaryCode set) always wins regardless of stickiness - sticky only
+// protects against being wiped by toggling IN/OUT, never against a
+// deliberate new choice.
+function applyStatusChoice(existing, { primary, secondaryCode, detail, note, clearSecondary }) {
   let checkedIn = existing.status?.checkedIn ?? false;
+  let secondary = existing.status?.secondary || null;
+  let nextDetail = existing.status?.detail || '';
+  let nextNote = existing.status?.note || '';
 
-  if (primary === 'IN') checkedIn = true;
-  else if (primary === 'OUT') checkedIn = false;
-  else if (secondaryCode) {
+  if (clearSecondary) {
+    secondary = null;
+    nextDetail = '';
+    nextNote = '';
+  } else if (secondaryCode) {
+    secondary = secondaryCode;
+    nextDetail = detail || '';
+    nextNote = note || '';
     if (statusStore.checksOut(secondaryCode)) checkedIn = false;
     // A "neutral" status (checksOut not set) leaves checkedIn exactly as
     // it was.
+  } else if (primary === 'IN' || primary === 'OUT') {
+    const def = secondary ? statusStore.findByCode(secondary)?.def : null;
+    if (!def?.sticky) { secondary = null; nextDetail = ''; nextNote = ''; }
   }
+
+  if (primary === 'IN') checkedIn = true;
+  else if (primary === 'OUT') checkedIn = false;
 
   return {
     status: {
       checkedIn,
-      secondary: secondaryCode || null,
-      detail: detail || '',
-      note: note || '',
+      secondary,
+      detail: nextDetail,
+      note: nextNote,
       updatedAt: Date.now(),
     },
   };
@@ -416,7 +442,7 @@ const server = http.createServer(async (req, res) => {
       // Identified by id - the person is always already selected (a tap on
       // the board, or a Browse-by-name result) by the time this is called.
       const body = await readBody(req);
-      const { id } = body;
+      const { id, clearSecondary } = body;
       let { primary, secondaryCode, detail, note } = body;
       const person = id ? store.getById(id) : null;
       if (!person || person.deleted) return sendJson(res, 404, { error: 'unknown person' });
@@ -441,7 +467,7 @@ const server = http.createServer(async (req, res) => {
       if (typeof detail === 'string' && detail.length > 60) detail = detail.slice(0, 60);
       if (typeof note === 'string' && note.length > 200) note = note.slice(0, 200);
 
-      const patch = applyStatusChoice(person, { primary, secondaryCode, detail, note });
+      const patch = applyStatusChoice(person, { primary, secondaryCode, detail, note, clearSecondary: !!clearSecondary });
       const updated = store.applyLocal(person.id, patch);
       return sendJson(res, 200, publicPerson(updated));
     }

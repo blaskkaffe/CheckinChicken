@@ -88,7 +88,7 @@
         <button class="ghost-btn" id="addStatusBtn">+ Lägg till status</button>
         <div class="table-scroll">
           <table class="roster status-roster" id="statusTableEl">
-            <thead><tr><th></th><th></th><th>Namn</th><th>Extra</th><th>Frånvarande</th><th>Prickar</th><th></th></tr></thead>
+            <thead><tr><th></th><th></th><th>Namn</th><th>Extra</th><th>Frånvarande</th><th>Sitter kvar</th><th>Prickar</th><th></th></tr></thead>
             <tbody id="statusBody"></tbody>
           </table>
         </div>
@@ -243,6 +243,7 @@
              existed) - see server/statuses.js's own defaultTime comment. -->
         <label id="sDefaultTimeRow" style="display:none">Starttid i statuspopupen (valfritt)<input id="sDefaultTime" type="text" maxlength="5" placeholder="t.ex. 07:30" /></label>
         <label id="sChecksOutRow" class="checkbox-label"><input id="sChecksOut" type="checkbox" /> Räknas som frånvarande (checkar automatiskt ut)</label>
+        <label id="sStickyRow" class="checkbox-label"><input id="sSticky" type="checkbox" /> Sitter kvar vid Inne/Ute-tryck (kräver "Rensa status" för att tas bort)</label>
         <label id="sDotsRow">Prickar bredvid namnet på tavlan
           <select id="sDots">
             <option value="0">Inga</option>

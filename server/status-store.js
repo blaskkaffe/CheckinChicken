@@ -96,6 +96,11 @@ function sanitizeFields(body) {
       label,
       color,
       checksOut: !!body.checksOut,
+      // Protects against being wiped by a plain INNE/UTE toggle (board.js's
+      // badge tap, or the status popup's own Inne/Ute buttons) - needs the
+      // status popup's explicit "Rensa status" button instead. See
+      // server.js's applyStatusChoice. Off by default, same as checksOut.
+      sticky: !!body.sticky,
       needsTime: kind === 'time',
       needsDate: kind === 'date',
       needsNote: kind === 'note',
