@@ -1,0 +1,9 @@
+{
+ "name": "System",
+ "description": "Versions of the add-on and the computer, the time zone, PIN and a link to the project (always on).",
+ "enabled": true,
+ "visible": false,
+ "order": 55,
+ "ui": 2,
+ "web": "system_web"
+}

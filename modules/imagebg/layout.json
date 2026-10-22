@@ -1,0 +1,52 @@
+{
+ "background": {
+  "type": "fullscreen"
+ },
+ "settings": [
+  {
+   "box": "appearance",
+   "title": "Appearance",
+   "items": [
+    {
+     "type": "custom",
+     "name": "imagebg-pick",
+     "in": "background"
+    },
+    {
+     "type": "form",
+     "get": "/imagebg",
+     "post": "/imagebg",
+     "fields": [
+      {
+       "title": "Picture fit",
+       "sub_text": "fit",
+       "controls": [
+        {
+         "type": "choice",
+         "key": "fit",
+         "options": "fits",
+         "label": "Picture fit"
+        }
+       ],
+       "nosum": true
+      },
+      {
+       "title": "Darken",
+       "sub_text": "dim",
+       "controls": [
+        {
+         "type": "choice",
+         "key": "dim",
+         "options": "dims",
+         "label": "Darken"
+        }
+       ],
+       "nosum": true
+      }
+     ],
+     "in": "background"
+    }
+   ]
+  }
+ ]
+}

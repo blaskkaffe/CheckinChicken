@@ -1,0 +1,46 @@
+{
+ "settings": [
+  {
+   "box": "contacts",
+   "title": "Contacts",
+   "items": [
+    {
+     "type": "text",
+     "text": "@contacts.text"
+    },
+    {
+     "type": "custom",
+     "name": "contacts-people",
+     "html": "<div class=\"cpeople\"></div>"
+    },
+    {
+     "type": "custom",
+     "name": "contacts-import",
+     "html_file": "import.html"
+    },
+    {
+     "type": "row",
+     "title": "Export",
+     "sub": "The current people as a CSV file",
+     "control": {
+      "type": "link",
+      "href": "/contacts.csv",
+      "label": "Download"
+     }
+    },
+    {
+     "type": "text",
+     "muted": true,
+     "text": "Columns: name, department, role, phone, location, restrictToLocation, code. A line that starts with # is ignored. Location is the building or area. Code is the 3-digit number for the number pad on the board (optional, one per person)."
+    }
+   ]
+  }
+ ],
+ "data": {
+  "contacts": {
+   "url": "/contacts",
+   "every": 20,
+   "when": "settings"
+  }
+ }
+}

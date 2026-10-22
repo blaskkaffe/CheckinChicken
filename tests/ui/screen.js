@@ -1,0 +1,202 @@
+// The screen layout and the lock on Settings (run by run.sh against its own demo server): Appearance > Max columns (dashboard and Settings),
+// Stretch boxes, Scale content, the white cogwheel, and the PIN that Settings asks for when it is switched on.
+const { chromium } = require('playwright');
+const URL = 'http://127.0.0.1:' + (process.env.PORT || 8741) + '/';
+let failed = 0;
+const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if (!cond) failed++; };
+const settle = ms => new Promise(r => setTimeout(r, ms));
+(async () => {
+  const browser = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium', args: ['--no-sandbox'] });
+  const page = await browser.newPage({ viewport: { width: 1500, height: 900 } });
+  const openMenus = () => page.addStyleTag({ content: '.wmenu > .msub{display:block!important;position:static!important;background:none!important;padding:0!important} .wmenu .rp-msheet{width:auto!important;max-height:none!important;border:0!important;box-shadow:none!important;padding:0 0 0 12px!important;background:none!important} .wmenu .rp-mx,.wmenu .rp-mt,.wmenu .rp-menu > .bar{display:none!important}' });      // the menus open in a pop-up; here they are laid flat in the page so one run can reach everything (menus.js tests the pop-up itself)
+  const errors = [];
+  page.on('pageerror', e => errors.push(String(e)));
+  page.on('console', m => { if (m.type() === 'error' && !/status of (400|401|409)/.test(m.text())) errors.push(m.text().slice(0, 150)); });     // the refused requests of the PIN checks are expected
+  let alerts = [], pinDialogs = 0;
+  page.on('dialog', d => { alerts.push(d.message()); return d.accept(); });
+  // the PIN pad: round keys; type the digits on them and press OK
+  const enterPin = async pin => { await page.waitForSelector('.pinm .pinkey'); pinDialogs++; for (const c of pin) await page.click('.pinm [data-k="' + c + '"]'); await page.click('.pinm .pinok'); };
+  const post = (path, body, pin) => page.evaluate(([p, b, pn]) => fetch(p, { method: 'POST', headers: Object.assign({ 'X-Requested-With': 'x', 'Content-Type': 'application/json' }, pn ? { 'X-Pin': pn } : {}), body: JSON.stringify(b || {}) }).then(r => r.status), [path, body, pin]);
+  const load = async () => { await page.goto(URL, { waitUntil: 'networkidle' }); await settle(1200); };
+  const info = () => page.evaluate(() => {
+    const d = document.getElementById('dash'), cols = d.querySelectorAll(':scope > .dcol'), b = document.body;
+    const boxes = Array.from(d.querySelectorAll('.dbox')).filter(x => x.offsetHeight);
+    return { cols: cols.length, bodyMax: b.style.maxWidth, dashW: Math.round(d.getBoundingClientRect().width), zoom: d.style.getPropertyValue('--z').trim() || '1', nameFs: getComputedStyle(boxes[0].querySelector('.rp-n') || boxes[0]).fontSize,
+             boxW: Math.round(boxes[0].getBoundingClientRect().width), n: boxes.length, inCols: cols.length ? Array.from(cols).map(c => Array.from(c.querySelectorAll('.dbox')).filter(x => x.offsetHeight).length) : [] };
+  });
+  await load();
+  // ---- the defaults: one column, as before
+  let i = await info();
+  ok(i.cols === 0 && i.bodyMax === '460px', 'by default the dashboard is one column of the usual width (' + JSON.stringify(i) + ')');
+  ok(await page.evaluate(() => getComputedStyle(document.getElementById('cog')).color) === 'rgb(238, 238, 238)', 'the settings cogwheel is white like the text');
+  // ---- max columns
+  ok(await post('/screen', { values: { dash_cols: 3, set_cols: 6 } }) === 200, 'Max columns are saved');
+  await load(); i = await info();
+  ok(i.cols === 3 && i.inCols.reduce((a, b) => a + b, 0) === i.n && Math.max.apply(null, i.inCols) - Math.min.apply(null, i.inCols) <= 2, 'three dashboard columns with the boxes shared out (' + i.inCols + ')');
+  ok(i.bodyMax === (3 * 428 + 2 * 12 + 32) + 'px' && i.dashW <= 3 * 428 + 24, 'not stretched: the columns keep their usual width (' + i.dashW + ' px)');
+  await page.setViewportSize({ width: 800, height: 900 }); await settle(500); i = await info();
+  ok(i.cols === 0, 'a screen that fits one column only gets one, however many are allowed (800 px)');
+  await page.setViewportSize({ width: 1000, height: 900 }); await settle(500); i = await info();
+  ok(i.cols === 2, 'and two where two fit (1000 px)');
+  await page.setViewportSize({ width: 1500, height: 900 }); await settle(500);
+  // ---- stretch
+  ok(await post('/screen/stretch', { value: true }) === 200, 'Stretch boxes saved');
+  await settle(1500); i = await info();
+  ok(i.bodyMax === 'none' && i.dashW >= 1500 - 2 * 24 - 4, 'stretched: the columns fill the width with a little room at the edges (' + i.dashW + ' px)');
+  ok(i.zoom === '1', 'without Scale content the boxes only get wider (zoom ' + i.zoom + ')');
+  ok(await post('/screen/scale', { value: true }) === 200, 'Scale content saved');
+  await settle(1500); i = await info();
+  const want = ((1500 - 48 - 24) / 3) / 428, fs0 = i.nameFs;
+  ok(Math.abs(parseFloat(i.zoom) - want) < 0.02 && i.zoom !== '1', 'with Scale content the rows and the spacing grow in step with the width of the boxes (--z ' + i.zoom + ', wanted ' + want.toFixed(2) + ')');
+  ok(i.nameFs === '28px' && fs0 === '28px', 'but the text keeps its size (' + i.nameFs + '): Stretch, Scale content and Fit never scale it');
+  ok(Math.abs(i.boxW - (1500 - 48 - 24) / 3) <= 2, 'each box is as wide as its column (' + i.boxW + ' px)');
+  await page.setViewportSize({ width: 420, height: 900 }); await settle(600); i = await info();
+  ok(i.cols === 0 && i.zoom === '1', 'a phone stays one column at its normal size');
+  await page.setViewportSize({ width: 1500, height: 900 }); await settle(600);
+  // ---- Settings in columns, and a pop-up inside a scaled box
+  await page.click('#cog'); await settle(1500); await openMenus(); await settle(300);
+  const sc = await page.evaluate(() => ({ cols: document.querySelectorAll('#set-boxes > .col').length, z: getComputedStyle(document.querySelector('#set-boxes .sec')).zoom }));
+  ok(sc.cols === 3 && sc.z !== '1', 'Settings: six allowed, three fit, stretched and scaled (' + JSON.stringify(sc) + ')');
+  const app = page.locator('[data-box="appearance"]');
+  const pickBtn = app.locator('.srow', { hasText: 'Check-in board colour' }).locator('.colourpick > button'), pickBox = null;
+  await pickBtn.click(); await settle(500);
+  const pickAfter = await pickBtn.boundingBox();
+  const geo = await page.evaluate(() => { const r = document.querySelector('.pop.open').getBoundingClientRect(), w = innerWidth, h = innerHeight;
+    return { dx: Math.round(r.left + r.width / 2 - w / 2), dy: Math.round(r.top + r.height / 2 - h / 2), inside: r.left >= 0 && r.top >= 0 && r.right <= w && r.bottom <= h }; });
+  ok(Math.abs(geo.dx) <= 2 && Math.abs(geo.dy) <= 2 && geo.inside, 'a pop-up in a scaled box is a sheet in the middle of the screen, whole (' + JSON.stringify(geo) + ')');
+  await page.keyboard.press('Escape'); await settle(300);
+  // the rows
+  ok(await app.locator('.srow', { hasText: 'Max columns: dashboard' }).count() === 1 && await app.locator('.srow', { hasText: 'Stretch boxes' }).count() === 1, 'Appearance has the Max columns and Stretch boxes rows');
+  ok(await app.locator('.srow', { hasText: 'Scale content' }).isVisible(), 'Scale content shows while Stretch is on');
+  await page.click('#close-settings'); await settle(400);
+  ok(await post('/screen/stretch', { value: false }) === 200 && await post('/screen', { values: { dash_cols: 1, set_cols: 4 } }) === 200, 'back to the defaults');
+  await settle(1500); await load(); i = await info();
+  ok(i.cols === 0 && i.bodyMax === '460px' && i.zoom === '1', 'and the dashboard is as it was (' + JSON.stringify(i) + ')');
+  // ---- rearranging the main screen
+  await page.setViewportSize({ width: 1500, height: 2000 });
+  const tiles = () => page.evaluate(() => Array.from(document.querySelectorAll('#dash .dbox')).filter(b => b.offsetHeight).map(b => b.getAttribute('data-box')));
+  // the columns as they are: the tile ids in each column, top to bottom (one list when the dashboard has one column)
+  const cols = () => page.evaluate(() => { const d = document.getElementById('dash'), cs = Array.from(d.querySelectorAll(':scope > .dcol')), ids = box => Array.from(box.querySelectorAll(':scope > .dbox')).filter(b => b.offsetHeight).map(b => b.getAttribute('data-box')); return cs.length ? cs.map(ids) : [ids(d)]; });
+  const modList = () => page.evaluate(() => fetch('/modules').then(r => r.json()).then(j => j.modules.map(m => m.name + ':' + m.group)));
+  ok((await page.locator('#dash .tilegrip:visible').count()) === 0, 'no handles on the tiles until the setting is on');
+  ok(await post('/screen/drag', { value: true }) === 200, 'Rearrange the main screen saved');
+  await settle(1500);
+  const n0 = (await tiles()).length;
+  ok(n0 >= 4 && await page.locator('#dash .tilegrip:visible').count() === n0, 'every tile has a handle (' + n0 + ')');
+  const drag = async (fromId, toId, below) => {
+    const g = await page.evaluate(id => { const t = document.querySelector('#dash .dbox[data-box="' + id + '"] .tilegrip').getBoundingClientRect(); return { x: t.left + t.width / 2, y: t.top + t.height / 2 }; }, fromId);
+    const d = await page.evaluate(([id, below]) => { const r = document.querySelector('#dash .dbox[data-box="' + id + '"]').getBoundingClientRect(); return { x: r.left + r.width / 2, y: below ? r.bottom - 4 : r.top + 4 }; }, [toId, !!below]);
+    await page.mouse.move(g.x, g.y); await page.mouse.down(); await page.mouse.move((g.x + d.x) / 2, (g.y + d.y) / 2, { steps: 4 }); await page.mouse.move(d.x, d.y, { steps: 4 });
+    const bar = await page.evaluate(() => getComputedStyle(document.querySelector('.dropbar')).display);
+    await page.mouse.up(); await settle(1200); return bar;
+  };
+  let before = (await cols())[0];
+  const bar = await drag(before[before.length - 1], before[0], false);
+  let after = (await cols())[0];
+  ok(bar === 'block', 'a bar shows where the tile will land');
+  ok(after[0] === before[before.length - 1] && after.slice(1).join() === before.slice(0, -1).join(), 'one column: dragging the last tile above the first moves it to the top (' + after.join(' ') + ')');
+  const mods = await modList();
+  ok(mods.map(x => x.split(':')[1]).join('').match(/^0*1*2*$/) !== null, 'the modules stay grouped: dashboard ones, settings-only ones, backgrounds (' + mods.join(' ') + ')');
+  await load(); await settle(800);
+  ok((await cols())[0].join() === after.join(), 'after a reload the tiles are where they were put');
+  // in several columns: a tile keeps the column and the place in it where it is dropped, and the others do not move
+  await post('/screen', { values: { dash_cols: 3, set_cols: 4 } }); await load(); await settle(500);
+  const where = list => { const m = {}; list.forEach((c, ci) => c.forEach((id, k) => { m[id] = ci + ':' + k; })); return m; };
+  let c3 = await cols();
+  ok(c3.length === 3 && c3.every(c => c.length > 0), 'three columns with tiles in each (' + JSON.stringify(c3) + ')');
+  const mover = c3[0][0], target = c3[2][c3[2].length - 1];
+  await drag(mover, target, true);
+  let c3b = await cols();
+  ok(c3b[2][c3b[2].length - 1] === mover && c3b[2].length === c3[2].length + 1, 'dropped below the last tile of the third column: it is the last tile of the third column (' + JSON.stringify(c3b) + ')');
+  ok(c3b[0].join() === c3[0].slice(1).join() && c3b[1].join() === c3[1].join() && c3b[2].slice(0, -1).join() === c3[2].join(), 'and no other tile changed column or place');
+  await load(); await settle(800);
+  ok(JSON.stringify(await cols()) === JSON.stringify(c3b), 'after a reload they are where they were put');
+  const kept = await page.evaluate(() => fetch('/api').then(r => r.json()).then(d => d.tile_layout['3'])), shownNow = [].concat.apply([], c3b);
+  ok(JSON.stringify(kept.map(c => c.filter(id => shownNow.includes(id)))) === JSON.stringify(c3b), 'the host keeps the places (so another screen shows the same)');
+  // into the middle of a column
+  const mid = c3b[1][0], mover2 = c3b[2][c3b[2].length - 1];
+  await drag(mover2, mid, true);
+  let c3c = await cols();
+  ok(c3c[1][1] === mover2 && c3c[1][0] === mid, 'dropped below the first tile of the second column: it is the second tile there (' + JSON.stringify(c3c) + ')');
+  // one column again, then three: each count keeps its own places
+  await post('/screen', { values: { dash_cols: 1 } }); await load(); await settle(500);
+  ok((await cols())[0].join() === after.join(), 'with one column again the earlier places of one column are back');
+  await post('/screen', { values: { dash_cols: 3 } }); await load(); await settle(500);
+  ok(JSON.stringify(await cols()) === JSON.stringify(c3c), 'and with three columns again the places of three columns');
+  // the keyboard: right = the next column at the same height, down = one place down
+  const first = (await cols())[0][0];
+  await page.locator('#dash .dbox[data-box="' + first + '"] .tilegrip').focus(); await page.keyboard.press('ArrowRight'); await settle(1000);
+  let c3d = await cols();
+  ok(c3d[1][0] === first && c3d[0].length === c3c[0].length - 1, 'the right arrow moves a tile to the next column (' + JSON.stringify(c3d) + ')');
+  await page.locator('#dash .dbox[data-box="' + first + '"] .tilegrip').focus(); await page.keyboard.press('ArrowDown'); await settle(1000);
+  ok((await cols())[1][1] === first, 'and the down arrow one place down');
+  ok(await post('/screen/drag', { value: false }) === 200, 'switched off again'); await settle(1500);
+  ok(await page.locator('#dash .tilegrip:visible').count() === 0, 'and the handles are gone');
+  await post('/screen', { values: { dash_cols: 1, set_cols: 4 } });
+  // ---- the PIN on Settings
+  ok(await post('/settings-pin', { value: true }) === 409, 'the lock cannot be turned on without a PIN');
+  await post('/screen/drag', { value: true });
+  ok(await post('/pin', { pin: '4821' }) === 200 && await post('/settings-pin', { value: true }) === 200, 'a PIN is set and Settings is locked');
+  await load();
+  ok(await page.locator('#dash .tilegrip:visible').count() === 0, 'while Settings is locked the tiles have no handles (moving them would change settings)');
+  await page.click('#cog'); await enterPin('0000'); await settle(900);
+  ok(pinDialogs === 1 && alerts.length === 1 && !(await page.evaluate(() => document.getElementById('settings').classList.contains('open'))), 'a wrong PIN does not open Settings (' + alerts[0] + ')');
+  await page.click('#cog'); await enterPin('4821'); await settle(1500);
+  ok(await page.evaluate(() => document.getElementById('settings').classList.contains('open')), 'the right PIN opens it');
+  await page.click('#close-settings'); await settle(400);
+  const asked0 = pinDialogs; await page.click('#cog'); await enterPin('4821'); await settle(1000);
+  ok(pinDialogs === asked0 + 1, 'closing Settings locks it again: the cog asks again');
+  await page.click('#close-settings'); await settle(300);
+  await page.click('#cog'); await page.waitForSelector('.pinm .pinkey');
+  ok(await page.locator('.pinm .pinkey').evaluateAll(els => els.length === 12 && els.every(e => getComputedStyle(e).borderRadius === '50%' || parseFloat(getComputedStyle(e).borderRadius) >= e.getBoundingClientRect().width / 2)), 'the PIN pad keys are round');
+  await page.keyboard.press('Escape'); await settle(200);
+  ok(await page.locator('.pinm').count() === 0, 'Esc closes the PIN pad');
+  ok(await post('/colour', { module: 'checkin', key: 'checkin', colour: 'blue' }) === 401, 'a request for a setting without the PIN is refused by the service');
+  ok(await post('/checkin/toggle', { id: 'nobody' }) === 400, 'tapping people in and out still works without it (answered, not refused)');
+  await post('/screen/drag', { value: false }, '4821');
+  ok(await post('/pin', { pin: '' }, '4821') === 200 && await post('/colour', { module: 'checkin', key: 'checkin', colour: 'blue' }) === 200, 'removing the PIN removes the lock');
+  // ---- fit to screen: the main screen is as big as it can be without scrolling
+  const room = () => page.evaluate(() => { const d = document.getElementById('dash').getBoundingClientRect(); return { z: parseFloat(document.getElementById('dash').style.getPropertyValue('--z')), bottom: Math.round(d.bottom + scrollY + 24), vh: innerHeight, scroll: document.documentElement.scrollHeight - innerHeight }; });
+  await page.setViewportSize({ width: 600, height: 3000 }); await load(); let f = await room();
+  ok(f.z === 1 && f.bottom < f.vh - 300, 'a tall window leaves empty space at the bottom without it (' + JSON.stringify(f) + ')');
+  ok(await post('/screen/fit', { value: true }) === 200, 'Fit to screen saved'); await settle(1800); f = await room();
+  ok(f.z > 1.1 && f.bottom <= f.vh && f.vh - f.bottom < 60 && f.scroll <= 12, 'the page is scaled up until its bottom reaches the bottom of the window, with no scrolling (' + JSON.stringify(f) + ')');
+  await page.setViewportSize({ width: 600, height: 2600 }); await settle(1500); const f2 = await room();
+  ok(f2.z < f.z && f2.bottom <= f2.vh && f2.vh - f2.bottom < 60, 'a shorter window gets a smaller scale (' + f2.z.toFixed(2) + ' < ' + f.z.toFixed(2) + ')');
+  await page.setViewportSize({ width: 420, height: 300 }); await settle(1500); const f3 = await room();
+  ok(f3.z === 1, 'a window too small for the page is not shrunk: it scrolls as usual (zoom ' + f3.z + ')');
+  await page.setViewportSize({ width: 1500, height: 900 }); await settle(1500); const f4 = await room();
+  ok(f4.z >= 1 && f4.bottom <= Math.max(f4.vh, f4.bottom), 'a wide window keeps its columns');
+  ok(await post('/screen/fit', { value: false }) === 200, 'Fit to screen switched off'); await settle(1800);
+  ok((await room()).z === 1, 'and the scale is back to 1');
+  // ---- the theme
+  const look = () => page.evaluate(() => ({ theme: document.documentElement.getAttribute('data-theme'), bg: getComputedStyle(document.body).backgroundColor, ink: getComputedStyle(document.body).color,
+    box: getComputedStyle(document.querySelector('.rp-box')).backgroundColor }));
+  let t = await look();
+  ok(t.theme === 'dark' && t.bg === 'rgb(17, 17, 17)', 'dark is the default (' + t.bg + ')');
+  ok(await post('/screen', { values: { theme: 'light' } }) === 200, 'the theme is saved'); await load(); t = await look();
+  ok(t.theme === 'light' && t.bg === 'rgb(236, 238, 242)' && t.ink === 'rgb(27, 28, 32)' && t.box === 'rgb(236, 236, 236)', 'light: a light page with dark ink, and a light grey box (' + JSON.stringify(t) + ')');
+  ok(await post('/screen', { values: { theme: 'auto' } }) === 200, 'auto is saved');
+  await page.emulateMedia({ colorScheme: 'light' }); await load(); t = await look();
+  ok(t.theme === 'light', 'auto follows a light device');
+  await page.emulateMedia({ colorScheme: 'dark' }); await settle(500); t = await look();
+  ok(t.theme === 'dark', 'and goes dark when the device does, without a reload');
+  await post('/screen', { values: { theme: 'light' } }); await settle(1500);
+  ok((await look()).theme === 'light', 'a change made elsewhere shows without a reload');
+  await post('/screen', { values: { theme: 'dark' } }); await page.emulateMedia({ colorScheme: null }); await settle(1500);
+  // ---- a setting that was saved is shown everywhere at once: after any successful POST the page asks /api again (not when its timer runs out)
+  await load(); await settle(1500);
+  let askedApi = 0; page.on('request', r => { if (/\/api(\?|$)/.test(r.url())) askedApi++; });
+  askedApi = 0;
+  await page.evaluate(() => new Promise(res => post('/screen/drag', { value: false }, res))); await settle(700);
+  ok(askedApi >= 1, 'a saved setting makes the page ask /api again at once (' + askedApi + ')');
+  // switching "Ask for the PIN" on with no PIN set asks for a new one on the PIN pad, then locks Settings
+  await load(); await page.click('#cog'); await settle(900);
+  await page.locator('[data-box="system"] .srow:has-text("Ask for the PIN") input[type=checkbox]').click(); await enterPin('7315'); await enterPin('7315'); await settle(1200);
+  ok(await page.evaluate(() => fetch('/api').then(r => r.json())).then(d => d.settings_pin.on && d.settings_pin.pin), 'switching the Settings lock on without a PIN asks for one on the PIN pad, and locks');
+  ok(await post('/settings-pin', { value: false }, '7315') === 200 && await post('/pin', { pin: '' }, '7315') === 200, 'and it can be undone with that PIN');
+  ok(errors.length === 0, 'no JavaScript or console errors' + (errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''));
+  await browser.close();
+  console.log(failed ? failed + ' check(s) failed' : 'all checks passed');
+  process.exit(failed ? 1 : 0);
+})();

@@ -1,0 +1,12 @@
+{
+ "name": "Background image",
+ "description": "Use a picture as the page's background.",
+ "enabled": false,
+ "visible": true,
+ "order": 18,
+ "ui": 2,
+ "web": "imagebg_web",
+ "toggle_box": "appearance",
+ "toggle_in": "background",
+ "short": "Image"
+}

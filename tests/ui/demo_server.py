@@ -1,0 +1,61 @@
+"""Demo server for looking at the page and for the browser checks (audit.js, functional.js ...): the real web service on a sandbox (all paths
+in a temp dir), with the 25 people of tests/ui/people.csv imported. Switches via environment:
+IN=n (the first n people start checked in, one of them with a status),
+FAKEUPDATE=1 (fake GitHub: an update is available; FAKELOG=1 adds a failed update with a messy log),
+IMGBG=1 (the Background image module on), EMPTY=1 (no people imported), PEOPLE=file.csv (another roster),
+OFF=clock,... (modules switched off in the module picker; OFF=all = every module the picker can switch, only the always-on ones stay),
+PIN=1234 (a PIN for update / restart / import; restart is faked), PORT=n (default 8734)."""
+import sys, os, threading, time, json
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
+from support import web, core, sandbox
+import contacts_web as contacts
+import checkin_web as checkin
+tmp = sandbox(contacts, checkin)
+if not os.environ.get("EMPTY"):
+    with open(os.environ.get("PEOPLE") or os.path.join(os.path.dirname(os.path.abspath(__file__)), "people.csv"), encoding="utf-8") as f:
+        contacts.import_csv(f.read())
+    n = int(os.environ.get("IN", "0"))
+    if n:
+        people = [p for g in checkin.snapshot()["groups"] for p in g["people"]]
+        for p in people[:n]: checkin.toggle(p["id"])
+        if n > 2: checkin.set_status(people[1]["id"], "LATE", "08:15"); checkin.set_status(people[2]["id"], "SICK")
+import shutil
+shutil.copytree(os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))), "base", "sounds"), core.SOUNDS_DIR, dirs_exist_ok=True)      # the shipped button sounds
+if os.environ.get("IMGBG"): core.save_module_enabled("imagebg", True)
+if os.environ.get("LANG_UI"): core.save_language(os.environ["LANG_UI"])      # the page language (the browser checks read English unless this is "sv")
+if os.environ.get("FAKEUPDATE"):
+    import subprocess
+    import rebootupdate_update as up
+    src = os.path.join(tmp, "checkout"); os.mkdir(src)
+    open(up.UPDATE_ORIGIN, "w").write("https://github.com/blaskkaffe/CheckinChicken.git\n"); open(up.UPDATE_BRANCH, "w").write("main\n")      # what install.sh records
+    open(up.ADDON_SRC, "w").write(src); open(up.ADDON_COMMIT, "w").write("a"*40)
+    open(up.VERSION_FILE, "w").write("2026-09-30 12:00 (aaaaaaa)")
+    def fake(url):
+        if "/commits/" in url: return json.dumps({"sha": "b"*40, "commit": {"committer": {"date": "2026-10-02T10:00:00Z"}}})
+        if "/compare/" in url: return json.dumps({"status": "ahead", "ahead_by": 4})
+        return ""
+    up.fetch = fake
+    up._spawn = lambda mode: open(up.UPDATE_STATUS, "w").write("running")
+    if os.environ.get("USB"):          # a USB stick with an update folder (the install itself is faked like the GitHub one)
+        stick = os.path.join(tmp, "media", "STICK", "update")
+        os.makedirs(os.path.join(stick, "base")); os.makedirs(os.path.join(stick, "modules"))
+        open(os.path.join(stick, "base", "base_web.py"), "w").close(); open(os.path.join(stick, "install.sh"), "w").write("#!/bin/sh\n")
+        up.USB_ROOTS = [os.path.join(tmp, "media", "*")]
+    if os.environ.get("FAKELOG"):      # a finished update with a messy log: long lines, colour codes, progress
+        open(up.UPDATE_STATUS, "w").write("failed")
+        open(up.UPDATE_LOG, "w").write("Updating /home/user/checkout from origin/main\nFrom https://github.com/blaskkaffe/CheckinChicken\n"
+            " * branch            main       -> FETCH_HEAD\nReceiving objects:  10%\rReceiving objects: 100% (42/42), done.\n"
+            "Updating 3baa024..21d1ad8\nFast-forward\n page/widgets.js | 84 ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++\n"
+            " 4 files changed, 64 insertions(+), 37 deletions(-)\n\x1b[31mERROR\x1b[0m: could not write /etc/systemd/system/checkin-board.service (Read-only file system)\n"
+            "A_very_long_unbroken_path_/opt/checkin-board/page/widgets_and_more_and_more_and_more_and_more.js\nfailed\n")
+if os.environ.get("OFF"):         # modules switched off, as from the module picker (the always-on ones can't be)
+    for name in (core.module_names() if os.environ["OFF"] == "all" else os.environ["OFF"].split(",")):
+        core.save_module_enabled(name, False)
+    web.refresh_page(force=True)
+if os.environ.get("PIN"):
+    import base_security
+    base_security.set_pin(os.environ["PIN"])
+    __import__("rebootupdate_web")._spawn_reboot = lambda: None
+print("state dir", tmp, flush=True)
+srv = web.Server(('127.0.0.1', int(os.environ.get('PORT', '8734'))), web.Handler)
+srv.serve_forever()

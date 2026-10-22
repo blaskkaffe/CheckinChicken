@@ -1,0 +1,78 @@
+{
+ "settings": [
+  {
+   "box": "system",
+   "title": "System",
+   "items": [
+    {
+     "type": "info",
+     "source": "/about",
+     "order": 10
+    },
+    {
+     "type": "row",
+     "order": 20,
+     "title": "GitHub",
+     "sub": "Source, instructions and updates",
+     "control": {
+      "type": "link",
+      "label": "Open",
+      "href": "https://github.com/blaskkaffe/CheckinChicken",
+      "aria": "Open the project on GitHub"
+     }
+    },
+    {
+     "type": "divider",
+     "order": 30
+    },
+    {
+     "type": "form",
+     "order": 45,
+     "get": "/timezone",
+     "post": "/timezone",
+     "fields": [
+      {
+       "title": "Time zone",
+       "sub_text": "zone",
+       "controls": [
+        {
+         "type": "select",
+         "key": "zone",
+         "options": "zones",
+         "label": "Time zone"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "type": "divider",
+     "order": 51
+    },
+    {
+     "type": "text",
+     "text": "A backup is one file with the people, the statuses, who is in, the colours, the screen settings and the profile photos. PINs and the HTTPS key are not in it.",
+     "order": 52
+    },
+    {
+     "type": "row",
+     "order": 53,
+     "title": "Back up",
+     "sub": "Download the settings as a zip file",
+     "control": {
+      "type": "link",
+      "href": "/backup",
+      "label": "Download",
+      "aria": "Download a backup"
+     }
+    },
+    {
+     "type": "custom",
+     "order": 54,
+     "name": "system-restore",
+     "html_file": "restore.html"
+    }
+   ]
+  }
+ ]
+}

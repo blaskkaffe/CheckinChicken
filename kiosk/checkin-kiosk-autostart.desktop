@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=Check-in board
+Exec=/opt/checkin-board/kiosk/kiosk-browser.sh
+X-GNOME-Autostart-enabled=true
+
+# --- Install (most Linux desktops) ---
+#   mkdir -p ~/.config/autostart
+#   cp checkin-kiosk-autostart.desktop ~/.config/autostart/
+#   Edit the Exec= line above if this screen is not the host: add the host's address, for example
+#     Exec=/opt/checkin-board/kiosk/kiosk-browser.sh 192.168.1.20
+#   (copy the kiosk/ folder to the screen's computer; it only needs Chromium).
