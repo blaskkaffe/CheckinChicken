@@ -1,5 +1,7 @@
 {
  "strings": {
+  "Can be planned in a person's schedule": "Kan planeras i en persons schema",
+  "not in the schedule": "inte i schemat",
   "Schedule": "Schema",
   "Status": "Status",
   "When": "När",

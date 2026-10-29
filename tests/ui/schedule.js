@@ -47,6 +47,8 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
     const last = await inView(day(4));
     if (await last.count()) ok((await last.getAttribute('class')).includes(' f'), 'and the last day is the end of it');
   }
+  const menuCount = (await api()).checkin.statuses.length;
+  ok(await page.locator('.rp-scst button').count() === menuCount && await page.locator('.rp-scst.rp-opts').count() === 1, 'the schedule offers the same statuses as the status menu (' + menuCount + '), as the same buttons');
   ok(await page.locator('.rp-scrow').count() === 1 && /Semester/.test(await page.locator('.rp-scrow').textContent()), 'the planned status is in the list');
   ok(/one planned status/.test(await page.locator('.rp-sclegend').textContent()), 'a note says that a band across days is one status');
 
@@ -56,7 +58,7 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   const target = day(8);
   const t = new Date(target + 'T12:00:00'), now = new Date(today + 'T12:00:00');
   if (t.getMonth() !== now.getMonth()) await page.locator('[data-sc=next]').click();
-  await page.locator('[data-day="' + target + '"]').click(); await page.locator('[data-day="' + day(9) + '"]').click().catch(() => {});
+  await page.locator('.rp-sdb[data-day="' + target + '"]').click(); await page.locator('.rp-sdb[data-day="' + day(9) + '"]').click().catch(() => {});
   ok(!(await page.locator('[data-sc=add]').isDisabled()), 'a status and a day is enough for Add');
   await page.locator('[data-sc=t0]').click(); await settle(300);
   ok(await page.locator('.rp-modal3 .rp-wb[data-seg=time]').count() === 1, 'the start time is the same time page');
@@ -69,9 +71,18 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
 
   // ---- only one status at a time
   await page.locator('.rp-scst button', { hasText: 'VAB' }).click();
-  await page.locator('[data-day="' + target + '"]').click(); await page.locator('[data-day="' + target + '"]').click();
+  await page.locator('.rp-sdb[data-day="' + target + '"]').click(); await page.locator('.rp-sdb[data-day="' + target + '"]').click();
   await page.locator('[data-sc=add]').click(); await settle(700);
   ok(/only one status at a time/.test(await page.locator('.rp-sched .rp-cmsg').textContent()) && (await view()).entries.length === 2, 'a status that overlaps another is refused with a message');
+
+  // ---- a status can be left out of the schedule (Settings > Statuses > the status > Can be planned in a person's schedule)
+  const all = (await api()).checkin.statuses;
+  await post('/checkin/statuses', { statuses: all.map(x => Object.assign({}, x, { schedule: x.label !== 'Sjuk' && x.label !== 'VAB' })) });
+  await page.keyboard.press('Escape'); await settle(300); await openSchedule();
+  ok(await page.locator('.rp-scst button').count() === menuCount - 2 && await page.locator('.rp-scst button', { hasText: 'VAB' }).count() === 0, 'a status that is switched off in Settings is not in the schedule (' + (menuCount - 2) + ' left)');
+  ok(await page.locator('.rp-scrow', { hasText: 'Sjuk' }).count() === 1, 'what was planned with it stays in the list');
+  await post('/checkin/statuses', { statuses: all });
+  await page.keyboard.press('Escape'); await settle(300); await openSchedule();
 
   // ---- delete
   await page.locator('.rp-scrow', { hasText: 'Sjuk' }).locator('[data-sc=del]').click(); await settle(700);

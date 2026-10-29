@@ -127,12 +127,12 @@ def statuses(data=None):
         out.append({"code": s["code"], "label": str(s.get("label") or s["code"])[:30], "colour": _palette_id(s.get("colour"), "white"),
                     "needs": _needs(s.get("needs")), "default": str(s.get("default") or "")[:5],
                     "prefix": _prefix(s.get("prefix"), _needs(s.get("needs"))), "out": bool(s.get("out")), "sticky": bool(s.get("sticky")),
-                    "dots": _dots(s.get("dots"))})
+                    "dots": _dots(s.get("dots")), "schedule": s.get("schedule") is not False})
     return out[:16]
 
 
 def save_statuses(items):
-    """Replace the status menu (Settings > Statuses): a list of {code?, label, colour, needs, default, prefix, out, sticky, dots}. A status without a
+    """Replace the status menu (Settings > Statuses): a list of {code?, label, colour, needs, default, prefix, out, sticky, dots, schedule}. A status without a
     code (a new one) gets a fresh one. Returns the cleaned list, None when it is not a list or a label is missing. People who have a status that is
     no longer in the list simply show none."""
     if not isinstance(items, list) or len(items) > 16 or not all(isinstance(x, dict) for x in items):
@@ -155,7 +155,7 @@ def save_statuses(items):
             out.append({"code": code, "label": label, "colour": _palette_id(x.get("colour"), "white"),
                         "needs": _needs(x.get("needs")),
                         "default": d if re.match(r"^([01]?\d|2[0-3]):[0-5]\d$", d) else "", "prefix": _prefix(x.get("prefix"), _needs(x.get("needs"))),
-                        "out": bool(x.get("out")), "sticky": bool(x.get("sticky")), "dots": _dots(x.get("dots"))})
+                        "out": bool(x.get("out")), "sticky": bool(x.get("sticky")), "dots": _dots(x.get("dots")), "schedule": x.get("schedule") is not False})
         seen = set()
         for x in out:
             if x["code"] in seen:
@@ -257,7 +257,6 @@ def _status_text(st, detail):
 # Only one status at a time: a new one may not overlap another. An entry: {"id", "code", "start": "YYYY-MM-DD", "start_time": "HH:MM" | "" (= from the start of
 # the day), "end": "YYYY-MM-DD", "end_time": "HH:MM" | "" (= to the end of the day)}. Times are the wall clock of the common time zone (Settings > System).
 MAX_ENTRIES = 40
-SCHEDULE_NEEDS = ("", "date", "datetime")       # statuses that can be planned: the end of the entry is their date, a time of day or a note is not a thing to plan
 _DATE = re.compile(r"^(\d{4})-(\d\d)-(\d\d)$")
 _TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
 
@@ -319,9 +318,12 @@ def active_entry(entries, now_text):
 
 
 def _entry_text(st, e):
-    """What a planned status says on the board: the status, and for one that asks for a date the day it ends (the day after the last day when no time is given)."""
-    if not st or st["needs"] not in ("date", "datetime"):
+    """What a planned status says on the board besides its name: for one that asks for a date the day it ends (the day after the last day when no time is given),
+    for one that asks for a time the time it ends (its usual time when none is given), for a note nothing."""
+    if not st or st["needs"] in ("", "note"):
         return ""
+    if st["needs"] == "time":
+        return _clean_detail(st, e["end_time"])
     _a, until = span(e)
     day, clock = until.split(" ")
     detail = day + (" " + clock if st["needs"] == "datetime" and e["end_time"] else "")
@@ -349,7 +351,7 @@ def schedule_view(pid):
             return None
         now_text = now_local()
         return {"today": now_text[:10], "now": now_text[11:], "entries": [e for e in _plan_view(data, pid, now_text) if not e["past"]],
-                "statuses": [{"code": x["code"], "label": x["label"], "colour": x["colour"]} for x in statuses(data) if x["needs"] in SCHEDULE_NEEDS]}
+                "statuses": [{"code": x["code"], "label": x["label"], "colour": x["colour"]} for x in statuses(data) if x["schedule"]]}      # the status menu, less what is switched off for the schedule
 
 
 def schedule_add(pid, code, start, end, start_time="", end_time=""):
@@ -364,7 +366,7 @@ def schedule_add(pid, code, start, end, start_time="", end_time=""):
         if not _person_known(pid):
             return None, "Unknown person"
         st = next((x for x in statuses(data) if x["code"] == code), None)
-        if st is None or st["needs"] not in SCHEDULE_NEEDS:
+        if st is None or not st["schedule"]:
             return None, "That status can not be planned"
         new = {"id": "%08x" % (int.from_bytes(os.urandom(4), "big")), "code": code, "start": start, "start_time": start_time, "end": end, "end_time": end_time}
         a, b = span(new)

@@ -702,7 +702,7 @@ function onScreenKeys(o){
   if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing)return;var t=e.target&&e.target.tagName;if(t==="INPUT"||t==="TEXTAREA"||t==="SELECT")return;
   var k=e.key;if(k==="Backspace"){typed("back");draw();e.preventDefault();return}
   if(k==="Enter"){if(el._done){el._done();e.preventDefault()}return}
-  if(Array.from(k).length!==1||layer==="emoji")return;typed(k);draw();e.preventDefault()}
+  if(Array.from(k).length!==1)return;typed(k);draw();e.preventDefault()}
  document.addEventListener("keydown",physical,true);
  el.value=function(){return txt};
  render();return el}
@@ -933,7 +933,7 @@ W.roster=function(s,ctx){
    '<div class="rp-wn">Schedule</div><div class="rp-wl">'+esc(p?p.name:"")+'</div>'+
    '<div class="rp-scgrid"><div class="rp-sccal"><div class="rp-calh"><button type="button" class="pill-s rp-calb" data-sc="prev" aria-label="Previous month">‹</button><span class="rp-calt" aria-live="polite">'+CAL_MONTHS[sc.mo]+' '+sc.y+'</span><button type="button" class="pill-s rp-calb" data-sc="next" aria-label="Next month">›</button></div>'+
    '<div class="rp-scg">'+cells+'</div><div class="sub rp-sclegend">A coloured band across several days is one planned status.</div></div>'+
-   '<div class="rp-scside"><div class="rp-nl">Status</div><div class="rp-scst">'+sts+'</div>'+
+   '<div class="rp-scside"><div class="rp-nl">Status</div><div class="rp-opts rp-scst">'+sts+'</div>'+
    '<div class="rp-nl">When</div><div class="sub rp-scask">'+(!sc.a?'Tap the first day in the calendar.':!sc.b?'Tap the last day too, or press Add for this one day.':'Tap another day to start again.')+'</div>'+
    '<div class="rp-screng"><span class="rp-scrl">From</span><span class="rp-scrv">'+(sc.a?whenDay(lo):'‒')+'</span><button type="button" class="pill-s rp-sct" data-sc="t0">'+(sc.t0||'Start of the day')+'</button>'+
    '<span class="rp-scrl">Until</span><span class="rp-scrv">'+(sc.b?whenDay(hi):'‒')+'</span><button type="button" class="pill-s rp-sct" data-sc="t1">'+(sc.t1||'End of the day')+'</button></div>'+

@@ -6,7 +6,7 @@ custom("checkin-statuses",function(host){var box=host.querySelector(".cstatuses"
  document.body.appendChild(modal);
  var NEEDS=[["","Nothing"],["time","A time"],["date","A date"],["datetime","A date and a time"],["note","A note (free text)"]];
  function colours(){return PAL()}
- function summary(s){var t=[];if(s.needs)t.push({time:"asks for a time",date:"asks for a date",datetime:"asks for a date and a time",note:"asks for a note"}[s.needs]);if(s.out)t.push("checks out");if(s.sticky)t.push("sticky");if(s.dots)t.push(s.dots+" dot"+(s.dots>1?"s":""));return t.map(function(x){return tr(x)}).join(" · ")}      // each part is translated, then joined
+ function summary(s){var t=[];if(s.needs)t.push({time:"asks for a time",date:"asks for a date",datetime:"asks for a date and a time",note:"asks for a note"}[s.needs]);if(s.out)t.push("checks out");if(s.sticky)t.push("sticky");if(s.schedule===false)t.push("not in the schedule");if(s.dots)t.push(s.dots+" dot"+(s.dots>1?"s":""));return t.map(function(x){return tr(x)}).join(" · ")}      // each part is translated, then joined
  function save(list,done){post("/checkin/statuses",{statuses:list},function(r,st,b){if(r&&r.ok){refresh();if(done)done(true,b)}else if(done)done(false,b)})}
  // the list is edited in a pop-up like the Modules menu: tap a status to change it, drag its handle to move it (the order is the order of the buttons in the status menu)
  var ed=orderEditor(box,{title:"Statuses",help:"Tap a status to change it, drag the handle to move it. The order is the order of the buttons in the status menu on the board.",
@@ -16,7 +16,7 @@ custom("checkin-statuses",function(host){var box=host.querySelector(".cstatuses"
   onOrder:function(ids){var by={};items.forEach(function(s){by[s.code]=s});save(ids.map(function(c){return by[c]}).filter(Boolean))}});
  function paint(list){items=list||[];ed.set(items)}
  function field(label,inner,id){return '<label class="rp-nl" data-row="'+id+'">'+label+inner+'</label>'}
- function edit(i){editing=i;var s=i>=0?items[i]:{label:"",colour:"blue",needs:"",out:false,sticky:false,dots:0,prefix:"",default:""};
+ function edit(i){editing=i;var s=i>=0?items[i]:{label:"",colour:"blue",needs:"",out:false,sticky:false,schedule:true,dots:0,prefix:"",default:""};
   modal.innerHTML='<div class="rp-sheet rp-need2" role="dialog" aria-modal="true" aria-label="'+(i>=0?"Edit "+esc(s.label):"New status")+'"><button type="button" class="rp-x" data-close="1" title="Close" aria-label="Close">&#10005;</button>'+
    '<div class="rp-wn">'+(i>=0?esc(s.label):"New status")+'</div>'+
    field("Name",'<input class="rp-big" type="text" data-f="label" maxlength="30" value="'+esc(s.label)+'">',"label")+
@@ -27,6 +27,7 @@ custom("checkin-statuses",function(host){var box=host.querySelector(".cstatuses"
    field("Dots next to the name",'<span class="optrow" role="group" aria-label="Dots next to the name" data-f="dots" data-v="'+(s.dots||0)+'">'+[0,1,2,3].map(function(n){return '<button type="button" class="pill-s'+(n===(s.dots||0)?" on":"")+'" data-dot="'+n+'" aria-pressed="'+(n===(s.dots||0))+'">'+(n?n:"None")+'</button>'}).join("")+'</span>',"dots")+
    '<label class="rp-nl rp-chk"><input type="checkbox" class="cbox neutral" data-f="out"'+(s.out?" checked":"")+'> Counts as out (the person is checked out)</label>'+
    '<label class="rp-nl rp-chk"><input type="checkbox" class="cbox neutral" data-f="sticky"'+(s.sticky?" checked":"")+'> Sticky: stays when INNE / UTE is pressed</label>'+
+   '<label class="rp-nl rp-chk"><input type="checkbox" class="cbox neutral" data-f="schedule"'+(s.schedule!==false?" checked":"")+'> Can be planned in a person\'s schedule</label>'+
    '<div class="rp-cmsg sub" aria-live="polite"></div><div class="rp-nb rp-nb3">'+(i>=0?'<button type="button" class="pill-s danger rp-so" data-del="1">Delete</button>':'<span></span>')+'<button type="button" class="pill-s rp-so" data-close="1">Cancel</button><button type="button" class="pill-s pri rp-so c-green" data-save="1">Save</button></div></div>';
   trDom(modal);modal.style.display="";shows();var f0=modal.querySelector("input");if(f0&&f0.focus)f0.focus()}
  function shows(){var n=modal.querySelector('[data-f=needs]').value,pf=modal.querySelector('[data-f=prefix]'),dflt={time:"kl",date:"till",datetime:"till",note:"info:"};

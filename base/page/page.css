@@ -277,7 +277,7 @@
  .rp-sd.e{background:rgba(var(--primary-rgb),.82)} .rp-sd.e .rp-sdb,.rp-sd.p .rp-sdb{color:#fff;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.55)}
  .rp-sd.p{background:rgba(var(--primary-rgb),.45)} .rp-sd.p:not([class*=" c-"]){background:var(--ctl-line)} .rp-sd.pe .rp-sdb{box-shadow:inset 0 0 0 3px var(--text-1)}
  .rp-sd.past:not(.e) .rp-sdb{opacity:.45} .rp-sd.today .rp-sdb{box-shadow:inset 0 0 0 3px var(--link)} .rp-sd.today.pe .rp-sdb{box-shadow:inset 0 0 0 3px var(--text-1)}
- .rp-sclegend{margin-top:10px} .rp-scst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px} .rp-scst .rp-so{min-height:48px;font-size:1em}
+ .rp-sclegend{margin-top:10px} .rp-scst{margin-top:6px} .rp-scst .rp-so{min-height:56px}      /* the buttons of the status menu: the same ones, three in a row */
  .rp-scask{margin-top:4px} .rp-screng{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px 12px;margin-top:10px} .rp-scrl{color:var(--text-2)} .rp-scrv{font-weight:600}
  .rp-screng .rp-sct{grid-column:1 / -1;justify-content:center;min-height:44px} .rp-scadd{width:100%;margin-top:6px}
  .rp-sclist{display:flex;flex-direction:column;gap:8px;margin-top:8px} .rp-scrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap} .rp-scpill{flex:none;cursor:default}

@@ -144,6 +144,13 @@ class ScheduleTests(Base):
     def anna(self):
         return self.people()["Anna Svensson"]
 
+    def switch_off(self, label):
+        items = checkin.statuses()
+        for x in items:
+            if x["label"] == label:
+                x["schedule"] = False
+        self.assertIsNotNone(checkin.save_statuses(items))
+
     def code(self, label):
         return next(s["code"] for s in checkin.statuses() if s["label"] == label)
 
@@ -182,6 +189,25 @@ class ScheduleTests(Base):
         self.assertEqual(checkin.schedule_add(self.pid, self.code("Sjuk"), "2026-11-14", "2026-11-14")[1], "")           # the day after is free
         self.assertEqual(checkin.schedule_add(self.pid, self.code("VAB"), "2026-11-10", "2026-11-10", "09:00", "10:00")[1].split(" (")[0], "That overlaps Semester")
 
+    def test_every_status_of_the_menu_can_be_planned_and_says_when_it_ends(self):
+        self.assertTrue(all(s["schedule"] for s in checkin.statuses()))                   # on unless it is switched off
+        self.assertEqual(checkin.schedule_add(self.pid, self.code("Kommer sent"), "2026-11-02", "2026-11-02", "", "10:30")[1], "")
+        self.assertEqual(self.anna()["text"], "Kommer sent · kl 10:30")                       # a status that asks for a time: the time it ends
+        self.clock("2026-11-02 10:30")
+        self.assertEqual(self.anna()["status"], "")
+        self.assertEqual(checkin.schedule_add(self.pid, self.code("Annat"), "2026-11-03", "2026-11-03")[1], "")
+        self.clock("2026-11-03 08:00")
+        self.assertEqual(self.anna()["status"], self.code("Annat"))                           # a note has no text of its own
+
+    def test_a_status_can_be_left_out_of_the_schedule_in_settings(self):
+        items = checkin.statuses()
+        items[0]["schedule"] = False
+        saved = checkin.save_statuses(items)
+        self.assertFalse(saved[0]["schedule"])
+        self.assertTrue(all(s["schedule"] for s in saved[1:]))
+        self.assertFalse(checkin.statuses()[0]["schedule"])
+        self.assertTrue(checkin.save_statuses([dict(x, schedule=True) for x in saved])[0]["schedule"])
+
     def test_times_on_the_same_day_may_follow_each_other(self):
         self.assertEqual(checkin.schedule_add(self.pid, self.code("Semester"), "2026-11-09", "2026-11-09", "", "12:00")[1], "")
         self.assertEqual(checkin.schedule_add(self.pid, self.code("Sjuk"), "2026-11-09", "2026-11-10", "12:00", "")[1], "")
@@ -192,7 +218,8 @@ class ScheduleTests(Base):
         self.assertIn("after the start", add(self.code("Sjuk"), "2026-11-05", "2026-11-04")[1])
         self.assertIn("already passed", add(self.code("Sjuk"), "2026-10-01", "2026-10-02")[1])
         self.assertIn("not a time", add(self.code("Sjuk"), "2026-11-05", "2026-11-06", "25:00", "")[1])
-        self.assertIn("can not be planned", add(self.code("Kommer sent"), "2026-11-05", "2026-11-06")[1])        # a time of day is not a thing to plan
+        self.switch_off("Kommer sent")
+        self.assertIn("can not be planned", add(self.code("Kommer sent"), "2026-11-05", "2026-11-06")[1])        # switched off for the schedule in Settings > Statuses
         self.assertIn("can not be planned", add("NOSUCH", "2026-11-05", "2026-11-06")[1])
         self.assertIn("Unknown person", checkin.schedule_add("nobody", self.code("Sjuk"), "2026-11-05", "2026-11-06")[1])
 
@@ -202,7 +229,9 @@ class ScheduleTests(Base):
         view = checkin.schedule_view(self.pid)
         self.assertEqual([e["label"] for e in view["entries"]], ["Sjuk", "Semester"])                  # in time order
         self.assertEqual((view["today"], view["now"]), ("2026-11-02", "09:00"))
-        self.assertNotIn("Kommer sent", [s["label"] for s in view["statuses"]])
+        self.assertEqual([s["code"] for s in view["statuses"]], [s["code"] for s in checkin.statuses()])         # the same list as the status menu, in its order
+        self.switch_off("Kommer sent")
+        self.assertNotIn("Kommer sent", [s["label"] for s in checkin.schedule_view(self.pid)["statuses"]])      # less what is switched off
         first = view["entries"][0]["id"]
         self.assertEqual([e["label"] for e in checkin.schedule_delete(self.pid, first)["entries"]], ["Semester"])
         self.assertIsNone(checkin.schedule_delete(self.pid, first))
