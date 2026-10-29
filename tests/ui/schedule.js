@@ -23,7 +23,7 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   const day = n => { const t = new Date(today + 'T12:00:00'); t.setDate(t.getDate() + n); return t.toISOString().slice(0, 10); };
   await page.reload({ waitUntil: 'networkidle' }); await settle(1000);
   const row = page.locator('.rp-r[data-id="' + person.id + '"]');
-  const closeAll = async () => { await page.keyboard.press('Escape'); await closeAll(); };      // the schedule, then the menu under it
+  const closeAll = async () => { await page.keyboard.press('Escape'); await page.keyboard.press('Escape'); await settle(300); };      // the schedule, then the menu under it
   const openMenu = async () => { await row.locator('.rp-t').click(); await settle(300); };
   const openSchedule = async () => { await openMenu(); await page.locator('[data-schedule]').click(); await settle(500); };
 
