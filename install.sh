@@ -86,7 +86,6 @@ for ns_name in contacts.json checkin.json modules.json module_order.json colours
                photos screen.json tile_layout.json screens sounds snow.json settings_pin background_image imagebg.json allowed_hosts https.crt https.key debug; do
     if [ -e "$DEST/$ns_name" ] && [ ! -e "$DATA/$ns_name" ]; then mv "$DEST/$ns_name" "$DATA/$ns_name"; fi
 done
-rm -rf "$DEST/usb_src"
 cp "$SRC"/base/base_*.py "$SRC"/base/lang_*.json "$SRC/base/layout.json" "$SRC/project.json" "$SRC/uninstall.sh" "$SRC/diagnose-network.sh" "$DEST/"
 rm -f "$DEST/wifi-powersave-off.sh"      # an older install had a Wi-Fi script here
 mkdir -p "$DEST/page" "$DEST/kiosk"

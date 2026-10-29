@@ -66,6 +66,13 @@ class UnitTests(unittest.TestCase):
             p = subprocess.run(["sh", "-n", os.path.join(ROOT, path)], stderr=subprocess.PIPE)
             self.assertEqual(p.returncode, 0, path + p.stderr.decode())
 
+    def test_the_installer_never_deletes_the_folder_it_runs_from(self):
+        """An update from a USB stick runs install.sh from <install folder>/usb_src (the old page's updater and update-run.sh both do): removing that folder
+        in the installer made it fail half way, after it had made the user."""
+        install = read("install.sh")
+        self.assertNotIn("usb_src", install)
+        self.assertIn('"$CODE/usb_src"', read("modules", "rebootupdate", "update-run.sh"))
+
     def test_an_update_keeps_the_user_and_migrates_the_old_state_folder(self):
         install = read("install.sh")
         self.assertIn('"$DEST/run_user"', install)
