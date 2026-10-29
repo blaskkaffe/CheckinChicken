@@ -81,8 +81,10 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   ok((await sick.locator('.rp-io').textContent()) === 'UTE', 'a status that checks out shows UTE');
   await sick.locator('.rp-t').click(); await settle(300);
   await page.locator('.rp-sheet button[data-code="LATE"]').click(); await settle(300);
-  ok(await page.locator('.rp-need2 input[placeholder="tt:mm"]').count() === 1, 'a status that needs a time asks for it');
-  await page.locator('.rp-need2 input').fill('08:45'); await page.locator('.rp-need2 button[data-set]').click(); await settle(500);
+  ok(await page.locator('.rp-need2 .rp-wb[data-seg=time]').count() === 1, 'a status that needs a time asks for it (the Time field and a number pad)');
+  await page.locator('.rp-need2 .rp-wc[data-clear=time]').click();      // the status starts with its usual time (07:30): clear it and type another
+  for (const k of ['0', '8', '4', '5']) await page.click('.rp-wpanel [data-k="' + k + '"]');
+  await page.locator('.rp-need2 button[data-set]').click(); await settle(500);
   ok(/Kommer sent \u00b7 kl 08:45/.test(await sick.textContent()), 'the time is part of the status text');
   await sick.locator('.rp-io').click(); await settle(500);
   ok((await sick.locator('.rp-io').textContent()) === 'INNE', 'INNE / UTE changes in / out while the status stays');
@@ -100,16 +102,14 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   ok(await page.locator('.rp-sheet input[type=file]').count() === 0, 'and tapping the picture does nothing');
   await page.keyboard.press('Escape'); await settle(200);
 
-  // a date (no touch keyboard): a calendar button right of the field, the calendar fills it, Skip leaves the date out
+  // a date: the month is on the page, a day tapped there is the date, Skip leaves the date out
   await person('Erik Lindqvist').locator('.rp-t').click(); await settle(300);
   await page.locator('.rp-sheet button[data-code="TRAVEL"]').click(); await settle(400);
-  const fb = await page.locator('.rp-need2 input.rp-big').boundingBox(), fcb = await page.locator('.rp-need2 .rp-calbtn').boundingBox();
-  ok(fcb.x >= fb.x + fb.width - 2, 'a date has a calendar button to the right of the field');
-  await page.locator('.rp-need2 .rp-calbtn').click(); await settle(300);
+  ok(await page.locator('.rp-need2 .rp-wb').count() === 1 && await page.locator('.rp-need2 .rp-calday').count() >= 28, 'a date has its Date field and the month under it');
   const cd = await page.locator('.rp-need2 .rp-calday').nth(3).boundingBox(), cr = await page.locator('.rp-need2 .rp-calday').nth(3).evaluate(e => getComputedStyle(e).borderTopLeftRadius);
   ok(Math.abs(cd.width - cd.height) < 1.5 && cr === '12px', 'the calendar buttons are squares with rounded corners (' + Math.round(cd.width) + 'x' + Math.round(cd.height) + ', radius ' + cr + ')');
   await page.locator('.rp-need2 .rp-calday').nth(14).click(); await settle(300);
-  ok(/^\d{4}-\d\d-15$/.test(await page.locator('.rp-need2 input.rp-big').inputValue()), 'a day tapped in the calendar fills the field');
+  ok(/15\/\d+/.test(await page.locator('.rp-need2 .rp-wv').textContent()), 'a day tapped in the calendar is the date');
   await page.locator('.rp-need2 button[data-skip]').click(); await settle(600);
   ok(/Tj\u00e4nsteresa/.test(await person('Erik Lindqvist').textContent()) && !/Tj\u00e4nsteresa \u00b7/.test(await person('Erik Lindqvist').textContent()), 'Skip sets the status without the date');
   await person('Erik Lindqvist').locator('.rp-t').click(); await settle(300);
@@ -208,8 +208,8 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   await cfg({ show_roles: true, show_buildings: false, roles_shown: null, keyboard: true }); await page.reload({ waitUntil: 'networkidle' }); await settle(1500);
   await page.locator('.rp-t').nth(3).click(); await settle(300);
   await page.locator('.rp-sheet button[data-code="DOCTOR"]').click(); await settle(300);
-  ok(await page.locator('.rp-need2 .rp-kb [data-k=d5]').count() === 1 && await page.locator('.rp-need2 input').count() === 0, 'with the touch keyboard on, a time is typed on a number pad');
-  for (const k of ['d0', 'd9', 'd1', 'd5']) await page.click('[data-k="' + k + '"]');
+  ok(await page.locator('.rp-need2 .rp-kb [data-k="5"]').count() === 1 && await page.locator('.rp-need2 input').count() === 0, 'a time is typed on a number pad (no browser field)');
+  for (const k of ['0', '9', '1', '5']) await page.click('.rp-wpanel [data-k="' + k + '"]');
   await page.click('.rp-need2 [data-set]'); await settle(700);
   ok((await page.evaluate(() => fetch('/api').then(r => r.json()))).checkin.groups.some(g => g.people.some(p => p.text === 'L\u00e4karbes\u00f6k \u00b7 kl 09:15')), 'the time typed on the pad is kept (24 h clock)');
   await page.locator('.rp-t').nth(4).click(); await settle(300);
@@ -252,19 +252,17 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   await page.locator('.rp-t').nth(4).click(); await settle(300);
   await page.locator('.rp-sheet button[data-code="DOCTOR"]').click(); await settle(300);
   await page.keyboard.type('0745');
-  ok((await page.locator('.rp-need2 .rp-shown').textContent()).replace(/\s/g, '') === '07:45', 'digits from a physical keyboard go on the number pad');
+  ok((await page.locator('.rp-wb[data-seg=time] .rp-wv').textContent()).replace(/\s/g, '') === '07:45', 'digits from a physical keyboard go on the number pad');
   await page.keyboard.press('Enter'); await settle(700);
   ok((await page.evaluate(() => fetch('/api').then(r => r.json()))).checkin.groups.some(g => g.people.some(p => p.text === 'L\u00e4karbes\u00f6k \u00b7 kl 07:45')), 'and Enter sets the time');
   await page.locator('.rp-t').nth(4).click(); await settle(300);
   await page.locator('.rp-sheet button[data-code=""]').click(); await settle(500);
-  // a date on the number pad: the calendar button is right of the field, a day tapped there fills it, Skip leaves the date out
+  // a date on the page: Skip is next to Cancel and Set, a day tapped in the month is the date
   await page.locator('.rp-t').nth(4).click(); await settle(300);
   await page.locator('.rp-sheet button[data-code="TRAVEL"]').click(); await settle(300);
-  const bx = await page.locator('.rp-shownrow .rp-shown').boundingBox(), cbx = await page.locator('.rp-shownrow [data-k=cal]').boundingBox();
-  ok(cbx.x > bx.x + bx.width - 2 && Math.abs(cbx.y - bx.y) < 6, 'the calendar button is to the right of the number field');
   ok(await page.locator('.rp-need2 button[data-skip]').count() === 1, 'a date has a Skip button next to Cancel and Set');
-  await page.click('.rp-shownrow [data-k=cal]'); await page.locator('.rp-need2 .rp-calday').nth(14).click(); await settle(300);
-  ok(/^15 \/ \d\d$/.test((await page.locator('.rp-need2 .rp-shown').textContent()).trim()), 'a day tapped in the calendar fills the number field');
+  await page.locator('.rp-need2 .rp-calday').nth(14).click(); await settle(300);
+  ok(/15\/\d+/.test(await page.locator('.rp-need2 .rp-wv').textContent()), 'a day tapped in the calendar is the date');
   await page.click('.rp-need2 [data-skip]'); await settle(700);
   ok((await page.evaluate(() => fetch('/api').then(r => r.json()))).checkin.groups.some(g => g.people.some(p => p.text === 'Tj\u00e4nsteresa')), 'Skip sets the status without a date');
   await page.locator('.rp-t').nth(4).click(); await settle(300);
@@ -390,10 +388,10 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   await page.reload({ waitUntil: 'networkidle' }); await settle(1500);
   await person('Maja Berg').locator('.rp-t').click(); await settle(300);
   await page.locator('.rp-sheet button[data-code="TRAVEL"]').click(); await settle(300);
-  ok(await page.locator('.rp-need2 input[placeholder^="\u00e5\u00e5\u00e5\u00e5"]').count() === 1, 'a date is typed as \u00e5\u00e5\u00e5\u00e5-mm-dd (Swedish), not in the browser\'s own date field');
-  await page.locator('.rp-need2 input').fill('20261340'); await page.locator('.rp-need2 button[data-set]').click(); await settle(200);
-  ok(/mm-dd/.test(await page.locator('.rp-cmsg').textContent()) && await page.locator('.rp-need2').count() === 1, 'an impossible date is refused with a message');
-  await page.locator('.rp-need2 input').fill('20261224'); ok(await page.locator('.rp-need2 input').inputValue() === '2026-12-24', 'the digits are laid out as \u00e5\u00e5\u00e5\u00e5-mm-dd');
+  ok(await page.locator('.rp-need2 input').count() === 0, 'a date is not typed in a browser field (they follow the browser\'s language)');
+  await page.keyboard.type('3213'); await settle(200);
+  ok(await page.locator('.rp-cmsg').textContent() !== '' && await page.locator('.rp-need2 [data-set]').isDisabled(), 'an impossible date is refused with a message');
+  await page.keyboard.type('2412'); ok(/24\/12/.test(await page.locator('.rp-wb[data-seg=date] .rp-wv').textContent()), 'typing the day and the month sets the date');
   await page.locator('.rp-need2 button[data-set]').click(); await settle(700);
   ok(/tillbaka 24\/12/.test(await person('Maja Berg').textContent()), 'the date is kept');
 

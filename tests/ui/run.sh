@@ -19,7 +19,6 @@ run functional.js IN=0 FAKEUPDATE=1
 # how the page appears (no pop-in) and the columns of Settings
 run boot.js
 run outage.js IN=3
-run datetime.js IN=3
 run swedish.js IN=6 LANG_UI=sv FAKEUPDATE=1
 # the update controls: Check shows the Update now row at once, a finished update reloads the page with Settings open
 run update.js FAKEUPDATE=1
@@ -31,6 +30,9 @@ run screen.js
 run menus.js
 # the number pad (type a person's 3-digit number) and the INNE / UTE button that switches before the answer comes
 run numpad.js IN=0
+# the date and time page, the schedule of a person and the close cross
+run datetime.js IN=3
+run schedule.js IN=3
 # the Background image module: choose a picture, fit, darken, a big one is shrunk, remove
 run imagebg.js IMGBG=1
 # a group too long for one column is split over the next ones; No scrolling; the saved order of the boxes
