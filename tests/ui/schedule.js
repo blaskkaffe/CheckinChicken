@@ -45,7 +45,8 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   const first = inView(day(2));
   if (await first.count()) {
     const c = await first.getAttribute('class');
-    ok(c.includes(' pri') && c.includes(' jr') && !c.includes(' jl'), 'the first day of a planned status is filled with its colour and joined to the next day');
+    const d2 = new Date(day(2) + 'T12:00:00'), wraps = d2.getDay() === 0 || new Date(d2.getFullYear(), d2.getMonth() + 1, 0).getDate() === d2.getDate();      // a band does not join over the end of a week or of the month
+    ok(c.includes(' pri') && c.includes(' jr') === !wraps && !c.includes(' jl'), 'the first day of a planned status is filled with its colour and joined to the next day (' + c + ')');
     const last = inView(day(4));
     if (await last.count()) { const l = await last.getAttribute('class'); ok(l.includes(' jl') && !l.includes(' jr'), 'and the last day ends the band'); }
   }
