@@ -27,7 +27,8 @@ VERSION_FILE = os.path.join(core.INSTALL_DIR, "version")         # written by in
 UPDATE_DIR = "/run/" + core.PROJECT.get("service", "app") + "-update"    # the updater's own run folder (RuntimeDirectory of its unit)
 UPDATE_STATUS = os.path.join(UPDATE_DIR, "state.update")         # running / ok / failed, written by the update script
 UPDATE_LOG = os.path.join(UPDATE_DIR, "state.update.log")
-UPDATE_UNIT = core.PROJECT.get("service", "app") + "-update@%s.service"   # started with "git" or "usb"
+UPDATE_UNIT = core.PROJECT.get("service", "app") + "-update@%s.service"   # started with "git", "usb" or "scan"
+USB_LIST = os.path.join(UPDATE_DIR, "usb.json")                  # the sticks the root updater found (update-run.sh scan)
 UPDATER = os.path.join(os.path.dirname(os.path.abspath(__file__)), "update-run.sh")
 
 DEFAULT_REPO = "blaskkaffe/CheckinChicken"
@@ -195,10 +196,46 @@ USB_NAME = "update"
 USB_ROOTS = ["/media/*", "/media/*/*", "/run/media/*/*", "/mnt/*", "/mnt/*/*"]      # where a stick is mounted (replaced by the tests)
 
 
+_scan_at = [0.0]
+
+
+def _root_scan():
+    """Ask the root updater to look for sticks and wait for it (a stick mounted for the desktop user only is not visible to this service's user). At most
+    every 5 seconds; nothing happens without systemd (the tests, a computer without it): then only this user's own look counts."""
+    if time.time() - _scan_at[0] < 5 or not os.path.exists("/run/systemd/system"):
+        return
+    _scan_at[0] = time.time()
+    try:
+        subprocess.run(["systemctl", "start", UPDATE_UNIT % "scan"], stdout=subprocess.PIPE, stderr=subprocess.PIPE, timeout=8)
+    except (OSError, subprocess.SubprocessError):
+        pass
+
+
+def _root_list():
+    """What the root updater's last look found, when that was in the last half minute."""
+    try:
+        if time.time() - os.path.getmtime(USB_LIST) > 30:
+            return []
+        with open(USB_LIST) as f:
+            raw = json.load(f)
+    except (OSError, ValueError):
+        return []
+    out = []
+    for c in raw if isinstance(raw, list) else []:
+        if isinstance(c, dict) and isinstance(c.get("path"), str) and isinstance(c.get("drive"), str) and isinstance(c.get("time"), int):
+            out.append({"path": c["path"], "drive": c["drive"][:60], "time": c["time"]})
+    return out
+
+
 def usb_candidates():
     """[{"path", "drive", "time"}]: the folders called "update" on mounted drives that look like the add-on (install.sh, base/base_web.py, modules/), newest
-    first. A link is not followed."""
+    first, as this user sees them and as the root updater does. A link is not followed."""
+    _root_scan()
     out, seen = [], set()
+    for c in _root_list():
+        if c["path"] not in seen:
+            seen.add(c["path"])
+            out.append(c)
     for pattern in USB_ROOTS:
         for root in sorted(glob.glob(pattern)):
             path = os.path.join(root, USB_NAME)
@@ -257,6 +294,7 @@ _pending = [0.0]      # when "Update now" last asked systemd to start the update
 
 def reset_for_tests():
     _pending[0] = 0.0
+    _scan_at[0] = 0.0
 
 
 def _spawn(mode):

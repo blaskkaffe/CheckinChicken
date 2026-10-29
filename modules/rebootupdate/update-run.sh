@@ -4,6 +4,8 @@
 # the checkout, its origin and the ports come from files only root can write (install.sh records them), and the USB stick is looked for here.
 #   update-run.sh git   fast-forward the recorded checkout from its recorded GitHub origin and run its install.sh
 #   update-run.sh usb   copy the "update" folder of a USB stick away and run its install.sh
+#   update-run.sh scan  write the list of the sticks that have an update folder to $RUN/usb.json (the page, an ordinary user, can not see a stick that is
+#                       mounted for the desktop user only; this does not touch the progress files of an update)
 # Progress is written to $RUN/state.update ("running", "ok", "failed") and $RUN/state.update.log, which the page shows.
 # The variables CHECKIN_* are for the tests; a unit started by systemd has none of them.
 CODE=${CHECKIN_INSTALL_DIR:-/opt/checkin-board}
@@ -13,6 +15,28 @@ PROTOCOLS=${CHECKIN_GIT_PROTOCOLS:-https:ssh}
 ORIGIN_RE=${CHECKIN_ORIGIN_RE:-'^(https://github\.com/|git@github\.com:|ssh://git@github\.com/)[A-Za-z0-9._-]+/[A-Za-z0-9._-]+(\.git)?/?$'}
 umask 022
 mkdir -p "$RUN"
+# the folders called "update" on mounted drives that look like the add-on, one path per line (names may have spaces: the patterns are expanded here)
+valid_stick() { [ -d "$1" ] && [ ! -L "$1" ] && [ -f "$1/install.sh" ] && [ ! -L "$1/install.sh" ] && [ -f "$1/base/base_web.py" ] && [ -d "$1/modules" ]; }
+sticks() {
+    if [ -n "${CHECKIN_USB_ROOT:-}" ]; then set -- "$CHECKIN_USB_ROOT"/*/update
+    else set -- /media/*/update /media/*/*/update /run/media/*/*/update /mnt/*/update /mnt/*/*/update; fi
+    for D in "$@"; do valid_stick "$D" && printf '%s\n' "$D"; done
+    return 0
+}
+json_text() { printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g'; }
+if [ "$MODE" = scan ]; then
+    TMP="$RUN/usb.json.$$"
+    {
+        printf '['
+        SEP=""
+        sticks | while IFS= read -r D; do
+            printf '%s{"path":"%s","drive":"%s","time":%s}' "$SEP" "$(json_text "$D")" "$(json_text "$(basename "$(dirname "$D")")")" "$(stat -c %Y "$D/install.sh" 2>/dev/null || echo 0)"
+            SEP=","
+        done
+        printf ']\n'
+    } > "$TMP" && mv -f "$TMP" "$RUN/usb.json"
+    exit 0
+fi
 L="$RUN/state.update.log"; ST="$RUN/state.update"
 rm -f "$L" "$ST"; set -C                      # never write through a link someone left in the folder
 exec >"$L" 2>&1
@@ -44,14 +68,13 @@ git)
     ;;
 usb)
     BEST=""
-    scan() {      # the folders called "update" that look like the add-on; the newest install.sh wins. (Names may have spaces: the patterns are expanded by the caller.)
-        for D in "$@"; do
-            [ -d "$D" ] && [ ! -L "$D" ] && [ -f "$D/install.sh" ] && [ ! -L "$D/install.sh" ] && [ -f "$D/base/base_web.py" ] && [ -d "$D/modules" ] || continue
-            if [ -z "$BEST" ] || [ "$D/install.sh" -nt "$BEST/install.sh" ]; then BEST="$D"; fi
-        done
-    }
-    if [ -n "${CHECKIN_USB_ROOT:-}" ]; then scan "$CHECKIN_USB_ROOT"/*/update
-    else scan /media/*/update /media/*/*/update /run/media/*/*/update /mnt/*/update /mnt/*/*/update; fi
+    LIST=$(sticks)
+    while IFS= read -r D; do          # the newest install.sh wins
+        [ -n "$D" ] || continue
+        if [ -z "$BEST" ] || [ "$D/install.sh" -nt "$BEST/install.sh" ]; then BEST="$D"; fi
+    done <<EOF
+$LIST
+EOF
     [ -n "$BEST" ] || fail "No USB stick with an update folder was found"
     STAMP=$(date -d "@$(stat -c %Y "$BEST/install.sh")" '+%Y-%m-%d %H:%M' 2>/dev/null || date '+%Y-%m-%d %H:%M')
     W="$CODE/usb_src"

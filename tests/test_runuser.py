@@ -51,14 +51,15 @@ class UnitTests(unittest.TestCase):
         install = read("install.sh")
         self.assertRegex(install, r"case \"\$RUN_USER\" in [^\n]*root[^\n]*exit 1")
 
-    def test_the_polkit_rule_names_exactly_three_units_and_the_verb_start(self):
+    def test_the_polkit_rule_names_exactly_four_units_and_the_verb_start(self):
         rule = read("modules", "rebootupdate", "install.sh")
         units = re.findall(r'unit == "([^"]+)"', rule)
-        self.assertEqual(sorted(units), ["checkin-board-reboot.service", "checkin-board-update@git.service", "checkin-board-update@usb.service"])
+        self.assertEqual(sorted(units), ["checkin-board-reboot.service", "checkin-board-update@git.service", "checkin-board-update@scan.service", "checkin-board-update@usb.service"])
         self.assertIn('action.lookup("verb") == "start"', rule)
         self.assertIn('subject.user == "$RUN_USER"', rule)
         self.assertEqual(up.UPDATE_UNIT % "git", "checkin-board-update@git.service")
         self.assertEqual(up.UPDATE_UNIT % "usb", "checkin-board-update@usb.service")
+        self.assertEqual(up.UPDATE_UNIT % "scan", "checkin-board-update@scan.service")
         self.assertEqual(ru.REBOOT_UNIT, "checkin-board-reboot.service")
 
     def test_scripts_are_valid_shell(self):

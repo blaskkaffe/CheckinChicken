@@ -330,6 +330,36 @@ class UsbUpdateTests(unittest.TestCase):
         self.assertEqual([c["path"] for c in got], [new, old])                             # newest first, the link is not followed
         self.assertEqual(got[0]["drive"], "NEW")
 
+    def test_a_stick_only_the_root_updater_can_see_is_listed_from_its_scan(self):
+        """A stick mounted for the desktop user only is invisible to the page's own user; the root updater's list (update-run.sh scan) is shown."""
+        self.assertEqual(up.usb_candidates(), [])
+        folder = self.stick("PRIVATE")
+        done = run_updater(up, "scan", usb_root=self.media)
+        self.assertEqual(done.returncode, 0, done.stderr.decode())
+        self.assertFalse(os.path.exists(up.UPDATE_STATUS))                       # a scan leaves the progress of an update alone
+        listed = json.load(open(up.USB_LIST))
+        self.assertEqual([(c["path"], c["drive"]) for c in listed], [(folder, "PRIVATE")])
+        up.USB_ROOTS = [os.path.join(self.tmp, "nowhere", "*")]                  # this user's own look finds nothing
+        got = up.usb_candidates()
+        self.assertEqual([c["path"] for c in got], [folder])
+        self.assertEqual(got[0]["drive"], "PRIVATE")
+        os.utime(up.USB_LIST, (time.time() - 120, time.time() - 120))            # an old list is not believed (the stick may be gone)
+        self.assertEqual(up.usb_candidates(), [])
+
+    def test_the_scan_lists_names_with_spaces_and_quotes_and_nothing_else(self):
+        self.stick("MY STICK")
+        self.stick('QUO"TE', valid=False)
+        run_updater(up, "scan", usb_root=self.media)
+        self.assertEqual([c["drive"] for c in json.load(open(up.USB_LIST))], ["MY STICK"])
+
+    def test_a_damaged_list_is_ignored(self):
+        with open(up.USB_LIST, "w") as f:
+            f.write('[{"path": 5}, "x", {"path": "/a/update", "drive": "A", "time": 3}')
+        self.assertEqual(up.usb_candidates(), [])
+        with open(up.USB_LIST, "w") as f:
+            f.write('[{"path": 5}, "x", {"path": "/a/update", "drive": "A", "time": 3}]')
+        self.assertEqual([c["path"] for c in up.usb_candidates()], ["/a/update"])
+
     def test_start_needs_a_stick_and_runs_one_update_at_a_time(self):
         started, message = up.start_usb_update()
         self.assertFalse(started)
