@@ -269,8 +269,9 @@ const ok = (cond, what) => { console.log((cond ? 'ok   ' : 'FAIL ') + what); if 
   await page.locator('.rp-sheet button[data-code=""]').click(); await settle(500);
   await page.locator('.rp-t').nth(5).click(); await settle(300);
   await page.locator('.rp-sheet button[data-code="DOCTOR"]').click(); await settle(300);
-  await page.click('.rp-need2 [data-set]'); await settle(300);
-  ok(/Type the time/.test(await page.locator('.rp-cmsg').textContent()) && await page.locator('.rp-need2').count() === 1, 'an unfinished time is refused with a message');
+  ok(await page.locator('.rp-need2 [data-set]').isDisabled(), 'Set waits until there is a time');
+  for (const k of ['1', '2', '3']) await page.click('.rp-wpanel [data-k="' + k + '"]');
+  ok(await page.locator('.rp-need2 [data-set]').isDisabled() && await page.locator('.rp-need2').count() === 1, 'an unfinished time (three digits) is not accepted');
   await page.keyboard.press('Escape'); await page.keyboard.press('Escape');
   await cfg({ keyboard: false });
   await page.setViewportSize({ width: 1500, height: 900 });
