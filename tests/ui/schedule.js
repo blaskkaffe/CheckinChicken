@@ -23,6 +23,7 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   const day = n => { const t = new Date(today + 'T12:00:00'); t.setDate(t.getDate() + n); return t.toISOString().slice(0, 10); };
   await page.reload({ waitUntil: 'networkidle' }); await settle(1000);
   const row = page.locator('.rp-r[data-id="' + person.id + '"]');
+  const closeAll = async () => { await page.keyboard.press('Escape'); await closeAll(); };      // the schedule, then the menu under it
   const openMenu = async () => { await row.locator('.rp-t').click(); await settle(300); };
   const openSchedule = async () => { await openMenu(); await page.locator('[data-schedule]').click(); await settle(500); };
 
@@ -34,7 +35,7 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   });
   ok(Math.abs(cross.dx) < 0.6 && Math.abs(cross.dy) < 0.6 && cross.w === cross.h, 'the cross is in the middle of its circle (off by ' + cross.dx.toFixed(2) + ', ' + cross.dy.toFixed(2) + ')');
   ok(await page.locator('[data-schedule]').count() === 1, 'the status menu has a Schedule button');
-  await page.keyboard.press('Escape'); await settle(200);
+  await closeAll();
 
   // ---- planned statuses are bands of colour over their days (merged cells)
   ok((await post('/checkin/schedule/add', { id: person.id, code: code['Semester'], start: day(2), end: day(4) })).ok === true, 'a status is planned through the host');
@@ -78,16 +79,16 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   // ---- a status can be left out of the schedule (Settings > Statuses > the status > Can be planned in a person's schedule)
   const all = (await api()).checkin.statuses;
   await post('/checkin/statuses', { statuses: all.map(x => Object.assign({}, x, { schedule: x.label !== 'Sjuk' && x.label !== 'VAB' })) });
-  await page.keyboard.press('Escape'); await settle(300); await openSchedule();
+  await closeAll(); await openSchedule();
   ok(await page.locator('.rp-scst button').count() === menuCount - 2 && await page.locator('.rp-scst button', { hasText: 'VAB' }).count() === 0, 'a status that is switched off in Settings is not in the schedule (' + (menuCount - 2) + ' left)');
   ok(await page.locator('.rp-scrow', { hasText: 'Sjuk' }).count() === 1, 'what was planned with it stays in the list');
   await post('/checkin/statuses', { statuses: all });
-  await page.keyboard.press('Escape'); await settle(300); await openSchedule();
+  await closeAll(); await openSchedule();
 
   // ---- delete
   await page.locator('.rp-scrow', { hasText: 'Sjuk' }).locator('[data-sc=del]').click(); await settle(700);
   ok((await view()).entries.map(e => e.label).join() === 'Semester', 'Delete removes it');
-  await page.keyboard.press('Escape'); await settle(200);
+  await closeAll();
 
   // ---- a planned status in force shows on the board, and the person's own status shows again when it is gone
   ok((await mine()).planned === false && (await mine()).status === '', 'before it starts the board shows the person\'s own status');
@@ -99,7 +100,7 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   ok(/Tjänsteresa/.test(await row.textContent()), 'the row on the board shows it');
   await openMenu();
   ok(/From the schedule/.test(await page.locator('.rp-cur').textContent()), 'the menu says it comes from the schedule');
-  await page.keyboard.press('Escape'); await settle(200);
+  await closeAll();
   await post('/checkin/schedule/delete', { id: person.id, entry: live.entries.find(e => e.label === 'Tjänsteresa').id });
   await settle(1500);
   const p2 = await mine();
