@@ -913,36 +913,39 @@ W.roster=function(s,ctx){
  var sc=null;      // {id, view, y, mo, a, b, code, t0, t1}
  function pd(n){return (n<10?"0":"")+n}
  function shortTime(t,none){return t||none}
- function scRender(){if(!sc)return;var v=sc.view,p=person(sc.id),i,html="",cells="",first=new Date(sc.y,sc.mo,1),lead=(first.getDay()+6)%7,days=new Date(sc.y,sc.mo+1,0).getDate(),
-   chosen=null;(v.statuses||[]).forEach(function(x){if(x.code===sc.code)chosen=x});
-  var a=sc.a,b=sc.b||sc.a,lo=a&&b?(a<b?a:b):"",hi=a&&b?(a<b?b:a):"";
+ function scRender(){if(!sc)return;var v=sc.view,p=person(sc.id),i,cells="",first=new Date(sc.y,sc.mo,1),lead=(first.getDay()+6)%7,days=new Date(sc.y,sc.mo+1,0).getDate(),chosen=null,live=null;
+  (v.statuses||[]).forEach(function(x){if(x.code===sc.code)chosen=x});(v.entries||[]).forEach(function(e){if(e.now)live=e});
+  var lo=sc.a,hi=sc.a?(sc.b||sc.a):"",tint=chosen?chosen.colour:"green";
+  // the month: the buttons of the regular date picker (calendar()); a day of a planned status is filled with its colour, and the days of one status are joined into one band
+  function cover(iso){var r=null;(v.entries||[]).forEach(function(e){if(e.start<=iso&&iso<=e.end)r=e});return r}
   CAL_DAYS.forEach(function(d){cells+='<span class="rp-cald">'+d+'</span>'});
-  for(i=0;i<lead;i++)cells+='<span class="rp-sdx"></span>';
-  for(i=1;i<=days;i++){var iso=sc.y+"-"+pd(sc.mo+1)+"-"+pd(i),dow=(lead+i-1)%7,en=null,cls="rp-sd",col="";
-   (v.entries||[]).forEach(function(e){if(e.start<=iso&&iso<=e.end)en=e});
-   if(en){cls+=" e c-"+en.colour;col=en;if(en.start===iso||dow===0)cls+=" s";if(en.end===iso||dow===6||i===days)cls+=" f";}
-   if(lo&&lo<=iso&&iso<=hi){cls=cls.replace(/ (e|s|f|c-\S+)/g,"")+" p"+(chosen?" c-"+chosen.colour:"");if(lo===iso||dow===0)cls+=" s";if(hi===iso||dow===6||i===days)cls+=" f";if(iso===lo||iso===hi)cls+=" pe"}
-   if(iso===v.today)cls+=" today";if(iso<v.today)cls+=" past";
-   cells+='<div class="'+cls+'"><button type="button" class="rp-sdb" data-sc="day" data-day="'+iso+'" aria-label="'+i+' '+CAL_MONTHS[sc.mo]+(en?', '+esc(en.label):'')+'">'+i+'</button></div>'}
-  var list=(v.entries||[]).map(function(e){return '<div class="rp-scrow"><span class="pill-s pri rp-scpill c-'+esc(e.colour)+'">'+esc(e.label)+'</span>'+
-    '<button type="button" class="rp-scwhen" data-sc="goto" data-day="'+e.start+'"><span>'+whenDay(e.start)+(e.start_time?' '+e.start_time:'')+'</span> <span class="rp-scar">→</span> <span>'+whenDay(e.end)+(e.end_time?' '+e.end_time:'')+'</span>'+(e.now?' <span class="rp-scnow">Now</span>':'')+'</button>'+
-    '<button type="button" class="pill-s danger rp-scdel" data-sc="del" data-entry="'+e.id+'" aria-label="Delete the planned '+esc(e.label)+'">Delete</button></div>'}).join("");
+  for(i=0;i<lead;i++)cells+='<span class="rp-calx"></span>';
+  for(i=1;i<=days;i++){var iso=sc.y+"-"+pd(sc.mo+1)+"-"+pd(i),dow=(lead+i-1)%7,en=cover(iso),inpick=!!lo&&lo<=iso&&iso<=hi,cls="pill-s rp-calday",nx=i<days&&dow<6,pv=i>1&&dow>0;
+   if(inpick){cls+=" pri c-"+tint+" pk";if(nx&&iso<hi)cls+=" jr";if(pv&&iso>lo)cls+=" jl"}
+   else if(en){cls+=" pri c-"+en.colour;if(nx&&iso<en.end)cls+=" jr";if(pv&&iso>en.start)cls+=" jl"}
+   if(iso===v.today)cls+=" today";if(iso<v.today&&!en&&!inpick)cls+=" past";
+   cells+='<button type="button" class="'+cls+'" data-sc="day" data-day="'+iso+'" aria-label="'+i+' '+CAL_MONTHS[sc.mo]+(en?', '+esc(en.label):'')+'">'+i+'</button>'}
   var sts=(v.statuses||[]).map(function(x){return '<button type="button" class="pill-s pri rp-so c-'+esc(x.colour)+(x.code===sc.code?' on':'')+'" data-sc="status" data-code="'+esc(x.code)+'" aria-pressed="'+(x.code===sc.code?'true':'false')+'">'+esc(x.label)+'</button>'}).join("");
+  var list=(v.entries||[]).map(function(e){return '<div class="rp-scrow"><span class="pill-s pri rp-scpill c-'+esc(e.colour)+'">'+esc(e.label)+'</span>'+
+    '<button type="button" class="rp-scwhen" data-sc="goto" data-day="'+e.start+'"><span>'+whenDay(e.start)+(e.start_time?' '+e.start_time:'')+'</span> <span class="rp-scar">→</span> <span>'+whenDay(e.end)+(e.end_time?' '+e.end_time:'')+'</span></button>'+
+    (e.now?'<button type="button" class="pill-s rp-scdel" data-sc="endnow">Clear now</button>':'<button type="button" class="pill-s danger rp-scdel" data-sc="del" data-entry="'+e.id+'" aria-label="Delete the planned '+esc(e.label)+'">Delete</button>')+'</div>'}).join("");
   var ready=!!(sc.code&&sc.a);
-  html='<div class="rp-sheet rp-sched" role="dialog" aria-modal="true" aria-label="Schedule"><button type="button" class="rp-x" data-back="1" title="Back" aria-label="Back">&#10005;</button>'+
+  function field(name,label,iso,time,none){var on=sc.seg===name;return '<div class="rp-wf"><button type="button" class="rp-wb'+(on?' on':'')+'" data-sc="seg" data-seg="'+name+'" aria-pressed="'+on+'"><span class="rp-wl">'+label+'</span><span class="rp-wv'+(iso?'':' empty')+'">'+(iso?whenDay(iso):'‒ ‒ / ‒ ‒')+'</span></button></div>'}
+  modal2.innerHTML='<div class="rp-sheet rp-sched" role="dialog" aria-modal="true" aria-label="Schedule"><button type="button" class="rp-x" data-back="1" title="Back" aria-label="Back">&#10005;</button>'+
    '<div class="rp-wn">Schedule</div><div class="rp-wl">'+esc(p?p.name:"")+'</div>'+
-   '<div class="rp-scgrid"><div class="rp-sccal"><div class="rp-calh"><button type="button" class="pill-s rp-calb" data-sc="prev" aria-label="Previous month">‹</button><span class="rp-calt" aria-live="polite">'+CAL_MONTHS[sc.mo]+' '+sc.y+'</span><button type="button" class="pill-s rp-calb" data-sc="next" aria-label="Next month">›</button></div>'+
-   '<div class="rp-scg">'+cells+'</div><div class="sub rp-sclegend">A coloured band across several days is one planned status.</div></div>'+
-   '<div class="rp-scside"><div class="rp-nl">Status</div><div class="rp-opts rp-scst">'+sts+'</div>'+
-   '<div class="rp-nl">When</div><div class="sub rp-scask">'+(!sc.a?'Tap the first day in the calendar.':!sc.b?'Tap the last day too, or press Add for this one day.':'Tap another day to start again.')+'</div>'+
-   '<div class="rp-screng"><span class="rp-scrl">From</span><span class="rp-scrv">'+(sc.a?whenDay(lo):'‒')+'</span><button type="button" class="pill-s rp-sct" data-sc="t0">'+(sc.t0||'Start of the day')+'</button>'+
-   '<span class="rp-scrl">Until</span><span class="rp-scrv">'+(sc.b?whenDay(hi):'‒')+'</span><button type="button" class="pill-s rp-sct" data-sc="t1">'+(sc.t1||'End of the day')+'</button></div>'+
-   '<div class="rp-cmsg sub" aria-live="polite"></div><button type="button" class="pill-s pri rp-so rp-scadd'+(chosen?' c-'+esc(chosen.colour):' c-green')+'" data-sc="add"'+(ready?'':' disabled')+'>Add to the schedule</button></div></div>'+
+   (live?'<div class="rp-cur"><span class="rp-curl">Now</span><span class="rp-curv c-'+esc(live.colour)+'">'+esc(live.label)+'</span><button type="button" class="pill-s" data-sc="endnow">Clear now</button></div>':'')+
+   '<div class="rp-cal"><div class="rp-calh"><button type="button" class="pill-s rp-calb" data-sc="prev" aria-label="Previous month">‹</button><span class="rp-calt" aria-live="polite">'+CAL_MONTHS[sc.mo]+' '+sc.y+'</span><button type="button" class="pill-s rp-calb" data-sc="next" aria-label="Next month">›</button></div><div class="rp-calg">'+cells+'</div></div>'+
+   '<div class="rp-wfields two rp-scf">'+field("from","From",sc.a)+field("until","Until",sc.a?(sc.b||sc.a):"")+
+   '<button type="button" class="pill-s rp-so" data-sc="t0">'+(sc.t0||'Start of the day')+'</button><button type="button" class="pill-s rp-so" data-sc="t1">'+(sc.t1||'End of the day')+'</button></div>'+
+   '<div class="rp-whint sub">'+(!sc.a?'Tap the first day in the calendar.':!sc.b?'Tap the last day too, or press Add for this one day.':'A coloured band across several days is one planned status.')+'</div>'+
+   '<div class="rp-nl">Status</div><div class="rp-opts rp-scst">'+sts+'</div>'+
+   '<div class="rp-cmsg sub" aria-live="polite"></div>'+
+   '<div class="rp-nb"><button type="button" class="pill-s rp-so" data-back="1">Close</button><button type="button" class="pill-s pri rp-so c-'+esc(tint)+'" data-sc="add"'+(ready?'':' disabled')+'>Add to the schedule</button></div>'+
    '<div class="rp-nl">Planned</div><div class="rp-sclist">'+(list||'<div class="sub">Nothing planned.</div>')+'</div></div>';
-  modal2.innerHTML=html;trDom(modal2);modal2.style.display=""}
+  trDom(modal2);modal2.style.display=""}
  function openSchedule(id){var p=person(id);if(!p)return;
   post("/checkin/schedule",{id:id},function(r){if(!r)return;var t=/^(\d{4})-(\d\d)-/.exec(r.today)||[0,new Date().getFullYear(),pd(new Date().getMonth()+1)];
-   sc={id:id,view:r,y:+t[1],mo:+t[2]-1,a:"",b:"",code:"",t0:"",t1:""};scRender()})}
+   sc={id:id,view:r,y:+t[1],mo:+t[2]-1,a:"",b:"",seg:"from",code:"",t0:"",t1:""};scRender()})}
  function scMsg(t){var m=modal2.querySelector(".rp-sched .rp-cmsg");if(m)setText(m,t)}
  function askTime(label,value,done){modal3.innerHTML='<div class="rp-sheet rp-need2" role="dialog" aria-modal="true" aria-label="'+esc(label)+'"><button type="button" class="rp-x" data-back3="1" title="Back" aria-label="Back">&#10005;</button>'+
    '<div class="rp-wn">'+label+'</div><div class="rp-field"></div><div class="rp-cmsg sub" aria-live="polite"></div>'+
@@ -957,7 +960,11 @@ W.roster=function(s,ctx){
  modal2.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-sc]");if(!b||!sc)return;e.stopPropagation();var a=b.getAttribute("data-sc");
   if(a==="prev"||a==="next"){sc.mo+=a==="next"?1:-1;if(sc.mo<0){sc.mo=11;sc.y--}if(sc.mo>11){sc.mo=0;sc.y++}scRender();return}
   if(a==="goto"){var m=/^(\d{4})-(\d\d)-/.exec(b.getAttribute("data-day"));sc.y=+m[1];sc.mo=+m[2]-1;scRender();return}
-  if(a==="day"){var d=b.getAttribute("data-day");if(!sc.a||sc.b)sc.a=d,sc.b="";else sc.b=d;scRender();return}
+  if(a==="seg"){sc.seg=b.getAttribute("data-seg");scRender();return}
+  if(a==="day"){var d=b.getAttribute("data-day");      // a day goes to the field that is ringed: the first day, then the last (a last day before the first moves the first)
+   if(sc.seg==="from"||!sc.a){sc.a=d;if(sc.b&&sc.b<d)sc.b="";sc.seg="until"}else if(d<sc.a){sc.a=d}else sc.b=d;
+   scRender();return}
+  if(a==="endnow"){post("/checkin/schedule/end",{id:sc.id},function(r,st,x){if(!r){scMsg((x&&x.message)||"That did not work");return}take(r);sc.view=r;scRender()});return}
   if(a==="status"){sc.code=b.getAttribute("data-code");scRender();return}
   if(a==="t0"||a==="t1"){askTime(a==="t0"?"From what time?":"Until what time?",a==="t0"?sc.t0:sc.t1,function(v){sc[a]=v;scRender()});return}
   if(a==="del"){post("/checkin/schedule/delete",{id:sc.id,entry:b.getAttribute("data-entry")},function(r,st,x){if(!r){scMsg((x&&x.message)||"That did not work");return}take(r);sc.view=r;scRender()});return}

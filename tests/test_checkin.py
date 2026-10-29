@@ -245,6 +245,37 @@ class ScheduleTests(Base):
         self.assertNotEqual(before, during)              # a screen that sees another revision draws the board again
         self.assertEqual(before, after)                  # nothing is in force before it starts or after it has ended: the same board as without it
 
+    def test_clear_now_ends_the_planned_status_in_force_and_keeps_the_rest(self):
+        checkin.schedule_add(self.pid, self.code("Semester"), "2026-11-02", "2026-11-06")        # in force on this Monday
+        checkin.schedule_add(self.pid, self.code("Sjuk"), "2026-11-09", "2026-11-09")            # next week
+        self.clock("2026-11-03 14:20")
+        self.assertEqual(self.anna()["status"], self.code("Semester"))
+        view = checkin.schedule_end_now(self.pid)
+        self.assertEqual([e["label"] for e in view["entries"]], ["Sjuk"])                        # it has ended: only what is still to come is listed
+        self.assertEqual([(e["end"], e["end_time"]) for e in checkin._load()["schedule"][self.pid] if e["code"] == self.code("Semester")], [("2026-11-03", "14:20")])      # on record as ended now
+        self.assertEqual(self.anna()["status"], "")                                              # the person's own status shows
+        self.clock("2026-11-03 14:19"); self.assertEqual(self.anna()["status"], self.code("Semester"))      # (the clock going back: it was in force until 14:20)
+        self.clock("2026-11-03 15:00")
+        self.assertIsNone(checkin.schedule_end_now(self.pid))                                    # nothing in force: nothing to end
+
+    def test_a_planned_status_that_has_not_lasted_a_minute_is_dropped_by_clear_now(self):
+        self.clock("2026-11-02 09:00")
+        checkin.schedule_add(self.pid, self.code("Semester"), "2026-11-02", "2026-11-02", "09:00", "")
+        self.assertEqual(self.anna()["status"], self.code("Semester"))
+        self.assertEqual(checkin.schedule_end_now(self.pid)["entries"], [])
+
+    def test_clear_status_and_any_pick_in_the_status_menu_end_the_planned_status(self):
+        checkin.toggle(self.pid)
+        checkin.schedule_add(self.pid, self.code("Semester"), "2026-11-02", "2026-11-06")
+        self.assertEqual(self.anna()["status"], self.code("Semester"))
+        snap = checkin.set_status(self.pid, "", "")                                              # Clear status
+        self.assertEqual((self.anna()["status"], self.anna()["in"], self.anna()["planned"]), ("", True, False))
+        checkin.schedule_add(self.pid, self.code("Sjuk"), "2026-11-04", "2026-11-04")
+        self.clock("2026-11-04 08:00")
+        self.assertEqual(self.anna()["status"], self.code("Sjuk"))
+        checkin.set_status(self.pid, self.code("VAB"), "")                                       # another status picked: that one wins
+        self.assertEqual((self.anna()["status"], self.anna()["planned"]), (self.code("VAB"), False))
+
     def test_a_damaged_schedule_never_takes_the_board_down(self):
         data = checkin._load()
         data["schedule"] = {self.pid: [{"id": "zz", "code": "x"}, "junk", {"id": "abcdef12", "code": "SICK", "start": "2026-13-45", "end": "x"}], "other": 5}

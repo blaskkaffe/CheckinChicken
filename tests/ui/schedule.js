@@ -41,17 +41,20 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   ok((await post('/checkin/schedule/add', { id: person.id, code: code['Semester'], start: day(2), end: day(4) })).ok === true, 'a status is planned through the host');
   await openSchedule();
   ok(await page.locator('.rp-sched').count() === 1 && /Schedule/.test(await page.locator('.rp-sched .rp-wn').textContent()), 'the Schedule screen opens from the menu');
-  const inView = async iso => page.locator('.rp-sd:has([data-day="' + iso + '"])');
-  const first = await inView(day(2));
+  const inView = iso => page.locator('.rp-calday[data-day="' + iso + '"]');
+  const first = inView(day(2));
   if (await first.count()) {
-    ok((await first.getAttribute('class')).includes(' e ') && (await first.getAttribute('class')).includes(' s'), 'the first day of a planned status is the start of its band');
-    const last = await inView(day(4));
-    if (await last.count()) ok((await last.getAttribute('class')).includes(' f'), 'and the last day is the end of it');
+    const c = await first.getAttribute('class');
+    ok(c.includes(' pri') && c.includes(' jr') && !c.includes(' jl'), 'the first day of a planned status is filled with its colour and joined to the next day');
+    const last = inView(day(4));
+    if (await last.count()) { const l = await last.getAttribute('class'); ok(l.includes(' jl') && !l.includes(' jr'), 'and the last day ends the band'); }
   }
+  const sizes = await page.evaluate(() => { const d = document.querySelector('.rp-sched .rp-calday'), m = document.querySelector('.rp-sched .rp-so'); return { day: getComputedStyle(d).borderTopLeftRadius, so: m.getBoundingClientRect().height, sheet: document.querySelector('.rp-sched').getBoundingClientRect().width }; });
+  ok(sizes.day === '12px' && sizes.so >= 56 && Math.abs(sizes.sheet - Math.min(900, 0.6 * 1280)) < 4, 'the sizes are the app\'s: day buttons with the date picker\'s radius, buttons 56 px high, the sheet as wide as the status menu (' + JSON.stringify(sizes) + ')');
+  ok(await page.locator('.rp-sched .rp-wb').count() === 2 && await page.locator('.rp-sched .rp-wb.on').getAttribute('data-seg') === 'from', 'From and Until are the date page\'s fields, From is ringed first');
   const menuCount = (await api()).checkin.statuses.length;
   ok(await page.locator('.rp-scst button').count() === menuCount && await page.locator('.rp-scst.rp-opts').count() === 1, 'the schedule offers the same statuses as the status menu (' + menuCount + '), as the same buttons');
   ok(await page.locator('.rp-scrow').count() === 1 && /Semester/.test(await page.locator('.rp-scrow').textContent()), 'the planned status is in the list');
-  ok(/one planned status/.test(await page.locator('.rp-sclegend').textContent()), 'a note says that a band across days is one status');
 
   // ---- add one here: pick the status, tap the first and the last day, Add
   ok(await page.locator('[data-sc=add]').isDisabled(), 'Add waits for a status and a day');
@@ -59,8 +62,8 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   const target = day(8);
   const t = new Date(target + 'T12:00:00'), now = new Date(today + 'T12:00:00');
   if (t.getMonth() !== now.getMonth()) await page.locator('[data-sc=next]').click();
-  await page.locator('.rp-sdb[data-day="' + target + '"]').click(); await page.locator('.rp-sdb[data-day="' + day(9) + '"]').click().catch(() => {});
-  ok(!(await page.locator('[data-sc=add]').isDisabled()), 'a status and a day is enough for Add');
+  await page.locator('.rp-calday[data-day="' + target + '"]').click(); await page.locator('.rp-calday[data-day="' + day(9) + '"]').click().catch(() => {});
+  ok(!(await page.locator('[data-sc=add]').isDisabled()) && /one planned status/.test(await page.locator('.rp-whint').textContent()), 'a status and a day is enough for Add, and the page says that a band across days is one status');
   await page.locator('[data-sc=t0]').click(); await settle(300);
   ok(await page.locator('.rp-modal3 .rp-wb[data-seg=time]').count() === 1, 'the start time is the same time page');
   for (const k of ['0', '8', '3', '0']) await page.click('.rp-modal3 [data-k="' + k + '"]');
@@ -72,7 +75,7 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
 
   // ---- only one status at a time
   await page.locator('.rp-scst button', { hasText: 'VAB' }).click();
-  await page.locator('.rp-sdb[data-day="' + target + '"]').click(); await page.locator('.rp-sdb[data-day="' + target + '"]').click();
+  await page.locator('.rp-calday[data-day="' + target + '"]').click(); await page.locator('.rp-calday[data-day="' + target + '"]').click();
   await page.locator('[data-sc=add]').click(); await settle(700);
   ok(/only one status at a time/.test(await page.locator('.rp-sched .rp-cmsg').textContent()) && (await view()).entries.length === 2, 'a status that overlaps another is refused with a message');
 
@@ -101,10 +104,20 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   await openMenu();
   ok(/From the schedule/.test(await page.locator('.rp-cur').textContent()), 'the menu says it comes from the schedule');
   await closeAll();
-  await post('/checkin/schedule/delete', { id: person.id, entry: live.entries.find(e => e.label === 'Tjänsteresa').id });
-  await settle(1500);
+  await openMenu();
+  await page.locator('.rp-clear [data-code=""]').click(); await settle(1500);      // Clear status ends the planned status in force
+  ok((await view()).entries.every(e => e.label !== 'Tjänsteresa'), 'Clear status in the menu ends the planned status in force');
   const p2 = await mine();
   ok(p2.planned === false && p2.status === '', 'when it is gone the person\'s own status shows again');
+
+  // ---- Clear now, in the schedule itself
+  await post('/checkin/schedule/add', { id: person.id, code: code['Semester'], start: today, end: today });
+  await settle(1500);
+  await openSchedule();
+  ok(await page.locator('.rp-sched .rp-cur [data-sc=endnow]').count() === 1 && /Semester/.test(await page.locator('.rp-sched .rp-cur').textContent()), 'a planned status in force is shown at the top with Clear now');
+  await page.locator('.rp-sched .rp-cur [data-sc=endnow]').click(); await settle(1200);
+  ok(await page.locator('.rp-sched .rp-cur').count() === 0 && (await mine()).planned === false && (await mine()).status === '', 'Clear now ends it at once and the person\'s own status shows');
+  await closeAll();
 
   ok(errors.length === 0, 'no JavaScript errors' + (errors.length ? ': ' + errors.slice(0, 3).join(' | ') : ''));
   await browser.close();

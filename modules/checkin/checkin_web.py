@@ -389,6 +389,31 @@ def schedule_add(pid, code, start, end, start_time="", end_time=""):
     return schedule_view(pid), ""
 
 
+def _end_planned(data, pid, now_text):
+    """Stop the planned status that is in force for a person, as of now (it stays on record as having lasted until now; one that has not lasted a minute goes).
+    True when there was one. The caller saves."""
+    e = active_entry(data["schedule"].get(pid), now_text)
+    if e is None:
+        return False
+    if span(e)[0] >= now_text[:16]:
+        data["schedule"][pid] = [x for x in data["schedule"][pid] if x["id"] != e["id"]]
+    else:
+        e["end"], e["end_time"] = now_text[:10], now_text[11:16]
+    if not data["schedule"][pid]:
+        data["schedule"].pop(pid)
+    return True
+
+
+def schedule_end_now(pid):
+    """"Clear now": end the planned status that is in force. Returns the view, or None when the person has none."""
+    with _lock:
+        data = _load()
+        if not _person_known(pid) or not _end_planned(data, pid, now_local()):
+            return None
+        _save(data)
+    return schedule_view(pid)
+
+
 def schedule_delete(pid, entry_id):
     """Remove one planned status. Returns the view, or None when the person or the entry is unknown."""
     with _lock:
@@ -507,6 +532,7 @@ def set_status(pid, code, detail=""):
             return None
         cur = data["people"].get(pid) or {}
         now = int(time.time())
+        _end_planned(data, pid, now_local())      # an explicit pick wins over the planned status in force
         if code in (IN, OUT):
             new = {"in": code == IN, "status": "", "detail": "", "at": now}
         elif code in ("", None):
@@ -639,6 +665,10 @@ def _post_schedule_add(h):
     return _plan_answer(h, view, err)
 
 
+def _post_schedule_end(h):
+    return _plan_answer(h, schedule_end_now(str(_body(h).get("id", ""))), "There is no planned status in force")
+
+
 def _post_schedule_delete(h):
     b = _body(h)
     return _plan_answer(h, schedule_delete(str(b.get("id", "")), str(b.get("entry", ""))), "Unknown planned status")
@@ -713,8 +743,8 @@ def api(d, warnings):
     d.setdefault("primary", {})["checkin"] = core.module_colours("checkin").get("checkin", "green")      # the board's colour as it is now: a pick in Settings shows at once
 
 
-OPEN = ("/checkin/toggle", "/checkin/status", "/checkin/schedule", "/checkin/schedule/add", "/checkin/schedule/delete")       # tapping people in and out works while Settings is locked with the PIN
+OPEN = ("/checkin/toggle", "/checkin/status", "/checkin/schedule", "/checkin/schedule/add", "/checkin/schedule/end", "/checkin/schedule/delete")       # tapping people in and out works while Settings is locked with the PIN
 GET = {"/checkin": _get_board, "/checkin/config": _get_config}
 POST = {"/checkin/toggle": _post_toggle, "/checkin/status": _post_status,
-        "/checkin/schedule": _post_schedule, "/checkin/schedule/add": _post_schedule_add, "/checkin/schedule/delete": _post_schedule_delete, "/checkin/all": _post_all,
+        "/checkin/schedule": _post_schedule, "/checkin/schedule/add": _post_schedule_add, "/checkin/schedule/end": _post_schedule_end, "/checkin/schedule/delete": _post_schedule_delete, "/checkin/all": _post_all,
         "/checkin/config": _post_config, "/checkin/colour": _post_colour, "/checkin/order": _post_order, "/checkin/statuses": _post_statuses}
