@@ -666,118 +666,119 @@ var EMOJI=[["\ud83d\ude00","\ud83d\ude00 \ud83d\ude03 \ud83d\ude04 \ud83d\ude01 
  ["\ud83d\ude97","\ud83d\ude97 \ud83d\ude95 \ud83d\ude99 \ud83d\ude8c \ud83d\ude8e \ud83c\udfce\ufe0f \ud83d\ude93 \ud83d\ude91 \ud83d\ude92 \ud83d\ude9a \ud83d\ude9c \ud83d\udeb2 \ud83d\udef5 \ud83c\udfcd\ufe0f \ud83d\ude82 \ud83d\ude86 \ud83d\ude87 \ud83d\ude8a \u2708\ufe0f \ud83d\ude81 \ud83d\ude80 \u26f5 \ud83d\udea2 \u2693 \ud83c\udfe0 \ud83c\udfe1 \ud83c\udfe2 \ud83c\udfe5 \ud83c\udfeb \ud83c\udfed \ud83c\udff0 \u26ea \ud83c\udfd6\ufe0f \ud83c\udfd5\ufe0f \u26f0\ufe0f \ud83c\udf0b \ud83d\uddfa\ufe0f \ud83e\uddf3 \u231a \u23f0 \ud83d\udcc5"],
  ["\ud83d\udcf1","\ud83d\udcf1 \ud83d\udcbb \ud83d\udda5\ufe0f \ud83d\udda8\ufe0f \u2328\ufe0f \ud83d\udcf7 \ud83d\udcf9 \ud83d\udcde \u260e\ufe0f \ud83d\udd0b \ud83d\udd0c \ud83d\udca1 \ud83d\udd26 \ud83d\udd27 \ud83d\udd28 \ud83e\uddf0 \ud83d\udd11 \ud83d\udd12 \ud83d\udd13 \ud83d\udce6 \ud83d\udce7 \ud83d\udce8 \ud83d\udcdd \ud83d\udcc4 \ud83d\udcc1 \ud83d\udccc \ud83d\udccd \ud83d\udcce \u2702\ufe0f \ud83d\udcda \ud83d\udcd6 \ud83d\udcb0 \ud83d\udcb3 \ud83d\udecd\ufe0f \ud83d\uded2 \ud83e\ude7a \ud83d\udc8a \ud83e\ude79 \ud83e\uddf4 \ud83e\uddf9 \ud83d\udebf \ud83d\udecf\ufe0f"],
  ["\u2764\ufe0f","\u2764\ufe0f \ud83e\udde1 \ud83d\udc9b \ud83d\udc9a \ud83d\udc99 \ud83d\udc9c \ud83d\udda4 \ud83e\udd0d \ud83d\udc94 \u2763\ufe0f \ud83d\udc95 \ud83d\udc9e \ud83d\udc96 \ud83d\udc97 \ud83d\udc98 \u2705 \u274c \u2757 \u2753 \u203c\ufe0f \u26a0\ufe0f \u26d4 \ud83d\udeab \u2714\ufe0f \u2795 \u2796 \u27a1\ufe0f \u2b05\ufe0f \u2b06\ufe0f \u2b07\ufe0f \ud83d\udd01 \ud83d\udd14 \ud83d\udd15 \ud83d\udd34 \ud83d\udfe0 \ud83d\udfe1 \ud83d\udfe2 \ud83d\udd35 \ud83d\udfe3 \u26ab \u26aa \ud83d\udcaf \ud83c\udd97 \ud83c\udd98 \ud83c\udd95 \ud83d\udd1d \u2728 \ud83d\udd25 \u2b50 \ud83c\udf1f"]];
-// ---- an on-screen keyboard for the status pop-up (Settings, Touch keyboard): an even number pad for a time, a date or a date and a time, and a text
-// keyboard laid out like the iPhone's Swedish one (letters with \u00e5 \u00e4 \u00f6, shift, 123 / #+= layers, emoji, space, done). kind: "time" | "date" | "datetime" | "text";
-// o: {value, twelve (12-hour clock, time only), max, say}. Returns the element; el.value() is "HH:MM" (24 h), "YYYY-MM-DD", "YYYY-MM-DD HH:MM" or the text, or null
-// (with a message through o.say) when what was typed is not a time / date. For a date the element has a calendar button right of the number field: a tapped
-// day fills the field (el.setDate(iso)); el._done is called by the Done key of the text keyboard.
-function onScreenKeys(kind,o){
- var el=h("div",{"class":"rp-kb rp-kb-"+kind}),shown=h("div",{"class":"rp-big rp-shown",role:"textbox","aria-readonly":"true","aria-live":"polite"}),digits="",pm=false,txt=String(o.value||""),layer="abc",shift=false,fresh=true,max=o.max||60,
-  dateIso="",cal=null,emojiGroup=0,numeric=kind!=="text",maxDigits=4,withDate=kind==="date"||kind==="datetime",
-  tdigits="",seg="date";      // a date and a time: two parts (digits = the date, tdigits = the time), either of them may be left empty; seg is the one being typed
+// a day for a person to read: "to 24/12" (weekday, day / month, and the year when it is not this one)
+function whenDay(iso){var d=new Date(+iso.slice(0,4),+iso.slice(5,7)-1,+iso.slice(8,10));
+ return CAL_DAYS[(d.getDay()+6)%7]+" "+(+iso.slice(8,10))+"/"+(+iso.slice(5,7))+(d.getFullYear()!==new Date().getFullYear()?" "+d.getFullYear():"")}
+// ---- an on-screen keyboard for a note in the status pop-up (Settings, Touch keyboard), laid out like the iPhone's Swedish one (letters with \u00e5 \u00e4 \u00f6, shift,
+// 123 / #+= layers, emoji, space, done). o: {value, max, say}. Returns the element; el.value() is the text; el._done is called by the Done key.
+function onScreenKeys(o){
+ var el=h("div",{"class":"rp-kb rp-kb-text"}),shown=h("div",{"class":"rp-big rp-shown",role:"textbox","aria-readonly":"true","aria-live":"polite"}),txt=String(o.value||""),layer="abc",shift=false,max=o.max||60,emojiGroup=0;
  function key(label,act,cls,aria){var b=h("button",{type:"button","class":"pill-s rp-k"+(cls?" "+cls:""),"data-k":act,text:ICO[label]?"":label});if(ICO[label])b.innerHTML=ICO[label];if(aria)b.setAttribute("aria-label",aria);return b}
  function row(keys,cls){var r=h("div",{"class":"rp-kr"+(cls?" "+cls:"")});keys.forEach(function(k){r.appendChild(k)});el.appendChild(r);return r}
  function dropLast(t){var a=Array.from(t),x=a.pop();if(x==="\ufe0f")a.pop();return a.join("")}
- if(kind==="time"){var m=/^(\d\d):(\d\d)$/.exec(o.value||"");if(m){var hh=+m[1];if(o.twelve){pm=hh>=12;hh=hh%12||12}digits=(hh<10?"0":"")+hh+m[2]}}
- function pad2(n){return (n<10?"0":"")+n}
- function slots(){var d=digits,s="";
-  if(kind==="date")return d.slice(0,2).padEnd(2,"\u2012")+" / "+d.slice(2,4).padEnd(2,"\u2012");
-  if(kind==="datetime")return "";
-  var hl=d.length===3?1:2;return d.slice(0,hl).padEnd(2,"\u2012")+" : "+d.slice(hl,hl+2).padEnd(2,"\u2012")+(o.twelve?"  "+(pm?"PM":"AM"):"")}
- function two(d){return d.slice(0,2).padEnd(2,"\u2012")}
- function draw(){if(kind==="datetime"){      // Date and Time are two parts: tap one to type into it, leave one empty to skip it
-   var dh='<span class="rp-seg'+(seg==="date"?" on":"")+'" data-seg="date" role="button" aria-label="Date, day and month">'+two(digits)+" / "+two(digits.slice(2))+'</span>',
-    th='<span class="rp-seg'+(seg==="time"?" on":"")+'" data-seg="time" role="button" aria-label="Time, hour and minute">'+two(tdigits)+" : "+two(tdigits.slice(2))+'</span>';
-   setHtml(shown,dh+th);return}
-  shown.textContent=kind==="text"?(txt||"\u00a0"):slots()}
- // the number pad: three even columns, every key the same size; the display has the calendar button at its right (dates)
- function pad(){el.innerHTML="";var top=h("div",{"class":"rp-shownrow"});top.appendChild(shown);
-  if(withDate){var cb=key("\ud83d\udcc5","cal","rp-calbtn","Calendar");top.appendChild(cb)}
-  el.appendChild(top);
-  if(cal){el.appendChild(cal);return}
-  var k=function(n){return key(String(n),"d"+n)};
-  row([k(1),k(2),k(3)],"pad");row([k(4),k(5),k(6)],"pad");row([k(7),k(8),k(9)],"pad");
-  row([o.twelve&&kind==="time"?key(pm?"PM":"AM","ampm","rp-kw"):key("","none","rp-kn"),k(0),key("back","back","rp-kw","Backspace")],"pad")}
- // the text keyboard: the iPhone's Swedish layout. Letters, 123 (numbers and punctuation), #+= (more symbols), emoji.
+ function draw(){shown.textContent=txt||"\u00a0"}
  var L={abc:[["q","w","e","r","t","y","u","i","o","p","\u00e5"],["a","s","d","f","g","h","j","k","l","\u00f6","\u00e4"],["z","x","c","v","b","n","m"]],
   sym:[["1","2","3","4","5","6","7","8","9","0"],["-","/",":",";","(",")","kr","&","@","\""],[".",",","?","!","'"]],
   more:[["[","]","{","}","#","%","^","*","+","="],["_","\\","|","~","<",">","\u20ac","$","\u00a3","\u00a5"],[".",",","?","!","'"]]};
- function text(){el.innerHTML="";el.appendChild(shown);
+ function render(){el.innerHTML="";el.appendChild(shown);
   if(layer==="emoji"){var tabs=h("div",{"class":"rp-etabs"}),grid=h("div",{"class":"rp-egrid"});
    EMOJI.forEach(function(g,i){var t=key(g[0],"egroup"+i,"rp-etab"+(i===emojiGroup?" on":""),"Emoji group "+(i+1));tabs.appendChild(t)});
    EMOJI[emojiGroup][1].split(" ").forEach(function(c){grid.appendChild(key(c,"c"+c,"rp-emo"))});
    el.appendChild(tabs);el.appendChild(grid);
-   row([key("ABC","layerabc","rp-kw rp-k2"),key("space","c ","rp-ksp","Space"),key("back","back","rp-kw rp-k2","Backspace"),key("done","done","rp-kw rp-k2 pri","Done")]);return}
-  var rows=L[layer];
-  rows.forEach(function(r,i){var keys=r.map(function(c){var ch=layer==="abc"&&shift?c.toUpperCase():c;return key(ch,"c"+ch,i===2&&layer!=="abc"?"rp-kp":"")});
+   row([key("ABC","layerabc","rp-kw rp-k2"),key("space","c ","rp-ksp","Space"),key("back","back","rp-kw rp-k2","Backspace"),key("done","done","rp-kw rp-k2 pri","Done")]);draw();return}
+  L[layer].forEach(function(r,i){var keys=r.map(function(c){var ch=layer==="abc"&&shift?c.toUpperCase():c;return key(ch,"c"+ch,i===2&&layer!=="abc"?"rp-kp":"")});
    if(i===2){keys.unshift(layer==="abc"?key(shift?"shifton":"shift","shift","rp-kw rp-k2"+(shift?" on":""),"Shift"):key(layer==="sym"?"#+=":"123","layer"+(layer==="sym"?"more":"sym"),"rp-kw rp-k2"));keys.push(key("back","back","rp-kw rp-k2","Backspace"))}
    row(keys,"l"+i)});
-  row([key(layer==="abc"?"123":"ABC",layer==="abc"?"layersym":"layerabc","rp-kw rp-k2"),key("\ud83d\ude00","layeremoji","rp-kw rp-k2","Emoji"),key("space","c ","rp-ksp","Space"),key("done","done","rp-kw rp-k3 pri","Done")])}
- function render(){if(kind==="text")text();else pad();draw()}
- function typed(c){
-  if(kind==="datetime"){fresh=false;
-   if(c==="back"){if(seg==="time"&&!tdigits)seg="date";if(seg==="time")tdigits=tdigits.slice(0,-1);else{digits=digits.slice(0,-1);dateIso=""}return}
-   if(seg==="date"){if(digits.length<4){digits+=c;dateIso=""}if(digits.length===4)seg="time"}      // the time comes next
-   else if(tdigits.length<4)tdigits+=c;
-   return}
-  if(c==="back"){if(kind==="text")txt=dropLast(txt);else{digits=digits.slice(0,-1);dateIso=""}fresh=false;return}
-  if(kind==="text"){if(Array.from(txt).length<max)txt+=c;if(shift){shift=false;render()}return}
-  if(fresh){digits="";fresh=false}if(digits.length<maxDigits){digits+=c;dateIso=""}}
- // a day picked in the calendar: the day and month go in the number field (the year is kept: it can be another year than this one)
- el.setDate=function(iso){var m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(iso);if(!m)return;dateIso=iso;fresh=false;
-  digits=m[3]+m[2];if(kind==="datetime")seg="time";cal=null;render()};
- el.addEventListener("click",function(e){var sg=e.target.closest&&e.target.closest("[data-seg]");if(sg){e.stopPropagation();seg=sg.getAttribute("data-seg");draw();return}
-  var b=e.target.closest&&e.target.closest("[data-k]");if(!b)return;e.stopPropagation();var a=b.getAttribute("data-k");
-  if(a==="none")return;
-  if(a==="cal"){if(cal){cal=null}else{cal=calendar(dateIso,function(iso){el.setDate(iso)})}render();return}
-  if(a==="ampm"){pm=!pm;render();return}
+  row([key(layer==="abc"?"123":"ABC",layer==="abc"?"layersym":"layerabc","rp-kw rp-k2"),key("\ud83d\ude00","layeremoji","rp-kw rp-k2","Emoji"),key("space","c ","rp-ksp","Space"),key("done","done","rp-kw rp-k3 pri","Done")]);draw()}
+ function typed(c){if(c==="back"){txt=dropLast(txt);return}if(Array.from(txt).length<max)txt+=c;if(shift){shift=false;render()}}
+ el.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-k]");if(!b)return;e.stopPropagation();var a=b.getAttribute("data-k");
   if(a==="shift"){shift=!shift;render();return}
   if(a.indexOf("layer")===0){layer=a.slice(5);render();return}
   if(a.indexOf("egroup")===0){emojiGroup=+a.slice(6);render();return}
   if(a==="done"){if(el._done)el._done();return}
-  if(a==="back"){typed("back")}else if(a[0]==="d"){typed(a.slice(1))}else if(a[0]==="c"){typed(a.slice(1))}
-  draw()});
- // A physical (USB) keyboard works as well as the keys on the screen: digits, letters (also \u00e5 \u00e4 \u00f6 and what the layout gives), Backspace, Enter (= done / Set),
- // and A / P for AM / PM on a 12-hour pad. Listens on the page while this pad is on screen, so no field needs the focus.
+  typed(a==="back"?"back":a.slice(1));draw()});
+ // a physical (USB) keyboard works as well: letters (also \u00e5 \u00e4 \u00f6 and what the layout gives), Backspace, Enter (= done); listens while this keyboard is on screen
+ function physical(e){if(!el.isConnected){document.removeEventListener("keydown",physical,true);return}
+  if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing)return;var t=e.target&&e.target.tagName;if(t==="INPUT"||t==="TEXTAREA"||t==="SELECT")return;
+  var k=e.key;if(k==="Backspace"){typed("back");draw();e.preventDefault();return}
+  if(k==="Enter"){if(el._done){el._done();e.preventDefault()}return}
+  if(Array.from(k).length!==1||layer==="emoji")return;typed(k);draw();e.preventDefault()}
+ document.addEventListener("keydown",physical,true);
+ el.value=function(){return txt};
+ render();return el}
+// ---- one page for a time, a date, or a date and / or a time: kind "time" | "date" | "datetime". Two big fields (Date, Time; the one that is typed into is ringed) and under them
+// what fills the active one: the month for a date (tap a day), a number pad for a time. A date and a time need only one of them: both fields say "optional", the page says
+// so, and Set (o.change(valid) tells the caller) waits for one. The same page, with one of the fields, is the date and the time pop-up of a status.
+// o: {value: "HH:MM" (time) | "YYYY-MM-DD" | "YYYY-MM-DD HH:MM", say(text), change(valid), none: what the empty time field says (the schedule: "start of the day")}.
+// el.value() is "HH:MM", "YYYY-MM-DD" or "YYYY-MM-DD HH:MM" (null with a message through o.say when there is nothing or half of something); el.valid(); el._done = Enter.
+function whenPicker(kind,o){
+ var withDate=kind!=="time",withTime=kind!=="date",dateIso="",ddigits="",tdigits="",seg=withDate?"date":"time",both=withDate&&withTime,
+  el=h("div",{"class":"rp-when"}),fields=h("div",{"class":"rp-wfields"+(both?" two":"")}),hint=h("div",{"class":"rp-whint sub"}),panel=h("div",{"class":"rp-wpanel"}),cal=null,btn={},val={},clr={};
+ function p2(n){return (n<10?"0":"")+n}
+ var m=/^(\d{4}-\d\d-\d\d)(?: (\d\d:\d\d))?$/.exec(o.value||"")||/^()(\d\d:\d\d)$/.exec(o.value||"");
+ if(m){if(withDate&&m[1])dateIso=m[1];if(withTime&&m[2])tdigits=m[2].replace(":","")}
+ function say(t){if(o.say)o.say(t)}
+ function two(d){return d.slice(0,2).padEnd(2,"\u2012")}
+ function field(name,label,tag){var w=h("div",{"class":"rp-wf"}),b=h("button",{type:"button","class":"rp-wb","data-seg":name,"aria-label":label}),
+   x=h("button",{type:"button","class":"rp-wc","data-clear":name,"aria-label":"Clear the "+label.toLowerCase(),text:"\u2715"});
+  b.appendChild(h("span",{"class":"rp-wl",text:label+(tag?" ("+tag+")":"")}));val[name]=h("span",{"class":"rp-wv"});b.appendChild(val[name]);btn[name]=b;clr[name]=x;w.appendChild(b);w.appendChild(x);fields.appendChild(w)}
+ if(withDate)field("date","Date",both?"optional":"");
+ if(withTime)field("time","Time",both?"optional":"");
+ function drawFields(){
+  if(withDate){var t=ddigits?two(ddigits)+" / "+two(ddigits.slice(2)):dateIso?whenDay(dateIso):"";setText(val.date,t||"\u2012 \u2012 / \u2012 \u2012");val.date.classList.toggle("empty",!t);clr.date.style.display=(t?"":"none")}
+  if(withTime){var u=tdigits?two(tdigits)+" : "+two(tdigits.slice(2)):"";setText(val.time,u||(o.none||"\u2012 \u2012 : \u2012 \u2012"));val.time.classList.toggle("empty",!u);clr.time.style.display=(u?"":"none")}
+  Object.keys(btn).forEach(function(k){btn[k].classList.toggle("on",k===seg);btn[k].setAttribute("aria-pressed",k===seg?"true":"false")})}
+ function timeOk(){return tdigits.length===4}
+ el.valid=function(){var d=withDate&&!ddigits&&!!dateIso,t=withTime&&timeOk();
+  if(withDate&&ddigits)return false;if(withTime&&tdigits&&!timeOk())return false;
+  return kind==="date"?d:kind==="time"?t:(d||t)};
+ function changed(){drawFields();setText(hint,both?"Pick a date, a time or both. One is enough.":"");if(o.change)o.change(el.valid())}
+ // the panel: a calendar for the date, the number pad for the time
+ function drawPanel(){panel.innerHTML="";cal=null;
+  if(seg==="date"){cal=calendar(dateIso,function(iso){dateIso=iso;ddigits="";seg=withTime?"time":"date";drawPanel();changed()});panel.appendChild(cal);return}
+  var pad=h("div",{"class":"rp-kb"}),keys=[["1","2","3"],["4","5","6"],["7","8","9"],["00","0","back"]];
+  keys.forEach(function(r){var row=h("div",{"class":"rp-kr pad"});r.forEach(function(k){var b=h("button",{type:"button","class":"pill-s rp-k"+(k==="back"?" rp-kw":""),"data-k":k,text:ICO[k]?"":k});if(ICO[k]){b.innerHTML=ICO[k];b.setAttribute("aria-label","Backspace")}row.appendChild(b)});pad.appendChild(row)});
+  panel.appendChild(pad)}
+ function typeTime(c){if(!tdigits&&+c>2){tdigits="0"+c;return}      // 8 is 08
+  if(tdigits.length>=4)return;var n=tdigits+c;if(n.length===2&&+n>23)return;if(n.length===3&&+c>5)return;tdigits=n}
+ function typeDate(c){if(ddigits.length>=4)return;ddigits+=c;dateIso="";
+  if(ddigits.length===4){var dd=+ddigits.slice(0,2),mo=+ddigits.slice(2),now=new Date(),y=now.getFullYear(),t=new Date(y,mo-1,dd);
+   if(mo<1||mo>12||dd<1||t.getMonth()!==mo-1){say("That date does not exist");ddigits="";return}
+   if(t<new Date(y,now.getMonth(),now.getDate()))y++;      // the next one of that day
+   dateIso=y+"-"+p2(mo)+"-"+p2(dd);ddigits="";if(withTime)seg="time";drawPanel()}}
+ function type(c){if(seg==="time")typeTime(c);else typeDate(c);changed()}
+ function back(){if(seg==="time"){tdigits=tdigits.slice(0,-1)}else if(ddigits){ddigits=ddigits.slice(0,-1)}else{dateIso=""}changed()}
+ el.addEventListener("click",function(e){var x=e.target.closest&&e.target.closest("[data-clear]");
+  if(x){e.stopPropagation();if(x.getAttribute("data-clear")==="date"){dateIso="";ddigits="";seg="date"}else{tdigits="";seg="time"}drawPanel();changed();return}
+  var s=e.target.closest&&e.target.closest("[data-seg]");if(s){e.stopPropagation();var n=s.getAttribute("data-seg");if(n!==seg){seg=n;drawPanel();changed()}return}
+  var k=e.target.closest&&e.target.closest("[data-k]");if(!k)return;e.stopPropagation();var a=k.getAttribute("data-k");
+  if(a==="back")back();else if(a==="00"){type("0");type("0")}else type(a)});
+ // a physical keyboard: digits go to the active field, Backspace takes one back, Tab / the arrows move between Date and Time, Enter is Set
  function physical(e){if(!el.isConnected){document.removeEventListener("keydown",physical,true);return}
   if(e.ctrlKey||e.metaKey||e.altKey||e.isComposing)return;var t=e.target&&e.target.tagName;if(t==="INPUT"||t==="TEXTAREA"||t==="SELECT")return;
   var k=e.key;
-  if(k==="Backspace"){typed("back");draw();e.preventDefault();return}
+  if(k==="Backspace"){back();e.preventDefault();return}
   if(k==="Enter"){if(el._done){el._done();e.preventDefault()}return}
-  if(kind==="datetime"&&(k==="ArrowRight"||k==="ArrowLeft"||k==="Tab")){seg=seg==="date"?"time":"date";draw();e.preventDefault();return}      // between the date and the time
-  if(Array.from(k).length!==1)return;
-  if(numeric){if(/\d/.test(k)){typed(k);draw();e.preventDefault()}else if(o.twelve&&kind==="time"&&/[apAP]/.test(k)){pm=/[pP]/.test(k);render();e.preventDefault()}return}
-  if(cal)return;typed(k);draw();e.preventDefault()}
+  if(both&&(k==="ArrowRight"||k==="ArrowLeft"||k==="Tab")){seg=seg==="date"?"time":"date";drawPanel();changed();e.preventDefault();return}
+  if(/^\d$/.test(k)){type(k);e.preventDefault()}}
  document.addEventListener("keydown",physical,true);
- function dateOf(d){var dd=+d.slice(0,2),mo=+d.slice(2,4),now=new Date(),y=now.getFullYear(),t=new Date(y,mo-1,dd);
-  if(mo<1||mo>12||dd<1||t.getMonth()!==mo-1)return null;
-  if(dateIso&&dateIso.slice(8,10)===d.slice(0,2)&&dateIso.slice(5,7)===d.slice(2,4))return dateIso;     // picked in the calendar
-  if(t<new Date(y,now.getMonth(),now.getDate()))y++;
-  return y+"-"+pad2(mo)+"-"+pad2(dd)}
- function timeOf(d,twelve){var hh,mm;if(d.length===4){hh=+d.slice(0,2);mm=+d.slice(2)}else if(d.length===3){hh=+d.slice(0,1);mm=+d.slice(1)}else{if(o.say)o.say("Type the time, for example 0830");return null}
-  if(twelve){if(hh<1||hh>12){if(o.say)o.say("The hour must be 1 to 12");return null}hh=hh%12+(pm?12:0)}else if(hh>23){if(o.say)o.say("The hour must be 0 to 23");return null}
-  if(mm>59){if(o.say)o.say("The minutes must be 0 to 59");return null}
-  return pad2(hh)+":"+pad2(mm)}
- el.value=function(){if(kind==="text")return txt;
-  var d=digits;
-  if(kind==="time")return timeOf(d,o.twelve);
-  if(kind==="date"){if(d.length!==4){if(o.say)o.say("Type the day and the month, for example 0107 for 1 July");return null}
-   var iso=dateOf(d);if(!iso){if(o.say)o.say("That date does not exist");return null}return iso}
-  // a date and a time: the date, the time or both ("" is not a value: Skip is the way to leave both out)
-  var td=tdigits,di="",ti="";
-  if(d){if(d.length!==4){if(o.say)o.say("Type the day and the month, for example 0107 for 1 July (or clear the date to skip it)");return null}di=dateOf(d);if(!di){if(o.say)o.say("That date does not exist");return null}}
-  if(td){ti=timeOf(td,false);if(!ti)return null}
-  if(!di&&!ti){if(o.say)o.say("Type a date, a time or both (or press Skip)");return null}
-  return di&&ti?di+" "+ti:di||ti};
- render();return el}
+ el.value=function(){
+  if(withDate&&ddigits){say("Pick a day in the calendar, or type the day and the month, for example 0107 for 1 July");return null}
+  if(withTime&&tdigits&&!timeOk()){say("Type the time with four digits, for example 0830");return null}
+  var tv=timeOk()?tdigits.slice(0,2)+":"+tdigits.slice(2):"";
+  if(kind==="date"){if(!dateIso){say("Pick a day");return null}return dateIso}
+  if(kind==="time"){if(!tv){say("Type the time with four digits, for example 0830");return null}return tv}
+  if(!dateIso&&!tv){say("A date, a time or both. One is enough.");return null}
+  return dateIso&&tv?dateIso+" "+tv:dateIso||tv};
+ el.appendChild(fields);el.appendChild(hint);el.appendChild(panel);drawPanel();changed();return el}
 W.roster=function(s,ctx){
  if(s.mode==="colours")return rosterColours(s,ctx);
  var el=h("div",{"class":"roster"}),chips=h("div",{"class":"rp-chips"}),msg=h("div"),
   modal=h("div",{"class":"rp-modal",style:"display:none"}),
-  sel=rosterLocations(),last="",D=null,cur=null,modal2,adopted=false;
+  sel=rosterLocations(),last="",D=null,cur=null,modal2,modal3,adopted=false;
  function adopt(){if(adopted||!SCREEN_ID||!S.screen)return;adopted=true;var srv=S.screen.locations||[];
   if(ROSTER_FROM.url){if(srv.join("|")!==sel.join("|"))rosterSaveLocations(sel)}else if(!ROSTER_FROM.local&&srv.length)sel=srv.slice()}
- modal2=h("div",{"class":"rp-modal rp-modal2",style:"display:none"});
+ modal2=h("div",{"class":"rp-modal rp-modal2",style:"display:none"});modal3=h("div",{"class":"rp-modal rp-modal3",style:"display:none"});document.body.appendChild(modal3);
  var hd=document.querySelector("body > header");if(hd){chips.classList.add("in-header");hd.appendChild(chips)}else el.appendChild(chips);      // the building buttons sit in the top row, at the left of the title
  el.appendChild(msg);document.body.appendChild(modal);document.body.appendChild(modal2);
  function visible(p){if(!sel.length)return !p.restrict;return sel.indexOf(p.building)>=0||(!p.building&&!p.restrict)}
@@ -870,7 +871,7 @@ W.roster=function(s,ctx){
   // the row switches at once and the board is redrawn from the answer; a failed request puts the old row back. Until the answer is there, the answers of the
   // one-second poll (which may still be the old state) are brought in line with the tap (flip() is the same rule as toggle() in checkin_web.py)
   var p=person(id),was=p&&Object.assign({},p),wasIn=D&&D.in;
-  if(p){flip(p,D);pending[id]={t:Date.now(),want:p.in};last="";paint()}
+  if(p&&!p.planned){flip(p,D);pending[id]={t:Date.now(),want:p.in};last="";paint()}
   b.disabled=true;post(s.toggle,{id:id},function(r2){b.disabled=false;delete pending[id];
    if(!r2&&was){Object.keys(was).forEach(function(k){p[k]=was[k]});D.in=wasIn;if(D.total)D.text=D.in+" of "+D.total+" in";last="";paint()}
    take(r2)})}
@@ -885,47 +886,85 @@ W.roster=function(s,ctx){
   return '<div class="rp-sheet" role="dialog" aria-modal="true" aria-label="Status for '+esc(p.name)+'"><button type="button" class="rp-x" data-close="1" title="Close" aria-label="Close">&#10005;</button>'+
    '<div class="rp-who">'+rosterAvatar(p,"rp-avb")+
    '<div class="rp-wt"><div class="rp-wn">'+esc(p.name)+'</div>'+(who?'<div class="rp-wl">'+esc(who)+'</div>':'')+(p.role?'<div class="rp-wl">'+esc(p.role)+'</div>':'')+(p.phone?'<div class="rp-wl">'+esc(p.phone)+'</div>':'')+(D.numpad&&p.num?'<div class="rp-wl">'+esc(p.num)+'</div>':'')+'</div></div>'+
-    '<div class="rp-cur"><span class="rp-curl">Current status</span>'+(p.status&&p.text?'<span class="rp-curv'+colourCls(p)+'">'+esc(p.text)+'</span>':'<span class="rp-curv none">None</span>')+'</div>'+
+    '<div class="rp-cur"><span class="rp-curl">Current status</span>'+(p.status&&p.text?'<span class="rp-curv'+colourCls(p)+'">'+esc(p.text)+'</span>'+(p.planned?'<span class="sub">From the schedule</span>':''):'<span class="rp-curv none">None</span>')+'</div>'+
    '<div class="rp-opts">'+st.map(function(x){return '<button type="button" class="pill-s pri rp-so c-'+esc(x.colour)+(p.status===x.code?" on":"")+'" data-code="'+esc(x.code)+'" aria-pressed="'+(p.status===x.code?"true":"false")+'">'+(D.numpad&&x.num?'<span class="rp-num">'+esc(x.num)+'</span> ':'')+esc(x.label)+'</button>'}).join("")+
-   '</div><div class="rp-clear"><button type="button" class="pill-s rp-so" data-code="">Clear status</button></div></div>'}
+   '</div><div class="rp-clear"><button type="button" class="pill-s rp-so" data-code="">Clear status</button><button type="button" class="pill-s rp-so" data-schedule="1">Schedule</button></div></div>'}
  function openPersonMenu(id){var p=person(id);if(!p)return;cur=id;modal.innerHTML=menuHtml(p);trDom(modal);modal.style.display="";var x=modal.querySelector(".rp-x");if(x&&x.focus)x.focus()}
  // a status that needs a time, a date or a note: its own pop-up on top of the menu, with a big field (Enter sets it, Esc or a tap outside goes back)
- function openNeed(code,st){var p=person(cur),kind=st.needs,kb=!!(D&&D.keyboard),twelve=false,
-  what=kind==="time"?"At what time?":kind==="date"?"Until which date?":kind==="datetime"?"Until which date and / or time? (leave one out to skip it)":"What is it?",field,
-  skip=kind==="date"||kind==="datetime",withCal=skip;      // a date can be left out (Skip: the status is set without it); a date has a calendar
-  modal2.innerHTML='<div class="rp-sheet rp-need2'+(kb?' rp-withkb':'')+'" role="dialog" aria-modal="true" aria-label="'+esc(st.label)+'"><button type="button" class="rp-x" data-back="1" title="Back" aria-label="Back">&#10005;</button>'+
+ // ---- the date and time pop-up of a status (one page: whenPicker above) or the note of one
+ function openNeed(code,st){var p=person(cur),kind=st.needs,kb=!!(D&&D.keyboard),pick=kind==="time"||kind==="date"||kind==="datetime",
+  what=kind==="time"?"At what time?":kind==="date"?"Until which date?":kind==="datetime"?"Until when?":"What is it?",
+  skip=kind==="date"||kind==="datetime";      // a date can be left out (Skip: the status is set without it)
+  modal2.innerHTML='<div class="rp-sheet rp-need2'+(kb&&!pick?' rp-withkb':'')+'" role="dialog" aria-modal="true" aria-label="'+esc(st.label)+'"><button type="button" class="rp-x" data-back="1" title="Back" aria-label="Back">&#10005;</button>'+
    '<div class="rp-wn">'+esc(st.label)+'</div><div class="rp-wl">'+esc(p?p.name:"")+'</div><div class="rp-nl">'+what+'<div class="rp-field"></div></div><div class="rp-cmsg sub" aria-live="polite"></div>'+
    '<div class="rp-nb'+(skip?' rp-nb3':'')+'"><button type="button" class="pill-s rp-so" data-back="1">Cancel</button>'+(skip?'<button type="button" class="pill-s rp-so" data-skip="'+esc(code)+'">Skip</button>':'')+
    '<button type="button" class="pill-s pri rp-so c-'+esc(st.colour)+'" data-set="'+esc(code)+'">Set</button></div></div>';
-  var host=modal2.querySelector(".rp-field"),msg=modal2.querySelector(".rp-cmsg");
-  if(kb){var keys=onScreenKeys(kind==="note"?"text":kind,{value:st.default||"",twelve:twelve,say:function(t){setText(msg,t)}});keys._done=function(){var b=modal2.querySelector("[data-set]");if(b)b.click()};host.appendChild(keys);modal2._get=function(){return keys.value()}}
-  else{var isT=kind==="time",isD=kind==="date",isDT=kind==="datetime",row=h("div",{"class":"rp-fieldrow"});      // not the browser's own time / date fields (they follow the browser's language): 24 h tt:mm and åååå-mm-dd, as in Sweden
-   field=h("input",{"class":"rp-big",type:"text",inputmode:(isT||isD||isDT)?"numeric":"text",value:isT?(st.default||""):"",maxlength:isT?5:(isD||isDT)?10:60,placeholder:isT?"tt:mm":(isD||isDT)?"åååå-mm-dd":"",autocomplete:"off","aria-label":isDT?st.label+": date":st.label}),
-    tfield=isDT?h("input",{"class":"rp-big",type:"text",inputmode:"numeric",maxlength:5,placeholder:"tt:mm",autocomplete:"off","aria-label":st.label+": time"}):null;      // a date and a time: two fields, either may be left empty
-   function maskT(f){var d=f.value.replace(/\D/g,"").slice(0,4);f.value=d.length>2?d.slice(0,2)+":"+d.slice(2):d}
-   function mask(){if(isT)return maskT(field);var d=field.value.replace(/\D/g,"").slice(0,8);
-    field.value=d.length>6?d.slice(0,4)+"-"+d.slice(4,6)+"-"+d.slice(6,8):d.length>4?d.slice(0,4)+"-"+d.slice(4):d}
-   if(isT||isD||isDT)field.addEventListener("input",mask);
-   if(isDT)tfield.addEventListener("input",function(){maskT(tfield)});
-   row.appendChild(field);host.appendChild(row);if(isDT)host.appendChild(tfield);
-   if(withCal){var cb=h("button",{type:"button","class":"pill-s rp-calbtn","aria-label":"Calendar","aria-expanded":"false",text:"📅"}),calEl=null;
-    row.appendChild(cb);
-    cb.onclick=function(e){e.stopPropagation();if(calEl){calEl.parentNode.removeChild(calEl);calEl=null;cb.setAttribute("aria-expanded","false");return}
-     var m=/^(\d{4}-\d\d-\d\d)/.exec(field.value);calEl=calendar(m?m[1]:"",function(iso){field.value=iso;if(calEl&&calEl.parentNode)calEl.parentNode.removeChild(calEl);calEl=null;cb.setAttribute("aria-expanded","false");if(isDT&&!tfield.value.trim())tfield.focus()});
-     host.appendChild(calEl);cb.setAttribute("aria-expanded","true")}}
-   modal2._get=function(){var v=field.value.trim(),m;
-    if(isT){m=/^(\d{1,2}):?(\d{2})$/.exec(v);if(!m||+m[1]>23||+m[2]>59){setText(msg,"Type the time as tt:mm, for example 08:30");return null}return (m[1].length<2?"0":"")+m[1]+":"+m[2]}
-    if(isDT){var tv=tfield.value.trim(),mt=null,md=null;      // the date, the time or both
-     if(v){md=/^(\d{4})-(\d\d)-(\d\d)$/.exec(v);var dd=md&&new Date(+md[1],+md[2]-1,+md[3]);
-      if(!md||dd.getMonth()!==+md[2]-1){setText(msg,"Type the date as åååå-mm-dd, for example 2026-12-24 (or leave it empty to skip it)");return null}}
-     if(tv){mt=/^(\d{1,2}):?(\d{2})$/.exec(tv);if(!mt||+mt[1]>23||+mt[2]>59){setText(msg,"Type the time as tt:mm, for example 08:30 (or leave it empty to skip it)");return null}tv=(mt[1].length<2?"0":"")+mt[1]+":"+mt[2]}
-     if(!v&&!tv){setText(msg,"Type a date, a time or both (or press Skip)");return null}
-     return v&&tv?v+" "+tv:v||tv}
-    if(isD){m=/^(\d{4})-(\d\d)-(\d\d)$/.exec(v);var dt=m&&new Date(+m[1],+m[2]-1,+m[3]);
-     if(!m||dt.getMonth()!==+m[2]-1){setText(msg,"Type the date as åååå-mm-dd, for example 2026-12-24");return null}return v}
-    return v};
-   if(field.focus)setTimeout(function(){field.focus()},0)}
+  var host=modal2.querySelector(".rp-field"),msg=modal2.querySelector(".rp-cmsg"),set=modal2.querySelector("[data-set]");
+  function say(t){setText(msg,t)}
+  if(pick){var w=whenPicker(kind,{value:kind==="time"?(st.default||""):"",say:say,change:function(ok){set.disabled=!ok;if(ok)say("")}});      // the same page for all three
+   w._done=function(){set.click()};host.appendChild(w);modal2._get=function(){return w.value()}}
+  else if(kb){var keys=onScreenKeys({value:"",say:say});keys._done=function(){set.click()};host.appendChild(keys);modal2._get=function(){return keys.value()}}
+  else{var field=h("input",{"class":"rp-big",type:"text",maxlength:60,autocomplete:"off","aria-label":st.label});host.appendChild(field);
+   modal2._get=function(){return field.value.trim()};setTimeout(function(){if(field.focus)field.focus()},0)}
   trDom(modal2);modal2.style.display=""}
+ // ---- the schedule of a person (the status menu's Schedule button): planned statuses from a day to a day, each its colour on the days it covers, a status that
+ // lasts several days is one band across them. Tap the first and the last day, pick the status, Add. The person's own status is the base: a planned one shows while it
+ // is in force and the base shows again when it has ended (checkin_web.py, the schedule). Only one status at a time: the host refuses one that overlaps another.
+ var sc=null;      // {id, view, y, mo, a, b, code, t0, t1}
+ function pd(n){return (n<10?"0":"")+n}
+ function shortTime(t,none){return t||none}
+ function scRender(){if(!sc)return;var v=sc.view,p=person(sc.id),i,html="",cells="",first=new Date(sc.y,sc.mo,1),lead=(first.getDay()+6)%7,days=new Date(sc.y,sc.mo+1,0).getDate(),
+   chosen=null;(v.statuses||[]).forEach(function(x){if(x.code===sc.code)chosen=x});
+  var a=sc.a,b=sc.b||sc.a,lo=a&&b?(a<b?a:b):"",hi=a&&b?(a<b?b:a):"";
+  CAL_DAYS.forEach(function(d){cells+='<span class="rp-cald">'+d+'</span>'});
+  for(i=0;i<lead;i++)cells+='<span class="rp-sdx"></span>';
+  for(i=1;i<=days;i++){var iso=sc.y+"-"+pd(sc.mo+1)+"-"+pd(i),dow=(lead+i-1)%7,en=null,cls="rp-sd",col="";
+   (v.entries||[]).forEach(function(e){if(e.start<=iso&&iso<=e.end)en=e});
+   if(en){cls+=" e c-"+en.colour;col=en;if(en.start===iso||dow===0)cls+=" s";if(en.end===iso||dow===6||i===days)cls+=" f";}
+   if(lo&&lo<=iso&&iso<=hi){cls=cls.replace(/ (e|s|f|c-\S+)/g,"")+" p"+(chosen?" c-"+chosen.colour:"");if(lo===iso||dow===0)cls+=" s";if(hi===iso||dow===6||i===days)cls+=" f";if(iso===lo||iso===hi)cls+=" pe"}
+   if(iso===v.today)cls+=" today";if(iso<v.today)cls+=" past";
+   cells+='<div class="'+cls+'"><button type="button" class="rp-sdb" data-sc="day" data-day="'+iso+'" aria-label="'+i+' '+CAL_MONTHS[sc.mo]+(en?', '+esc(en.label):'')+'">'+i+'</button></div>'}
+  var list=(v.entries||[]).map(function(e){return '<div class="rp-scrow"><span class="pill-s pri rp-scpill c-'+esc(e.colour)+'">'+esc(e.label)+'</span>'+
+    '<button type="button" class="rp-scwhen" data-sc="goto" data-day="'+e.start+'"><span>'+whenDay(e.start)+(e.start_time?' '+e.start_time:'')+'</span> <span class="rp-scar">→</span> <span>'+whenDay(e.end)+(e.end_time?' '+e.end_time:'')+'</span>'+(e.now?' <span class="rp-scnow">Now</span>':'')+'</button>'+
+    '<button type="button" class="pill-s danger rp-scdel" data-sc="del" data-entry="'+e.id+'" aria-label="Delete the planned '+esc(e.label)+'">Delete</button></div>'}).join("");
+  var sts=(v.statuses||[]).map(function(x){return '<button type="button" class="pill-s pri rp-so c-'+esc(x.colour)+(x.code===sc.code?' on':'')+'" data-sc="status" data-code="'+esc(x.code)+'" aria-pressed="'+(x.code===sc.code?'true':'false')+'">'+esc(x.label)+'</button>'}).join("");
+  var ready=!!(sc.code&&sc.a);
+  html='<div class="rp-sheet rp-sched" role="dialog" aria-modal="true" aria-label="Schedule"><button type="button" class="rp-x" data-back="1" title="Back" aria-label="Back">&#10005;</button>'+
+   '<div class="rp-wn">Schedule</div><div class="rp-wl">'+esc(p?p.name:"")+'</div>'+
+   '<div class="rp-scgrid"><div class="rp-sccal"><div class="rp-calh"><button type="button" class="pill-s rp-calb" data-sc="prev" aria-label="Previous month">‹</button><span class="rp-calt" aria-live="polite">'+CAL_MONTHS[sc.mo]+' '+sc.y+'</span><button type="button" class="pill-s rp-calb" data-sc="next" aria-label="Next month">›</button></div>'+
+   '<div class="rp-scg">'+cells+'</div><div class="sub rp-sclegend">A coloured band across several days is one planned status.</div></div>'+
+   '<div class="rp-scside"><div class="rp-nl">Status</div><div class="rp-scst">'+sts+'</div>'+
+   '<div class="rp-nl">When</div><div class="sub rp-scask">'+(!sc.a?'Tap the first day in the calendar.':!sc.b?'Tap the last day too, or press Add for this one day.':'Tap another day to start again.')+'</div>'+
+   '<div class="rp-screng"><span class="rp-scrl">From</span><span class="rp-scrv">'+(sc.a?whenDay(lo):'‒')+'</span><button type="button" class="pill-s rp-sct" data-sc="t0">'+(sc.t0||'Start of the day')+'</button>'+
+   '<span class="rp-scrl">Until</span><span class="rp-scrv">'+(sc.b?whenDay(hi):'‒')+'</span><button type="button" class="pill-s rp-sct" data-sc="t1">'+(sc.t1||'End of the day')+'</button></div>'+
+   '<div class="rp-cmsg sub" aria-live="polite"></div><button type="button" class="pill-s pri rp-so rp-scadd'+(chosen?' c-'+esc(chosen.colour):' c-green')+'" data-sc="add"'+(ready?'':' disabled')+'>Add to the schedule</button></div></div>'+
+   '<div class="rp-nl">Planned</div><div class="rp-sclist">'+(list||'<div class="sub">Nothing planned.</div>')+'</div></div>';
+  modal2.innerHTML=html;trDom(modal2);modal2.style.display=""}
+ function openSchedule(id){var p=person(id);if(!p)return;
+  post("/checkin/schedule",{id:id},function(r){if(!r)return;var t=/^(\d{4})-(\d\d)-/.exec(r.today)||[0,new Date().getFullYear(),pd(new Date().getMonth()+1)];
+   sc={id:id,view:r,y:+t[1],mo:+t[2]-1,a:"",b:"",code:"",t0:"",t1:""};scRender()})}
+ function scMsg(t){var m=modal2.querySelector(".rp-sched .rp-cmsg");if(m)setText(m,t)}
+ function askTime(label,value,done){modal3.innerHTML='<div class="rp-sheet rp-need2" role="dialog" aria-modal="true" aria-label="'+esc(label)+'"><button type="button" class="rp-x" data-back3="1" title="Back" aria-label="Back">&#10005;</button>'+
+   '<div class="rp-wn">'+label+'</div><div class="rp-field"></div><div class="rp-cmsg sub" aria-live="polite"></div>'+
+   '<div class="rp-nb rp-nb3"><button type="button" class="pill-s rp-so" data-back3="1">Cancel</button><button type="button" class="pill-s rp-so" data-clear3="1">Whole day</button><button type="button" class="pill-s pri rp-so c-green" data-set3="1" disabled>Set</button></div></div>';
+  var w=whenPicker("time",{value:value,say:function(t){setText(modal3.querySelector(".rp-cmsg"),t)},change:function(ok){modal3.querySelector("[data-set3]").disabled=!ok}});
+  w._done=function(){modal3.querySelector("[data-set3]").click()};modal3.querySelector(".rp-field").appendChild(w);modal3._get=function(){return w.value()};modal3._done=done;trDom(modal3);modal3.style.display=""}
+ function closeTime(){modal3.style.display="none";modal3.innerHTML=""}
+ modal3.addEventListener("click",function(e){if(e.target===modal3){closeTime();return}var b=e.target.closest&&e.target.closest("button");if(!b)return;
+  if(b.hasAttribute("data-back3")){closeTime();return}
+  if(b.hasAttribute("data-clear3")){var d=modal3._done;closeTime();d("");return}
+  if(b.hasAttribute("data-set3")){var v=modal3._get();if(v===null)return;var d2=modal3._done;closeTime();d2(v)}});
+ modal2.addEventListener("click",function(e){var b=e.target.closest&&e.target.closest("[data-sc]");if(!b||!sc)return;e.stopPropagation();var a=b.getAttribute("data-sc");
+  if(a==="prev"||a==="next"){sc.mo+=a==="next"?1:-1;if(sc.mo<0){sc.mo=11;sc.y--}if(sc.mo>11){sc.mo=0;sc.y++}scRender();return}
+  if(a==="goto"){var m=/^(\d{4})-(\d\d)-/.exec(b.getAttribute("data-day"));sc.y=+m[1];sc.mo=+m[2]-1;scRender();return}
+  if(a==="day"){var d=b.getAttribute("data-day");if(!sc.a||sc.b)sc.a=d,sc.b="";else sc.b=d;scRender();return}
+  if(a==="status"){sc.code=b.getAttribute("data-code");scRender();return}
+  if(a==="t0"||a==="t1"){askTime(a==="t0"?"From what time?":"Until what time?",a==="t0"?sc.t0:sc.t1,function(v){sc[a]=v;scRender()});return}
+  if(a==="del"){post("/checkin/schedule/delete",{id:sc.id,entry:b.getAttribute("data-entry")},function(r,st,x){if(!r){scMsg((x&&x.message)||"That did not work");return}take(r);sc.view=r;scRender()});return}
+  if(a==="add"){var lo=sc.b&&sc.b<sc.a?sc.b:sc.a,hi=sc.b&&sc.b>sc.a?sc.b:(sc.b||sc.a);b.disabled=true;
+   post("/checkin/schedule/add",{id:sc.id,code:sc.code,start:lo,end:hi,start_time:sc.t0,end_time:sc.t1},function(r,st,x){
+    if(!r){scRender();scMsg((x&&x.message)||"That did not work");return}
+    take(r);sc.view=r;sc.a=sc.b="";sc.t0=sc.t1="";scRender()})}});
  function closeNeed(){modal2.style.display="none";modal2.innerHTML=""}
  modal2.addEventListener("click",function(e){if(e.target===modal2){closeNeed();return}
   var b=e.target.closest&&e.target.closest("button");if(!b)return;
@@ -938,10 +977,11 @@ W.roster=function(s,ctx){
  modal.addEventListener("click",function(e){if(e.target===modal){closeMenu();return}
   var b=e.target.closest&&e.target.closest("button");if(!b)return;
   if(b.hasAttribute("data-close")){closeMenu();return}
+  if(b.hasAttribute("data-schedule")){openSchedule(cur);return}
   if(!b.hasAttribute("data-code"))return;var code=b.getAttribute("data-code"),st=null;(D.statuses||[]).forEach(function(x){if(x.code===code)st=x});
   if(!st||!st.needs){send(code);return}
   openNeed(code,st)});
- hook("escape",function(){if(modal2.style.display!=="none"){closeNeed();return true}if(cur!==null){closeMenu();return true}});
+ hook("escape",function(){if(modal3.style.display!=="none"){closeTime();return true}if(modal2.style.display!=="none"){closeNeed();return true}if(cur!==null){closeMenu();return true}});
  // ---- the number pad (a switch in the board's settings; the number of a person is part of the roster): type the 3 digits of a person's number anywhere on the board
  // and their status menu opens; then 1 = in, 0 = out, # = switch in / out, two digits from 20 up (the number is on each status button) = that status; * or Backspace takes a digit
  // back (and closes the menu when nothing is typed), Esc closes. Not while something has the keyboard (a field, Settings, a pop-up that asks for a time or a note).

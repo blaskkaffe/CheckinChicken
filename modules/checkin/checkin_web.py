@@ -11,8 +11,10 @@ import os
 import re
 import threading
 import time
+import zlib
 
 import base_core as core
+import base_tz as tz
 
 CHECKIN = os.path.join(core.BASE_DIR, "checkin.json")       # {"rev", "config", "statuses", "people": {id: {in, status, detail, at}}}: this module's live state, shared by every screen
 CONTACTS = os.path.join(core.BASE_DIR, "contacts.json")     # {"people": [{id, name, department, role, phone, location, restrictToLocation, active, order}]}: the contacts module's roster (imported from a CSV)
@@ -71,6 +73,7 @@ def _load():
             v["detail"] = ""
         if not isinstance(v.get("at"), int) or isinstance(v.get("at"), bool):
             v["at"] = 0
+    data["schedule"] = _clean_schedule(data.get("schedule"))
     if not isinstance(data.get("config"), dict):
         data["config"] = {}
     return data
@@ -249,6 +252,158 @@ def _status_text(st, detail):
     return st["label"] + " \u00b7 " + before + detail
 
 
+# ---- the schedule: per person a list of planned statuses, each from a day (and a time) to a day (and a time). The status the person has set themselves
+# ("people") is the base; while a planned status is in force it is the one shown, and when its end has passed the base shows again, with nothing to clean up.
+# Only one status at a time: a new one may not overlap another. An entry: {"id", "code", "start": "YYYY-MM-DD", "start_time": "HH:MM" | "" (= from the start of
+# the day), "end": "YYYY-MM-DD", "end_time": "HH:MM" | "" (= to the end of the day)}. Times are the wall clock of the common time zone (Settings > System).
+MAX_ENTRIES = 40
+SCHEDULE_NEEDS = ("", "date", "datetime")       # statuses that can be planned: the end of the entry is their date, a time of day or a note is not a thing to plan
+_DATE = re.compile(r"^(\d{4})-(\d\d)-(\d\d)$")
+_TIME = re.compile(r"^([01]\d|2[0-3]):[0-5]\d$")
+
+
+def _day(text):
+    """A real date "YYYY-MM-DD" as a datetime.date, or None."""
+    m = _DATE.match(text) if isinstance(text, str) else None
+    try:
+        return datetime.date(int(m.group(1)), int(m.group(2)), int(m.group(3))) if m else None
+    except ValueError:
+        return None
+
+
+def _short(day):
+    """"2026-11-03" as "3/11"."""
+    return "%d/%d" % (int(day[8:10]), int(day[5:7]))
+
+
+def now_local(now=None):
+    """The wall clock "YYYY-MM-DD HH:MM" of the common time zone (the computer's own when none is set)."""
+    now = time.time() if now is None else now
+    zone = core.time_zone()
+    off = tz.offset(zone, now) if zone else None
+    return time.strftime("%Y-%m-%d %H:%M", time.gmtime(now + off) if off is not None else time.localtime(now))
+
+
+def span(e):
+    """(from, until) of an entry as "YYYY-MM-DD HH:MM" strings (they compare in time order); until is the first minute after it."""
+    start = e["start"] + " " + (e["start_time"] or "00:00")
+    if e["end_time"]:
+        return start, e["end"] + " " + e["end_time"]
+    return start, (_day(e["end"]) + datetime.timedelta(days=1)).isoformat() + " 00:00"
+
+
+def _clean_schedule(raw):
+    out = {}
+    for pid, items in (raw.items() if isinstance(raw, dict) else []):
+        good = []
+        for e in (items if isinstance(items, list) else []):
+            if not isinstance(e, dict) or not re.match(r"^[A-Z0-9_]{1,24}$", str(e.get("code", ""))) or not re.match(r"^[0-9a-f]{6,12}$", str(e.get("id", ""))):
+                continue
+            c = {"id": e["id"], "code": e["code"], "start": e.get("start"), "start_time": e.get("start_time") or "", "end": e.get("end"), "end_time": e.get("end_time") or ""}
+            if _day(c["start"]) and _day(c["end"]) and (not c["start_time"] or _TIME.match(str(c["start_time"]))) and (not c["end_time"] or _TIME.match(str(c["end_time"]))):
+                a, b = span(c)
+                if a < b:
+                    good.append(c)
+        if isinstance(pid, str) and good:
+            out[pid] = sorted(good, key=lambda c: span(c)[0])[:MAX_ENTRIES]
+    return out
+
+
+def active_entry(entries, now_text):
+    """The entry in force at now_text ("YYYY-MM-DD HH:MM"), or None (the entries do not overlap, so there is at most one)."""
+    for e in entries or []:
+        a, b = span(e)
+        if a <= now_text < b:
+            return e
+    return None
+
+
+def _entry_text(st, e):
+    """What a planned status says on the board: the status, and for one that asks for a date the day it ends (the day after the last day when no time is given)."""
+    if not st or st["needs"] not in ("date", "datetime"):
+        return ""
+    _a, until = span(e)
+    day, clock = until.split(" ")
+    detail = day + (" " + clock if st["needs"] == "datetime" and e["end_time"] else "")
+    return _clean_detail(st, detail)
+
+
+def _plan_view(data, pid, now_text):
+    by_code = dict((x["code"], x) for x in statuses(data))
+    out = []
+    for e in data["schedule"].get(pid, []):
+        st = by_code.get(e["code"])
+        if st is None:
+            continue
+        a, b = span(e)
+        out.append({"id": e["id"], "code": e["code"], "label": st["label"], "colour": st["colour"], "start": e["start"], "start_time": e["start_time"], "end": e["end"],
+                    "end_time": e["end_time"], "now": a <= now_text < b, "past": b <= now_text})
+    return out
+
+
+def schedule_view(pid):
+    """What the schedule screen shows: {"today", "now", "entries": [...], "statuses": [{code, label, colour}]} or None for an unknown person."""
+    with _lock:
+        data = _load()
+        if not _person_known(pid):
+            return None
+        now_text = now_local()
+        return {"today": now_text[:10], "now": now_text[11:], "entries": [e for e in _plan_view(data, pid, now_text) if not e["past"]],
+                "statuses": [{"code": x["code"], "label": x["label"], "colour": x["colour"]} for x in statuses(data) if x["needs"] in SCHEDULE_NEEDS]}
+
+
+def schedule_add(pid, code, start, end, start_time="", end_time=""):
+    """Plan a status from start (a day, with an optional time of day) to end. Returns (view, "") or (None, message)."""
+    start_time, end_time = str(start_time or ""), str(end_time or "")
+    if not _day(start) or not _day(end):
+        return None, "Pick the first and the last day"
+    if (start_time and not _TIME.match(start_time)) or (end_time and not _TIME.match(end_time)):
+        return None, "The time is not a time of day"
+    with _lock:
+        data = _load()
+        if not _person_known(pid):
+            return None, "Unknown person"
+        st = next((x for x in statuses(data) if x["code"] == code), None)
+        if st is None or st["needs"] not in SCHEDULE_NEEDS:
+            return None, "That status can not be planned"
+        new = {"id": "%08x" % (int.from_bytes(os.urandom(4), "big")), "code": code, "start": start, "start_time": start_time, "end": end, "end_time": end_time}
+        a, b = span(new)
+        if not a < b:
+            return None, "The end must be after the start"
+        now_text = now_local()
+        if b <= now_text:
+            return None, "The end has already passed"
+        mine = [e for e in data["schedule"].get(pid, []) if span(e)[1] > now_text]       # what has ended is dropped now
+        if len(mine) >= MAX_ENTRIES:
+            return None, "Too many planned statuses (at most %d)" % MAX_ENTRIES
+        for e in mine:
+            x, y = span(e)
+            if a < y and x < b:
+                lab = next((q["label"] for q in statuses(data) if q["code"] == e["code"]), e["code"])
+                return None, "That overlaps %s (%s to %s): only one status at a time" % (lab, _short(e["start"]), _short(e["end"]))
+        mine.append(new)
+        data["schedule"][pid] = sorted(mine, key=lambda c: span(c)[0])
+        _save(data)
+    return schedule_view(pid), ""
+
+
+def schedule_delete(pid, entry_id):
+    """Remove one planned status. Returns the view, or None when the person or the entry is unknown."""
+    with _lock:
+        data = _load()
+        mine = data["schedule"].get(pid, [])
+        keep = [e for e in mine if e["id"] != entry_id]
+        if len(keep) == len(mine):
+            return None
+        if keep:
+            data["schedule"][pid] = keep
+        else:
+            data["schedule"].pop(pid, None)
+        _save(data)
+    return schedule_view(pid)
+
+
+
 def snapshot(data=None):
     """What the board draws (data source / api "checkin")."""
     data = data or _load()
@@ -257,10 +412,18 @@ def snapshot(data=None):
     people = sorted(_roster(), key=lambda p: (p.get("order", 0), p["name"].lower()))
     colour_of = group_colours(people, cfg["colour_by"], cfg)
     photos = _photos()
+    now_text = now_local()
+    in_force = []
     groups, index = [], {}
     for p in people:
         gname = _key_of(p, cfg["group_by"]) or ("No building" if cfg["group_by"] == "building" else "No department")
         st = data["people"].get(p["id"]) or {}
+        plan = active_entry(data["schedule"].get(p["id"]), now_text)
+        planned = by_code.get(plan["code"]) if plan else None
+        if planned:
+            in_force.append(p["id"] + plan["id"])
+        if planned:      # the planned status is the one shown while it is in force; the person's own is the base that shows again afterwards
+            st = {"in": (not planned["out"]) if planned["out"] else bool(st.get("in")), "status": planned["code"], "detail": _entry_text(planned, plan), "at": st.get("at", 0)}
         status = by_code.get(st.get("status"))
         is_in = bool(st.get("in")) and True
         base = colour_of.get(_key_of(p, cfg["colour_by"]), "blue")
@@ -270,7 +433,7 @@ def snapshot(data=None):
                 "colour": status["colour"] if status else (base if is_in else ""),
                 "status": status["code"] if status else "", "text": _status_text(status, detail) if status else "", "detail": detail,
                 "state": "Status" if status else ("In" if is_in else "Out"), "at": st.get("at", 0), "dots": status["dots"] if status else 0,
-                "base": base, "num": p.get("code", "")}      # the colour while in without a status: the page switches a row at once, before the answer comes (widgets.js, tap())
+                "base": base, "num": p.get("code", ""), "planned": bool(planned)}      # the colour while in without a status: the page switches a row at once, before the answer comes (widgets.js, tap())
         g = index.get(gname)
         if g is None:
             g = index[gname] = {"id": gname, "title": gname, "colour": colour_of.get(gname, "blue") if cfg["colour_by"] == cfg["group_by"] else "", "people": []}
@@ -281,7 +444,8 @@ def snapshot(data=None):
     total = sum(len(g["people"]) for g in groups)
     n_in = sum(1 for g in groups for p in g["people"] if p["in"])
     buildings = sorted(set(p.get("location") or "" for p in people) - set([""]), key=str.lower)
-    return {"rev": "%d.%d" % (data.get("rev", 0), _roster_stamp()), "show_title": cfg["show_title"], "group_by": cfg["group_by"], "colour_by": cfg["colour_by"], "groups": groups,
+    return {"rev": "%d.%d.%x" % (data.get("rev", 0), _roster_stamp(), zlib.crc32(",".join(sorted(in_force)).encode())),      # a planned status starting or ending changes it too
+             "show_title": cfg["show_title"], "group_by": cfg["group_by"], "colour_by": cfg["colour_by"], "groups": groups,
             "scroll": cfg["scroll"], "title": cfg["title"], "frame": cfg["frame"], "box": cfg["box"], "show_roles": cfg["show_roles"], "show_buildings": cfg["show_buildings"], "keyboard": cfg["keyboard"], "numpad": cfg["numpad"],
             "roles_shown": cfg["roles_shown"], "buildings_shown": cfg["buildings_shown"],
             "statuses": [dict(x, num=str(20 + i)) for i, x in enumerate(menu[:80])], "buildings": buildings, "total": total, "in": n_in,
@@ -453,6 +617,31 @@ def _post_status(h):
     return _answer(h, set_status(str(b.get("id", "")), str(b.get("code", "")), b.get("detail", "")))
 
 
+def _plan_answer(h, view, err):
+    if view is None:
+        h.send(json.dumps({"ok": False, "message": err}), "application/json", status=400)
+    else:
+        view["ok"] = True
+        view["checkin"] = snapshot()
+        h.send(json.dumps(view), "application/json")
+    return True
+
+
+def _post_schedule(h):
+    return _plan_answer(h, schedule_view(str(_body(h).get("id", ""))), "Unknown person")
+
+
+def _post_schedule_add(h):
+    b = _body(h)
+    view, err = schedule_add(str(b.get("id", "")), str(b.get("code", "")), b.get("start"), b.get("end"), b.get("start_time"), b.get("end_time"))
+    return _plan_answer(h, view, err)
+
+
+def _post_schedule_delete(h):
+    b = _body(h)
+    return _plan_answer(h, schedule_delete(str(b.get("id", "")), str(b.get("entry", ""))), "Unknown planned status")
+
+
 def _post_order(h):
     if set_group_order(_body(h, 32768).get("order")) is None:
         h.send(json.dumps({"ok": False, "message": "order must be a list of names"}), "application/json", status=400)
@@ -522,7 +711,8 @@ def api(d, warnings):
     d.setdefault("primary", {})["checkin"] = core.module_colours("checkin").get("checkin", "green")      # the board's colour as it is now: a pick in Settings shows at once
 
 
-OPEN = ("/checkin/toggle", "/checkin/status")       # tapping people in and out works while Settings is locked with the PIN
+OPEN = ("/checkin/toggle", "/checkin/status", "/checkin/schedule", "/checkin/schedule/add", "/checkin/schedule/delete")       # tapping people in and out works while Settings is locked with the PIN
 GET = {"/checkin": _get_board, "/checkin/config": _get_config}
-POST = {"/checkin/toggle": _post_toggle, "/checkin/status": _post_status, "/checkin/all": _post_all,
+POST = {"/checkin/toggle": _post_toggle, "/checkin/status": _post_status,
+        "/checkin/schedule": _post_schedule, "/checkin/schedule/add": _post_schedule_add, "/checkin/schedule/delete": _post_schedule_delete, "/checkin/all": _post_all,
         "/checkin/config": _post_config, "/checkin/colour": _post_colour, "/checkin/order": _post_order, "/checkin/statuses": _post_statuses}

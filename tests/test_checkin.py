@@ -125,6 +125,105 @@ class NumberPadTests(Base):
         self.assertFalse(checkin.snapshot()["numpad"])
 
 
+class ScheduleTests(Base):
+    """Planned statuses per person: the person's own status is the base, a planned one shows while it is in force."""
+    def setUp(self):
+        Base.setUp(self)
+        contacts.import_csv(CSV)
+        self.pid = self.people()["Anna Svensson"]["id"]
+        self._now = checkin.now_local
+        self.clock("2026-11-02 09:00")                  # a Monday
+
+    def tearDown(self):
+        checkin.now_local = self._now
+        Base.tearDown(self)
+
+    def clock(self, text):
+        checkin.now_local = lambda now=None: text
+
+    def anna(self):
+        return self.people()["Anna Svensson"]
+
+    def code(self, label):
+        return next(s["code"] for s in checkin.statuses() if s["label"] == label)
+
+    def test_a_planned_status_starts_and_ends_by_itself(self):
+        checkin.toggle(self.pid)                               # Anna is in
+        view, err = checkin.schedule_add(self.pid, self.code("Tjänsteresa"), "2026-11-03", "2026-11-05", "08:00", "17:00")
+        self.assertEqual(err, "")
+        self.assertEqual((self.anna()["status"], self.anna()["in"], self.anna()["planned"]), ("", True, False))         # Monday: nothing yet
+        self.clock("2026-11-03 07:59"); self.assertEqual(self.anna()["status"], "")
+        self.clock("2026-11-03 08:00"); a = self.anna()
+        self.assertEqual((a["status"], a["in"], a["planned"]), (self.code("Tjänsteresa"), False, True))               # a status that is "out" takes her out
+        self.assertEqual(a["text"], "Tjänsteresa · tillbaka 5/11")
+        self.clock("2026-11-05 16:59"); self.assertEqual(self.anna()["status"], self.code("Tjänsteresa"))
+        self.clock("2026-11-05 17:00"); a = self.anna()
+        self.assertEqual((a["status"], a["in"], a["planned"]), ("", True, False))                                       # back to what Anna had set herself
+
+    def test_a_status_that_is_not_out_keeps_the_base(self):
+        view, err = checkin.schedule_add(self.pid, self.code("FYS"), "2026-11-02", "2026-11-02")
+        self.assertEqual(err, "")
+        self.assertEqual((self.anna()["status"], self.anna()["in"]), (self.code("FYS"), False))                         # out stays out
+        checkin.toggle(self.pid)
+        self.assertEqual((self.anna()["status"], self.anna()["in"]), (self.code("FYS"), True))
+
+    def test_without_times_a_day_is_the_whole_day_and_the_end_day_is_included(self):
+        checkin.schedule_add(self.pid, self.code("Semester"), "2026-11-05", "2026-11-06")
+        self.clock("2026-11-05 00:00"); self.assertEqual(self.anna()["status"], self.code("Semester"))
+        self.clock("2026-11-06 23:59"); self.assertEqual(self.anna()["status"], self.code("Semester"))
+        self.clock("2026-11-07 00:00"); self.assertEqual(self.anna()["status"], "")
+
+    def test_only_one_status_at_a_time(self):
+        self.assertEqual(checkin.schedule_add(self.pid, self.code("Semester"), "2026-11-09", "2026-11-13")[1], "")
+        view, err = checkin.schedule_add(self.pid, self.code("Sjuk"), "2026-11-13", "2026-11-14")
+        self.assertIsNone(view)
+        self.assertIn("only one status at a time", err)
+        self.assertIn("overlaps", checkin.schedule_add(self.pid, self.code("Sjuk"), "2026-11-13", "2026-11-14", "12:00", "")[1])      # the same day: refused
+        self.assertEqual(checkin.schedule_add(self.pid, self.code("Sjuk"), "2026-11-14", "2026-11-14")[1], "")           # the day after is free
+        self.assertEqual(checkin.schedule_add(self.pid, self.code("VAB"), "2026-11-10", "2026-11-10", "09:00", "10:00")[1].split(" (")[0], "That overlaps Semester")
+
+    def test_times_on_the_same_day_may_follow_each_other(self):
+        self.assertEqual(checkin.schedule_add(self.pid, self.code("Semester"), "2026-11-09", "2026-11-09", "", "12:00")[1], "")
+        self.assertEqual(checkin.schedule_add(self.pid, self.code("Sjuk"), "2026-11-09", "2026-11-10", "12:00", "")[1], "")
+
+    def test_bad_entries_are_refused(self):
+        add = lambda *a: checkin.schedule_add(self.pid, *a)
+        self.assertIn("first and the last", add(self.code("Sjuk"), "2026-02-30", "2026-03-01")[1])
+        self.assertIn("after the start", add(self.code("Sjuk"), "2026-11-05", "2026-11-04")[1])
+        self.assertIn("already passed", add(self.code("Sjuk"), "2026-10-01", "2026-10-02")[1])
+        self.assertIn("not a time", add(self.code("Sjuk"), "2026-11-05", "2026-11-06", "25:00", "")[1])
+        self.assertIn("can not be planned", add(self.code("Kommer sent"), "2026-11-05", "2026-11-06")[1])        # a time of day is not a thing to plan
+        self.assertIn("can not be planned", add("NOSUCH", "2026-11-05", "2026-11-06")[1])
+        self.assertIn("Unknown person", checkin.schedule_add("nobody", self.code("Sjuk"), "2026-11-05", "2026-11-06")[1])
+
+    def test_delete_and_the_list(self):
+        checkin.schedule_add(self.pid, self.code("Semester"), "2026-11-09", "2026-11-13")
+        checkin.schedule_add(self.pid, self.code("Sjuk"), "2026-11-04", "2026-11-04")
+        view = checkin.schedule_view(self.pid)
+        self.assertEqual([e["label"] for e in view["entries"]], ["Sjuk", "Semester"])                  # in time order
+        self.assertEqual((view["today"], view["now"]), ("2026-11-02", "09:00"))
+        self.assertNotIn("Kommer sent", [s["label"] for s in view["statuses"]])
+        first = view["entries"][0]["id"]
+        self.assertEqual([e["label"] for e in checkin.schedule_delete(self.pid, first)["entries"]], ["Semester"])
+        self.assertIsNone(checkin.schedule_delete(self.pid, first))
+        self.assertEqual(checkin.schedule_delete(self.pid, checkin.schedule_view(self.pid)["entries"][0]["id"])["entries"], [])
+
+    def test_screens_repaint_when_a_planned_status_starts_or_ends(self):
+        checkin.schedule_add(self.pid, self.code("Semester"), "2026-11-03", "2026-11-03")
+        before = checkin.snapshot()["rev"]
+        self.clock("2026-11-03 00:00"); during = checkin.snapshot()["rev"]
+        self.clock("2026-11-04 00:00"); after = checkin.snapshot()["rev"]
+        self.assertNotEqual(before, during)              # a screen that sees another revision draws the board again
+        self.assertEqual(before, after)                  # nothing is in force before it starts or after it has ended: the same board as without it
+
+    def test_a_damaged_schedule_never_takes_the_board_down(self):
+        data = checkin._load()
+        data["schedule"] = {self.pid: [{"id": "zz", "code": "x"}, "junk", {"id": "abcdef12", "code": "SICK", "start": "2026-13-45", "end": "x"}], "other": 5}
+        checkin._save(data)
+        self.assertEqual(checkin._load()["schedule"], {})
+        self.assertEqual(self.anna()["status"], "")
+
+
 class BoardTests(Base):
     def setUp(self):
         Base.setUp(self)

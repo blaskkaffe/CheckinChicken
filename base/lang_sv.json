@@ -1,5 +1,16 @@
 {
  "strings": {
+  "Date": "Datum",
+  "Time": "Tid",
+  "Date (optional)": "Datum (valfritt)",
+  "Time (optional)": "Tid (valfritt)",
+  "Pick a date, a time or both. One is enough.": "Välj ett datum, en tid eller båda. Ett av dem räcker.",
+  "Until when?": "Till när?",
+  "Pick a day": "Välj en dag",
+  "Pick a day in the calendar, or type the day and the month, for example 0107 for 1 July": "Välj en dag i kalendern, eller skriv dag och månad, till exempel 0107 för 1 juli",
+  "Type the time with four digits, for example 0830": "Skriv tiden med fyra siffror, till exempel 0830",
+  "Clear the date": "Rensa datumet",
+  "Clear the time": "Rensa tiden",
   "4 to 64 characters. It is also asked for before updating, restarting and any other action that can change the machine.": "4 till 64 tecken. Den frågas också efter före uppdatering, omstart och andra åtgärder som kan ändra datorn.",
   "A handle on each tile lets you drag it to another place; the modules take that order (the same as dragging them in Modules)": "Ett handtag på varje ruta låter dig dra den till en annan plats; modulerna får den ordningen (samma sak som att dra dem i Moduler)",
   "Add": "Lägg till",

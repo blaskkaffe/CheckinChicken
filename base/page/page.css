@@ -227,7 +227,9 @@
  /* the status menu: in the middle of the screen, about 60 % of its width */
  .rp-modal{position:fixed;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;padding:12px;background:rgba(0,0,0,.62)}
  .rp-sheet,.rp-msheet{position:relative;box-sizing:border-box;width:clamp(320px,60vw,900px);max-width:100%;max-height:96vh;overflow:auto;padding:20px;border-radius:var(--r-box);background:var(--pop);border:var(--bw) solid var(--ctl-line)}
- .rp-x,.rp-mx{position:absolute;top:10px;right:10px;width:40px;height:40px;padding:0;border-radius:50%;background:transparent;border:var(--bw) solid var(--ctl-line);color:var(--text-1);font-size:1.2em;line-height:1}   /* its own colours: the cross must show on the light sheet too */
+ .rp-x,.rp-mx{position:absolute;top:10px;right:10px;width:40px;height:40px;padding:0;border-radius:50%;background:transparent;border:var(--bw) solid var(--ctl-line);color:var(--text-1);font-size:0;line-height:0}   /* its own colours: the cross must show on the light sheet too */
+ .rp-x::before,.rp-x::after,.rp-mx::before,.rp-mx::after,.rp-wc::before,.rp-wc::after{content:"";position:absolute;left:50%;top:50%;width:16px;height:2.5px;margin:-1.25px 0 0 -8px;border-radius:var(--r-pill);background:currentColor;transform:rotate(45deg)}   /* the cross: two lines, exactly in the middle */
+ .rp-x::after,.rp-mx::after,.rp-wc::after{transform:rotate(-45deg)}
  .rp-who{display:flex;align-items:center;gap:18px;margin:0 48px 16px 0} .rp-wt{min-width:0}
  .rp-cur{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin:0 0 16px} .rp-who .rp-av{flex:none}      /* the whole status under the person, as wide as the card: a long message wraps inside it */ .rp-curl{font-size:1.05em;color:var(--text-2)} .rp-curv{display:inline-block;max-width:100%;padding:4px 12px;border-radius:var(--r-ctl);font-size:1.1em;font-weight:600;overflow-wrap:anywhere;min-width:0;background:rgba(var(--primary-rgb),.82);border:var(--bw) solid rgb(var(--primary-l-rgb));color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.55)} .rp-curv.none{background:var(--btn-bg);border-color:var(--btn-line);color:var(--text-2);text-shadow:none;font-weight:500}
  .rp-wn{font-size:1.6em;font-weight:600;line-height:1.2;overflow-wrap:break-word} .rp-wl{font-size:1.05em;color:var(--text-2);margin-top:2px;overflow-wrap:break-word}
@@ -242,14 +244,12 @@
  .rp-opts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
  .rp-so{min-height:56px;padding:6px 8px;justify-content:center;text-align:center;font-size:1.1em;line-height:1.15;white-space:normal;overflow-wrap:break-word;hyphens:auto}
  @media(max-width:760px){.rp-sheet{width:100%}.rp-so{font-size:1em}}   /* on a phone the menu takes the whole width */
- .rp-clear{display:flex;justify-content:center;margin-top:10px} .rp-clear .rp-so{width:calc((100% - 20px) / 3);min-width:0;flex:none}   /* centred, the size of one status button */
+ .rp-clear{display:flex;justify-content:center;gap:10px;margin-top:10px} .rp-clear .rp-so{width:calc((100% - 20px) / 3);min-width:0;flex:none}   /* centred, the size of one status button */
  .rp-so.on{box-shadow:0 0 0 3px #fff}
  .rp-edit{cursor:pointer} .rp-chk{display:flex;align-items:center;gap:10px;color:var(--text-1)} .rp-cmsg{min-height:1.4em;margin-top:10px}
  .rp-need2.rp-withkb{width:clamp(340px,88vw,1180px);padding:22px 24px 24px}
  div.rp-shown{display:flex;align-items:center;justify-content:center;box-sizing:border-box;flex:1;min-width:0;min-height:76px;margin:0;padding:8px 14px;font-size:2.4em;font-weight:600;letter-spacing:.1em;overflow-wrap:anywhere;background:var(--ctl);border:var(--bw) solid var(--ctl-line);border-radius:var(--r-ctl)}
  .rp-kb-text div.rp-shown{justify-content:flex-start;min-height:72px;font-size:2em;letter-spacing:0;text-align:left;white-space:pre-wrap}
- .rp-shown .rp-seg{padding:2px 12px;margin:0 4px;border-radius:var(--r-ctl);cursor:pointer;white-space:pre} .rp-shown .rp-seg.on{box-shadow:0 0 0 3px var(--text-1)}   /* a date and a time: the part that is typed into is ringed */
- .rp-shownrow{display:flex;align-items:stretch;gap:12px;margin:8px 0 14px} .rp-shownrow .rp-calbtn{flex:none;width:76px;min-height:76px;padding:0;font-size:2em;border-radius:var(--r-ctl)}
  /* the keys: every key of a pad or a keyboard is the same size and gap (a CSS grid for the number pad, a flex row for the keyboard) */
  .rp-kb{margin-top:4px;--kh:72px;--kgap:10px} .rp-kr{display:flex;gap:var(--kgap);margin-top:var(--kgap)}
  .rp-kr.pad{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));max-width:520px;margin-left:auto;margin-right:auto}
@@ -260,8 +260,29 @@
  .rp-etabs{display:flex;gap:var(--kgap);margin-top:var(--kgap)} .rp-etab{flex:1 1 0;min-height:56px;font-size:1.6em;padding:0;justify-content:center} .rp-etab.on{box-shadow:0 0 0 3px var(--text-1)}
  .rp-egrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(68px,1fr));gap:6px;margin-top:var(--kgap);max-height:calc(var(--kh) * 3.3);overflow-y:auto;overscroll-behavior:contain}
  .rp-emo{min-height:64px;font-size:2em;padding:0;justify-content:center;background:none;border-color:transparent;font-family:"Noto Color Emoji","Apple Color Emoji","Segoe UI Emoji",sans-serif}
- @media(max-width:760px){.rp-kb{--kh:56px;--kgap:6px} .rp-shownrow .rp-calbtn{width:64px;min-height:64px} div.rp-shown{min-height:64px;font-size:1.9em}}
- .rp-fieldrow{display:flex;align-items:stretch;gap:10px} .rp-fieldrow input{flex:1;min-width:0} .rp-fieldrow .rp-calbtn{flex:none;width:60px;margin-top:6px;padding:0;font-size:1.6em;border-radius:var(--r-ctl)}
+ @media(max-width:760px){.rp-kb{--kh:56px;--kgap:6px} div.rp-shown{min-height:64px;font-size:1.9em}}
+ /* one page for a date, a time, or both: two big fields (the active one ringed) and under them the month or the number pad */
+ .rp-when{margin-top:8px} .rp-wfields{display:grid;grid-template-columns:minmax(0,1fr);gap:12px} .rp-wfields.two{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .rp-wf{position:relative} .rp-wb{display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:4px;box-sizing:border-box;width:100%;min-height:84px;padding:10px 54px 10px 16px;text-align:left;font:inherit;color:var(--text-1);background:var(--ctl);border:var(--bw) solid var(--ctl-line);border-radius:var(--r-ctl)}
+ .rp-wb.on{box-shadow:0 0 0 3px var(--text-1)} .rp-wl{font-size:var(--fs-sm);color:var(--text-2)} .rp-wv{font-size:1.9em;font-weight:600;letter-spacing:.04em;white-space:nowrap} .rp-wv.empty{color:var(--text-3);font-weight:400}
+ .rp-wc{position:absolute;top:50%;right:12px;width:34px;height:34px;margin-top:-17px;padding:0;border-radius:50%;background:transparent;border:var(--bw) solid var(--ctl-line);color:var(--text-1);font-size:0;line-height:0;cursor:pointer}
+ .rp-whint{min-height:1.4em;margin:10px 0 0;text-align:center} .rp-wpanel{margin-top:4px} .rp-wpanel .rp-cal{margin-top:8px} .rp-wpanel .rp-kb{margin-top:8px}
+ @media(max-width:520px){.rp-wfields.two{grid-template-columns:minmax(0,1fr)} .rp-wv{font-size:1.6em}}
+ /* the schedule of a person: the month with each planned status as a band of its colour over the days it covers, the new one chosen next to it, the list underneath */
+ .rp-modal3{z-index:32} .rp-sched{width:clamp(320px,92vw,980px)}
+ .rp-scgrid{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(0,1fr);gap:20px;margin-top:8px} @media(max-width:760px){.rp-scgrid{grid-template-columns:minmax(0,1fr)}}
+ .rp-sccal{padding:12px;border-radius:var(--r-ctl);background:var(--ctl);border:var(--bw) solid var(--ctl-line)} .rp-scg{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));row-gap:4px}
+ .rp-sd{padding:3px 0;border-radius:0} .rp-sdx{display:block} .rp-sdb{display:flex;align-items:center;justify-content:center;box-sizing:border-box;width:100%;aspect-ratio:1;min-height:0;padding:0;font:inherit;font-size:1.2em;color:var(--text-1);background:transparent;border:0;border-radius:var(--r-ctl);cursor:pointer}
+ .rp-sd.s{border-top-left-radius:var(--r-ctl);border-bottom-left-radius:var(--r-ctl)} .rp-sd.f{border-top-right-radius:var(--r-ctl);border-bottom-right-radius:var(--r-ctl)}
+ .rp-sd.e{background:rgba(var(--primary-rgb),.82)} .rp-sd.e .rp-sdb,.rp-sd.p .rp-sdb{color:#fff;font-weight:600;text-shadow:0 1px 2px rgba(0,0,0,.55)}
+ .rp-sd.p{background:rgba(var(--primary-rgb),.45)} .rp-sd.p:not([class*=" c-"]){background:var(--ctl-line)} .rp-sd.pe .rp-sdb{box-shadow:inset 0 0 0 3px var(--text-1)}
+ .rp-sd.past:not(.e) .rp-sdb{opacity:.45} .rp-sd.today .rp-sdb{box-shadow:inset 0 0 0 3px var(--link)} .rp-sd.today.pe .rp-sdb{box-shadow:inset 0 0 0 3px var(--text-1)}
+ .rp-sclegend{margin-top:10px} .rp-scst{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:6px} .rp-scst .rp-so{min-height:48px;font-size:1em}
+ .rp-scask{margin-top:4px} .rp-screng{display:grid;grid-template-columns:auto 1fr;align-items:center;gap:8px 12px;margin-top:10px} .rp-scrl{color:var(--text-2)} .rp-scrv{font-weight:600}
+ .rp-screng .rp-sct{grid-column:1 / -1;justify-content:center;min-height:44px} .rp-scadd{width:100%;margin-top:6px}
+ .rp-sclist{display:flex;flex-direction:column;gap:8px;margin-top:8px} .rp-scrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap} .rp-scpill{flex:none;cursor:default}
+ .rp-scwhen{flex:1 1 200px;min-width:0;padding:6px 8px;text-align:left;font:inherit;font-size:1.05em;color:var(--text-1);background:transparent;border:0;cursor:pointer} .rp-scar{color:var(--text-3)} .rp-scnow{margin-left:6px;padding:1px 8px;border-radius:var(--r-pill);font-size:var(--fs-sm);border:var(--bw) solid var(--ctl-line)}
+ .rp-scdel{flex:none}
  /* the calendar: the month as a grid of days (Monday first), arrows for the month */
  .rp-cal{margin-top:12px;padding:12px;border-radius:var(--r-ctl);background:var(--ctl);border:var(--bw) solid var(--ctl-line)} .rp-calh{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:8px}
  .rp-calt{font-size:1.3em;font-weight:600;text-transform:capitalize} .rp-calb{width:56px;height:56px;min-height:0;padding:0;font-size:1.8em;justify-content:center;border-radius:var(--r-ctl)}

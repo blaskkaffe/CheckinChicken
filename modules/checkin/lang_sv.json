@@ -1,5 +1,31 @@
 {
  "strings": {
+  "Schedule": "Schema",
+  "Status": "Status",
+  "When": "När",
+  "From": "Från",
+  "Until": "Till",
+  "End of the day": "Dagens slut",
+  "Whole day": "Hela dagen",
+  "From what time?": "Från vilken tid?",
+  "Until what time?": "Till vilken tid?",
+  "Add to the schedule": "Lägg till i schemat",
+  "Planned": "Planerat",
+  "Nothing planned.": "Inget planerat.",
+  "Now": "Nu",
+  "From the schedule": "Från schemat",
+  "A coloured band across several days is one planned status.": "Ett färgat band över flera dagar är en planerad status.",
+  "Tap the first day in the calendar.": "Tryck på första dagen i kalendern.",
+  "Tap the last day too, or press Add for this one day.": "Tryck på sista dagen också, eller tryck på Lägg till för bara den här dagen.",
+  "Tap another day to start again.": "Tryck på en annan dag för att börja om.",
+  "Next month": "Nästa månad",
+  "Pick the first and the last day": "Välj första och sista dagen",
+  "The time is not a time of day": "Tiden är inte en tid på dygnet",
+  "Unknown person": "Okänd person",
+  "That status can not be planned": "Den statusen kan inte planeras",
+  "The end must be after the start": "Slutet måste vara efter början",
+  "The end has already passed": "Slutet har redan passerat",
+  "Unknown planned status": "Okänd planerad status",
   "A date": "Ett datum",
   "A date and a time": "Ett datum och en tid",
   "A note (free text)": "En anteckning (fri text)",
@@ -84,6 +110,8 @@
   "sticky": "klibbig"
  },
  "patterns": [
+  ["^That overlaps (.+) \\((.+) to (.+)\\): only one status at a time$", "Det krockar med $1 ($2 till $3): bara en status åt gången"],
+  ["^Too many planned statuses \\(at most (\\d+)\\)$", "För många planerade statusar (högst $1)"],
   [
    "^(\\d+) statuses?$",
    "$1 {1?status:statusar}"
