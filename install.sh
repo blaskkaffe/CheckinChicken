@@ -81,10 +81,12 @@ chown root:root "$DEST"; chmod 755 "$DEST"   # the code: nobody but root may cha
 echo "$RUN_USER" > "$DEST/run_user"
 [ -z "$MADE_USER" ] || echo "$RUN_USER" > "$DEST/user_created"      # so that uninstall.sh removes it again (a user that was there before is left alone)
 
-# An install from before the service was a user kept its state next to the code: move it to its own folder (nothing is overwritten).
-for ns_name in contacts.json checkin.json modules.json module_order.json colours.json tints.json palette.json palette_custom.json time_zone language \
-               photos screen.json tile_layout.json screens sounds snow.json settings_pin background_image imagebg.json allowed_hosts https.crt https.key debug; do
-    if [ -e "$DEST/$ns_name" ] && [ ! -e "$DATA/$ns_name" ]; then mv "$DEST/$ns_name" "$DATA/$ns_name"; fi
+# An install from before the service was a user kept its state next to the code. It is COPIED to its own folder (nothing there is overwritten), and the old
+# copies are only put aside at the very end, when everything else has worked: an install that stops half way leaves the old state where it was.
+OLD_STATE="contacts.json checkin.json modules.json module_order.json colours.json tints.json palette.json palette_custom.json time_zone language \
+           photos screen.json tile_layout.json screens sounds snow.json settings_pin background_image imagebg.json allowed_hosts https.crt https.key debug"
+for ns_name in $OLD_STATE; do
+    if [ -e "$DEST/$ns_name" ] && [ ! -e "$DATA/$ns_name" ]; then cp -a "$DEST/$ns_name" "$DATA/$ns_name"; fi
 done
 cp "$SRC"/base/base_*.py "$SRC"/base/lang_*.json "$SRC/base/layout.json" "$SRC/project.json" "$SRC/uninstall.sh" "$SRC/diagnose-network.sh" "$DEST/"
 rm -f "$DEST/wifi-powersave-off.sh"      # an older install had a Wi-Fi script here
@@ -291,6 +293,11 @@ echo "Installed. Open http://$(hostname).local$( [ "$PORT" = 80 ] || echo ":$POR
 if [ "$HTTPS_PORT" != 0 ] && [ -f "$DATA/https.crt" ]; then
     echo "      or https://$(hostname).local$( [ "$HTTPS_PORT" = 443 ] || echo ":$HTTPS_PORT" )  (accept the certificate warning once)"
 fi
+# the old copies of the state (from an install that kept it next to the code) go to old-state/: kept, never read; uninstall.sh removes them with the rest
+for ns_name in $OLD_STATE; do
+    if [ -e "$DEST/$ns_name" ] && [ -e "$DATA/$ns_name" ]; then mkdir -p "$DEST/old-state"; rm -rf "$DEST/old-state/$ns_name"; mv "$DEST/$ns_name" "$DEST/old-state/$ns_name"; fi
+done
+[ ! -d "$DEST/old-state" ] || echo "The state of the old install is kept in $DEST/old-state (you can delete it when all is well)."
 echo "The web service runs as the user $RUN_USER (not root); its state is in $DATA."
 echo "Import the people in Settings > Contacts. Other screens: open the same address (see kiosk/kiosk-browser.sh)."
 echo "Uninstall any time with: sudo $DEST/uninstall.sh"

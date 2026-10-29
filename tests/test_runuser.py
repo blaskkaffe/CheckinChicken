@@ -76,7 +76,10 @@ class UnitTests(unittest.TestCase):
     def test_an_update_keeps_the_user_and_migrates_the_old_state_folder(self):
         install = read("install.sh")
         self.assertIn('"$DEST/run_user"', install)
-        self.assertIn('mv "$DEST/$ns_name" "$DATA/$ns_name"', install)
+        self.assertIn('cp -a "$DEST/$ns_name" "$DATA/$ns_name"', install)            # copied, and the old copies are put aside only at the end
+        self.assertIn('"$DEST/old-state/$ns_name"', install)
+        self.assertLess(install.index('cp -a "$DEST/$ns_name"'), install.index('cp "$SRC"/base/base_*.py'))
+        self.assertGreater(install.index('"$DEST/old-state/$ns_name"'), install.index('systemctl restart checkin-board.service'))
         self.assertIn('chown -R "$RUN_USER:$RUN_GROUP" "$DATA"', install)
         self.assertIn("umask 022", install)          # copied files must be readable by the service whatever the shell's umask
 
