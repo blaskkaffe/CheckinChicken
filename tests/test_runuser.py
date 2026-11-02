@@ -85,5 +85,17 @@ class UnitTests(unittest.TestCase):
         self.assertIn("umask 022", install)          # copied files must be readable by the service whatever the shell's umask
 
 
+class PopupTests(unittest.TestCase):
+    def test_every_popup_that_closes_on_its_backdrop_ignores_a_selection_let_go_there(self):
+        """Selecting text in a field and letting go outside the sheet is a click on the backdrop for the browser; it closed the editor with what was typed in it."""
+        import glob, re
+        for path in glob.glob(os.path.join(ROOT, "base", "page", "*.js")) + glob.glob(os.path.join(ROOT, "modules", "*", "page.js")):
+            text = open(path).read()
+            for m in re.finditer(r'(\w+)\.addEventListener\("click",function\(e\)\{if\(e\.target===\1\)', text):
+                self.assertRegex(text[max(0, m.start() - 40):m.start()], r"guardBackdrop\(%s\);\s*$" % m.group(1), "%s: the pop-up %s has no guardBackdrop()" % (os.path.basename(path), m.group(1)))
+            for m in re.finditer(r'(\w+)\.addEventListener\("click",function\(e\)\{if\(e\.target===(\w+)\)', text):
+                self.assertEqual(m.group(1), m.group(2))
+
+
 if __name__ == "__main__":
     unittest.main()

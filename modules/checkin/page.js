@@ -37,7 +37,7 @@ custom("checkin-statuses",function(host){var box=host.querySelector(".cstatuses"
  function close(){modal.style.display="none";modal.innerHTML="";editing=-1}
  modal.addEventListener("input",function(e){if(e.target.getAttribute&&e.target.getAttribute("data-f")==="prefix")e.target._typed=true});
  modal.addEventListener("change",function(e){if(e.target.getAttribute&&e.target.getAttribute("data-f")==="needs")shows()});
- modal.addEventListener("click",function(e){if(e.target===modal){close();return}var b=e.target.closest&&e.target.closest("button");if(!b)return;
+ guardBackdrop(modal);modal.addEventListener("click",function(e){if(e.target===modal){close();return}var b=e.target.closest&&e.target.closest("button");if(!b)return;
   if(b.hasAttribute("data-dot")){var grp=b.parentNode;grp.setAttribute("data-v",b.getAttribute("data-dot"));Array.prototype.forEach.call(grp.querySelectorAll("button"),function(x){var on=x===b;x.classList.toggle("on",on);x.setAttribute("aria-pressed",on)});return}
   if(b.hasAttribute("data-close")){close();return}
   var msg=modal.querySelector(".rp-cmsg");

@@ -303,7 +303,7 @@ function askPin(title,cb,cancel){closePin();pinCancel=cancel||null;var m=h("div"
  "123456789".split("").forEach(function(d){keys.appendChild(key(d,d))});keys.appendChild(key("\u2715","x","Cancel"));keys.appendChild(key("0","0"));keys.appendChild(key("back","back","Backspace"));
  var sheet=h("div",{"class":"rp-sheet pinsheet"},[h("button",{type:"button","class":"rp-x","data-k":"x",title:"Cancel","aria-label":"Cancel",text:"\u2715"}),h("div",{"class":"rp-wn",text:title}),inp,keys,h("button",{type:"button","class":"pill-s pri c-green pinok","data-k":"ok",text:"OK"})]);m.appendChild(sheet);
  function done(ok){var v=inp.value,c=pinCancel;closePin();if(ok&&v)cb(v);else if(!ok&&c)c()}
- m.addEventListener("click",function(e){if(e.target===m){done(false);return}var b=e.target.closest&&e.target.closest("[data-k]");if(!b)return;var a=b.getAttribute("data-k");
+ guardBackdrop(m);m.addEventListener("click",function(e){if(e.target===m){done(false);return}var b=e.target.closest&&e.target.closest("[data-k]");if(!b)return;var a=b.getAttribute("data-k");
   if(a==="x")done(false);else if(a==="ok")done(true);else if(a==="back")inp.value=inp.value.slice(0,-1);else if(inp.value.length<64)inp.value+=a;inp.focus()});
  inp.addEventListener("keydown",function(e){if(e.key==="Enter"){e.preventDefault();done(true)}});
  document.body.appendChild(m);pinDlg=m;inp.focus()}
@@ -315,7 +315,7 @@ function askConfirm(text,okLabel,cb){closePin();var m=h("div",{"class":"rp-modal
  var xb=h("button",{type:"button","class":"rp-x",title:"Cancel","aria-label":"Cancel",text:"\u2715"});
  m.appendChild(h("div",{"class":"rp-sheet pinsheet"},[xb,h("div",{"class":"rp-wn",text:text}),h("div",{"class":"rp-nb"},[no,yes])]));
  function done(ok){closePin();if(ok)cb()}
- m.addEventListener("click",function(e){if(e.target===m)done(false)});no.onclick=xb.onclick=function(){done(false)};yes.onclick=function(){done(true)};
+ guardBackdrop(m);m.addEventListener("click",function(e){if(e.target===m)done(false)});no.onclick=xb.onclick=function(){done(false)};yes.onclick=function(){done(true)};
  document.body.appendChild(m);pinDlg=m;no.focus()}
 function withPin(go){if(!pinNeeded||pinValue)return go();askPin("Enter the PIN",function(p){pinValue=p;go()})}
 // A screen names itself with ?screen=<id> in its address (a kiosk computer: its serial number); the id is kept for this tab and sent with every
@@ -323,6 +323,11 @@ function withPin(go){if(!pinNeeded||pinValue)return go();askPin("Enter the PIN",
 var SCREEN_ID="";
 try{var sm=(window.location.search||"").match(/[?&]screen=([A-Za-z0-9][A-Za-z0-9_-]{0,63})(&|$)/);
  if(sm){SCREEN_ID=sm[1];sessionStorage.setItem("screen",SCREEN_ID)}else SCREEN_ID=sessionStorage.getItem("screen")||""}catch(e){}
+// A tap on the dimmed backdrop of a pop-up closes it, but only when the press began on the backdrop too. Selecting text in a field and letting go outside the sheet
+// (to cut, copy or paste it) is, for the browser, a click on the backdrop: it closed the pop-up of a person or a status with what was typed in it, unsaved.
+function guardBackdrop(el){var down=null;
+ el.addEventListener("pointerdown",function(e){down=e.target},true);
+ el.addEventListener("click",function(e){var d=down;down=null;if(e.target===el&&d&&d!==el)e.stopImmediatePropagation()},true)}
 function xhrJson(method,url,cb,body){var x=new XMLHttpRequest(),counted=method!=="POST";if(counted)inflight++;x.open(method,url,true);
  if(SCREEN_ID)x.setRequestHeader("X-Screen",SCREEN_ID);
  if(method=="POST"){x.setRequestHeader("X-Requested-With","page");if(pinValue)x.setRequestHeader("X-Pin",pinValue);

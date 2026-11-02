@@ -33,6 +33,8 @@ run numpad.js IN=0
 # the date and time page, the schedule of a person and the close cross
 run datetime.js IN=3
 run schedule.js IN=3
+# the group titles, and a pop-up that does not close when a selection is let go outside it
+run backdrop.js IN=3
 # the Background image module: choose a picture, fit, darken, a big one is shrunk, remove
 run imagebg.js IMGBG=1
 # a group too long for one column is split over the next ones; No scrolling; the saved order of the boxes

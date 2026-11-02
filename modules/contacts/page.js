@@ -39,7 +39,7 @@ custom("contacts-people",function(host){var key="",box=host.querySelector(".cpeo
   btn.disabled=true;post(modal._id?"/contacts/person":"/contacts/add",body,function(r,st,b){btn.disabled=false;
    if(r&&r.ok){close();reloadData("contacts");refresh();return}
    setText(msg,(b&&b.message)||"That did not work")})}
- modal.addEventListener("click",function(e){if(e.target===modal){close();return}var b=e.target.closest&&e.target.closest("button");if(!b)return;
+ guardBackdrop(modal);modal.addEventListener("click",function(e){if(e.target===modal){close();return}var b=e.target.closest&&e.target.closest("button");if(!b)return;
   if(b.hasAttribute("data-close"))close();else if(b.hasAttribute("data-save"))save();else if(b.hasAttribute("data-del"))del(b);
   else if(b.hasAttribute("data-pick"))modal.querySelector(".cfilepick").click();else if(b.hasAttribute("data-nophoto"))setPhoto("",b)});
  // The picture of a person is chosen here only (not by tapping the board): cut to a 160 px square in the browser, kept by this module (POST /contacts/photo)
