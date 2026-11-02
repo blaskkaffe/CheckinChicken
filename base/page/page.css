@@ -354,6 +354,8 @@
  html[data-theme=light]:not(.dark-only) .dbox.hl.plain .now{--box-rgb:255,255,255;--box-text-2:rgba(255,255,255,.85);--box-text-3:rgba(255,255,255,.7);color:#fff;background:rgb(var(--primary-rgb))}
  html[data-theme=light]:not(.dark-only) .pill.pri,html[data-theme=light]:not(.dark-only) .pill-s.pri,html[data-theme=light]:not(.dark-only) .pill-s.on,html[data-theme=light]:not(.dark-only) .srow.lk .pill-s,html[data-theme=light]:not(.dark-only) .srow.lk .tag{background:rgb(var(--primary-rgb))}
  html[data-theme=light]:not(.dark-only) .pill-s.pri,html[data-theme=light]:not(.dark-only) .pill-s.on{color:#fff}
+ html[data-theme=light]:not(.dark-only) .pill.pri,html[data-theme=light]:not(.dark-only) .pill-s.pri,html[data-theme=light]:not(.dark-only) .pill-s.on{border-color:color-mix(in srgb,rgb(var(--primary-rgb)) 72%,#000)}      /* the light theme has no pale colour for an edge (it is the colour itself): the edge of a coloured button is the colour darkened (a solid colour), so it has the outline it has in the dark theme */
+ html[data-theme=light]:not(.dark-only) .rp-so.on{box-shadow:0 0 0 3px var(--text-1)}      /* the chosen status: a ring that shows on white too */
  html[data-theme=light]:not(.dark-only) .warnbox,html[data-theme=light]:not(.dark-only) .notebox{color:#fff}
  html[data-theme=light]:not(.dark-only) .notebox{background:rgb(var(--primary-rgb))}
  html[data-theme=light]:not(.dark-only) .pop{box-shadow:0 6px 24px rgba(0,0,0,.22)} html[data-theme=light]:not(.dark-only) .srow.drag{box-shadow:0 8px 22px rgba(0,0,0,.25)}

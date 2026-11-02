@@ -65,6 +65,16 @@ class KitTests(unittest.TestCase):
             if "var(--bw)" in decl or decl.startswith("border-color"):
                 self.assertNotIn("rgba(", decl, decl)
 
+    def test_a_coloured_button_has_a_visible_edge_in_the_light_theme_too(self):
+        """The light theme has no pale colour (--primary-l-rgb is the colour itself), so the dark theme's edge would be invisible there: the edge is the colour
+        darkened, and the chosen status button has a ring that shows on white."""
+        css = strip_comments(read(CSS))
+        rule = re.search(r"html\[data-theme=light\]:not\(\.dark-only\) \.pill\.pri[^{]*\{border-color:([^;}]*)\}", css)
+        self.assertIsNotNone(rule, "no light-theme edge for coloured buttons")
+        self.assertIn("color-mix(", rule.group(1))
+        self.assertNotIn("rgba(", rule.group(1))
+        self.assertRegex(css, r"html\[data-theme=light\]:not\(\.dark-only\) \.rp-so\.on\{box-shadow:0 0 0 3px var\(--text-1\)\}")
+
     def test_modules_ship_no_css_of_their_own_and_no_class_hooks(self):
         """A module is a function and an interface for it (layout.json and data): the look is the kit's. Only a theme (the background)
         may restyle the page, and a layout names no CSS class of its own (the widgets take options for what a class used to do)."""
