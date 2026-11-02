@@ -67,7 +67,7 @@ class KitTests(unittest.TestCase):
 
     def test_a_coloured_button_has_a_visible_edge_in_the_light_theme_too(self):
         """The light theme has no pale colour (--primary-l-rgb is the colour itself), so the dark theme's edge would be invisible there: the edge is the colour
-        darkened, and the chosen status button has a ring that shows on white."""
+        lightened, and the chosen status button has a ring that shows on white."""
         css = strip_comments(read(CSS))
         rule = re.search(r"html\[data-theme=light\]:not\(\.dark-only\) \.pill\.pri[^{]*\{border-color:([^;}]*)\}", css)
         self.assertIsNotNone(rule, "no light-theme edge for coloured buttons")
