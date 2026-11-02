@@ -22,9 +22,8 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
 
   // the editor of a person: select the text of a field, let go on the backdrop
   await page.click('#cog'); await settle(800);
-  await page.locator('.wmenu', { has: page.locator('.menuhead', { hasText: /^Contacts/ }) }).locator('.menubtn').click().catch(() => {});
-  await settle(300);
-  const add = page.locator('button', { hasText: /Add person/ }).first();
+  await page.locator('[data-box="contacts"] .cpeople .srow.edit button').first().click(); await settle(400);      // Settings > Contacts > People
+  const add = page.locator('[data-box="contacts"] .pop button', { hasText: 'Add person' });
   if (await add.count()) {
     await add.click(); await settle(400);
     const field = page.locator('.rp-need2 input[data-f=name]');
