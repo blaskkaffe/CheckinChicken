@@ -930,14 +930,16 @@ W.roster=function(s,ctx){
     '<button type="button" class="rp-scwhen" data-sc="goto" data-day="'+e.start+'"><span>'+whenDay(e.start)+(e.start_time?' '+e.start_time:'')+'</span> <span class="rp-scar">→</span> <span>'+whenDay(e.end)+(e.end_time?' '+e.end_time:'')+'</span></button>'+
     (e.now?'<button type="button" class="pill-s rp-scdel" data-sc="endnow">Clear now</button>':'<button type="button" class="pill-s danger rp-scdel" data-sc="del" data-entry="'+e.id+'" aria-label="Delete the planned '+esc(e.label)+'">Delete</button>')+'</div>'}).join("");
   var ready=!!(sc.code&&sc.a);
-  function field(name,label,iso,time,none){var on=sc.seg===name;return '<div class="rp-wf"><button type="button" class="rp-wb'+(on?' on':'')+'" data-sc="seg" data-seg="'+name+'" aria-pressed="'+on+'"><span class="rp-wl">'+label+'</span><span class="rp-wv'+(iso?'':' empty')+'">'+(iso?whenDay(iso):'‒ ‒ / ‒ ‒')+'</span></button></div>'}
+  function field(name,label,iso,set){var on=sc.seg===name;return '<div class="rp-wf"><button type="button" class="rp-wb'+(on?' on':'')+'" data-sc="seg" data-seg="'+name+'" aria-pressed="'+on+'"><span class="rp-wl">'+label+'</span><span class="rp-wv'+(iso?'':' empty')+'">'+(iso?whenDay(iso):'‒ ‒ / ‒ ‒')+'</span></button>'+
+   (set?'<button type="button" class="rp-wc" data-sc="clearfield" data-seg="'+name+'" aria-label="Clear the '+(name==='from'?'selection':'last day')+'">✕</button>':'')+'</div>'}
   modal2.innerHTML='<div class="rp-sheet rp-sched" role="dialog" aria-modal="true" aria-label="Schedule"><button type="button" class="rp-x" data-back="1" title="Back" aria-label="Back">&#10005;</button>'+
    '<div class="rp-wn">Schedule</div><div class="rp-wl">'+esc(p?p.name:"")+'</div>'+
    (live?'<div class="rp-cur"><span class="rp-curl">Now</span><span class="rp-curv c-'+esc(live.colour)+'">'+esc(live.label)+'</span><button type="button" class="pill-s" data-sc="endnow">Clear now</button></div>':'')+
    '<div class="rp-cal"><div class="rp-calh"><button type="button" class="pill-s rp-calb" data-sc="prev" aria-label="Previous month">‹</button><span class="rp-calt" aria-live="polite">'+CAL_MONTHS[sc.mo]+' '+sc.y+'</span><button type="button" class="pill-s rp-calb" data-sc="next" aria-label="Next month">›</button></div><div class="rp-calg">'+cells+'</div></div>'+
-   '<div class="rp-wfields two rp-scf">'+field("from","From",sc.a)+field("until","Until",sc.a?(sc.b||sc.a):"")+
+   '<div class="rp-wfields two rp-scf">'+field("from","From",sc.a,!!sc.a)+field("until","Until",sc.a?(sc.b||sc.a):"",!!sc.b)+
    '<button type="button" class="pill-s rp-so" data-sc="t0">'+(sc.t0||'Start of the day')+'</button><button type="button" class="pill-s rp-so" data-sc="t1">'+(sc.t1||'End of the day')+'</button></div>'+
-   '<div class="rp-whint sub">'+(!sc.a?'Tap the first day in the calendar.':!sc.b?'Tap the last day too, or press Add for this one day.':'A coloured band across several days is one planned status.')+'</div>'+
+   '<div class="rp-scask"><div class="rp-whint sub">'+(!sc.a?'Tap the first day in the calendar.':!sc.b?'Tap the last day too, or press Add for this one day.':'A coloured band across several days is one planned status.')+'</div>'+
+   (sc.a?'<button type="button" class="pill-s rp-scclr" data-sc="clearsel">Clear selection</button>':'')+'</div>'+
    '<div class="rp-nl">Status</div><div class="rp-opts rp-scst">'+sts+'</div>'+
    '<div class="rp-cmsg sub" aria-live="polite"></div>'+
    '<div class="rp-nb"><button type="button" class="pill-s rp-so" data-back="1">Close</button><button type="button" class="pill-s pri rp-so c-'+esc(tint)+'" data-sc="add"'+(ready?'':' disabled')+'>Add to the schedule</button></div>'+
@@ -961,6 +963,8 @@ W.roster=function(s,ctx){
   if(a==="prev"||a==="next"){sc.mo+=a==="next"?1:-1;if(sc.mo<0){sc.mo=11;sc.y--}if(sc.mo>11){sc.mo=0;sc.y++}scRender();return}
   if(a==="goto"){var m=/^(\d{4})-(\d\d)-/.exec(b.getAttribute("data-day"));sc.y=+m[1];sc.mo=+m[2]-1;scRender();return}
   if(a==="seg"){sc.seg=b.getAttribute("data-seg");scRender();return}
+  if(a==="clearsel"){sc.a=sc.b="";sc.t0=sc.t1="";sc.seg="from";scRender();return}      // the whole selection: the days and the times
+  if(a==="clearfield"){if(b.getAttribute("data-seg")==="from"){sc.a=sc.b="";sc.t0=sc.t1="";sc.seg="from"}else{sc.b="";sc.t1="";sc.seg="until"}scRender();return}
   if(a==="day"){var d=b.getAttribute("data-day");      // a day goes to the field that is ringed: the first day, then the last (a last day before the first moves the first)
    if(sc.seg==="from"||!sc.a){sc.a=d;if(sc.b&&sc.b<d)sc.b="";sc.seg="until"}else if(d<sc.a){sc.a=d}else sc.b=d;
    scRender();return}
