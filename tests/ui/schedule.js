@@ -44,12 +44,11 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   const inView = iso => page.locator('.rp-calday[data-day="' + iso + '"]');
   const first = inView(day(2));
   if (await first.count()) {
-    const c = await first.getAttribute('class');
-    const d2 = new Date(day(2) + 'T12:00:00'), wraps = d2.getDay() === 0 || new Date(d2.getFullYear(), d2.getMonth() + 1, 0).getDate() === d2.getDate();      // a band does not join over the end of a week or of the month
-    ok(c.includes(' pri') && c.includes(' jr') === !wraps && !c.includes(' jl'), 'the first day of a planned status is filled with its colour and joined to the next day (' + c + ')');
-    const last = inView(day(4));
-    if (await last.count()) { const l = await last.getAttribute('class'); ok(l.includes(' jl') && !l.includes(' jr'), 'and the last day ends the band'); }
+    const st = await first.evaluate(e => { const c = getComputedStyle(e); return { cls: e.className, border: c.borderTopColor, bg: c.backgroundColor }; });
+    ok(/ in\b/.test(st.cls) && st.border === 'rgba(0, 0, 0, 0)' && st.bg === 'rgba(0, 0, 0, 0)', 'a day of a planned status has no box of its own: the number sits on the pill');
   }
+  const band = await page.locator('.rp-sched .rp-band:not(.pk)').first().evaluate(e => { const c = getComputedStyle(e); return { radius: parseFloat(c.borderTopLeftRadius), h: e.getBoundingClientRect().height, events: c.pointerEvents, border: parseFloat(c.borderTopWidth) }; });
+  ok(band.radius >= band.h / 2 && band.events === 'none' && band.border > 0, 'a planned status is one pill with round ends, like a status button (' + band.h + ' px high)');
   const sizes = await page.evaluate(() => { const d = document.querySelector('.rp-sched .rp-calday'), m = document.querySelector('.rp-sched .rp-so'); return { day: getComputedStyle(d).borderTopLeftRadius, so: m.getBoundingClientRect().height, sheet: document.querySelector('.rp-sched').getBoundingClientRect().width }; });
   const geo = await page.evaluate(() => { const g = e => parseFloat(getComputedStyle(e).fontSize); const d = document.querySelector('.rp-sched .rp-calday'), l = document.querySelector('.rp-sched .rp-cald'), v = document.querySelector('.rp-sched .rp-wv'), so = document.querySelector('.rp-sched .rp-so'), f = document.querySelector('.rp-sched .rp-wb');
     return { dayH: d.getBoundingClientRect().height, soH: so.getBoundingClientRect().height, day: g(d), letter: g(l), field: g(v), fieldH: f.getBoundingClientRect().height }; });
@@ -68,17 +67,16 @@ const settle = ms => new Promise(r => setTimeout(r, ms));
   const t = new Date(target + 'T12:00:00'), now = new Date(today + 'T12:00:00');
   if (t.getMonth() !== now.getMonth()) await page.locator('[data-sc=next]').click();
   await page.locator('.rp-calday[data-day="' + target + '"]').click(); await page.locator('.rp-calday[data-day="' + day(9) + '"]').click().catch(() => {});
-  const shadow = async iso => page.locator('.rp-calday[data-day="' + iso + '"]').evaluate(e => getComputedStyle(e).boxShadow);
-  const sideLines = sh => (sh.match(/-?3px 0px 0px 0px inset/g) || []).length;
   if (new Date(day(8) + 'T12:00:00').getDay() > 0 && new Date(day(9) + 'T12:00:00').getDay() > 1) {      // two days in a row inside one week
-    ok(sideLines(await shadow(target)) === 1 && sideLines(await shadow(day(9))) === 1, 'the picked days are one box: an end line on the first and on the last day only');
+    const pk = await page.locator('.rp-sched .rp-band.pk').evaluateAll(l => l.map(e => e.style.gridColumn));
+    ok(pk.length === 1 && /span 2$/.test(pk[0]), 'the picked days are one pill, not a box round each number (' + JSON.stringify(pk) + ')');
   }
   ok(await page.locator('[data-sc=clearsel]').count() === 1 && await page.locator('.rp-wc[data-sc=clearfield]').count() >= 1, 'the selection can be removed: a Clear selection button and a cross in the fields');
   await page.locator('[data-sc=clearsel]').click(); await settle(300);
-  ok(await page.locator('.rp-calday.pk').count() === 0 && await page.locator('[data-sc=add]').isDisabled() && await page.locator('[data-sc=clearsel]').count() === 0, 'Clear selection removes the picked days (and Add waits again)');
+  ok(await page.locator('.rp-band.pk').count() === 0 && await page.locator('[data-sc=add]').isDisabled() && await page.locator('[data-sc=clearsel]').count() === 0, 'Clear selection removes the picked days (and Add waits again)');
   await page.locator('.rp-calday[data-day="' + target + '"]').click(); await page.locator('.rp-calday[data-day="' + day(9) + '"]').click();
   await page.locator('.rp-wf:has([data-seg=until]) .rp-wc').click(); await settle(300);
-  ok(await page.locator('.rp-calday.pk').count() === 1, 'the cross in Until takes the last day away (one day left)');
+  ok(await page.locator('.rp-band.pk').count() === 1 && /span 1$/.test(await page.locator('.rp-band.pk').evaluate(e => e.style.gridColumn)), 'the cross in Until takes the last day away (one day left)');
   await page.locator('.rp-calday[data-day="' + day(9) + '"]').click(); await settle(200);
   ok(!(await page.locator('[data-sc=add]').isDisabled()) && /one planned status/.test(await page.locator('.rp-whint').textContent()), 'a status and a day is enough for Add, and the page says that a band across days is one status');
   await page.locator('[data-sc=t0]').click(); await settle(300);

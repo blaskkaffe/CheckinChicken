@@ -916,15 +916,20 @@ W.roster=function(s,ctx){
  function scRender(){if(!sc)return;var v=sc.view,p=person(sc.id),i,cells="",first=new Date(sc.y,sc.mo,1),lead=(first.getDay()+6)%7,days=new Date(sc.y,sc.mo+1,0).getDate(),chosen=null,live=null;
   (v.statuses||[]).forEach(function(x){if(x.code===sc.code)chosen=x});(v.entries||[]).forEach(function(e){if(e.now)live=e});
   var lo=sc.a,hi=sc.a?(sc.b||sc.a):"",tint=chosen?chosen.colour:"green";
-  // the month: the buttons of the regular date picker (calendar()); a day of a planned status is filled with its colour, and the days of one status are joined into one band
+  // the month: the buttons of the regular date picker (calendar()). The days of one planned status (and the days being picked) are ONE pill drawn behind the numbers, as a
+  // status button is: it fills the whole cells of its days, with round ends, no border round each number and no gap between the days.
   function cover(iso){var r=null;(v.entries||[]).forEach(function(e){if(e.start<=iso&&iso<=e.end)r=e});return r}
-  CAL_DAYS.forEach(function(d){cells+='<span class="rp-cald">'+d+'</span>'});
-  for(i=0;i<lead;i++)cells+='<span class="rp-calx"></span>';
-  for(i=1;i<=days;i++){var iso=sc.y+"-"+pd(sc.mo+1)+"-"+pd(i),dow=(lead+i-1)%7,en=cover(iso),inpick=!!lo&&lo<=iso&&iso<=hi,cls="pill-s rp-calday",nx=i<days&&dow<6,pv=i>1&&dow>0;
-   if(inpick){cls+=" pri c-"+tint+" pk";if(nx&&iso<hi)cls+=" jr";if(pv&&iso>lo)cls+=" jl"}
-   else if(en){cls+=" pri c-"+en.colour;if(nx&&iso<en.end)cls+=" jr";if(pv&&iso>en.start)cls+=" jl"}
-   if(iso===v.today)cls+=" today";if(iso<v.today&&!en&&!inpick)cls+=" past";
-   cells+='<button type="button" class="'+cls+'" data-sc="day" data-day="'+iso+'" aria-label="'+i+' '+CAL_MONTHS[sc.mo]+(en?', '+esc(en.label):'')+'">'+i+'</button>'}
+  function pills(lo,hi,cls){var out="",ms=sc.y+"-"+pd(sc.mo+1)+"-01",me=sc.y+"-"+pd(sc.mo+1)+"-"+pd(days);if(!lo||hi<ms||lo>me)return "";
+   var d=lo<ms?1:+lo.slice(8),last=hi>me?days:+hi.slice(8);
+   while(d<=last){var k=lead+d-1,end=Math.min(last,d+(6-k%7));
+    out+='<div class="pill-s pri rp-band '+cls+'" style="grid-row:'+(2+Math.floor(k/7))+';grid-column:'+(k%7+1)+' / span '+(end-d+1)+'"></div>';d=end+1}
+   return out}
+  (v.entries||[]).forEach(function(e){cells+=pills(e.start,e.end,"c-"+e.colour)});
+  cells+=pills(lo,hi,"pk c-"+tint);
+  CAL_DAYS.forEach(function(d,n){cells+='<span class="rp-cald" style="grid-row:1;grid-column:'+(n+1)+'">'+d+'</span>'});
+  for(i=1;i<=days;i++){var iso=sc.y+"-"+pd(sc.mo+1)+"-"+pd(i),k2=lead+i-1,en=cover(iso),inpick=!!lo&&lo<=iso&&iso<=hi,cls="pill-s rp-calday";
+   if(inpick||en)cls+=" in";else{if(iso===v.today)cls+=" today";if(iso<v.today)cls+=" past"}
+   cells+='<button type="button" class="'+cls+'" style="grid-row:'+(2+Math.floor(k2/7))+';grid-column:'+(k2%7+1)+'" data-sc="day" data-day="'+iso+'" aria-label="'+i+' '+CAL_MONTHS[sc.mo]+(en?', '+esc(en.label):'')+'">'+i+'</button>'}
   var sts=(v.statuses||[]).map(function(x){return '<button type="button" class="pill-s pri rp-so c-'+esc(x.colour)+(x.code===sc.code?' on':'')+'" data-sc="status" data-code="'+esc(x.code)+'" aria-pressed="'+(x.code===sc.code?'true':'false')+'">'+esc(x.label)+'</button>'}).join("");
   var list=(v.entries||[]).map(function(e){return '<div class="rp-scrow"><span class="pill-s pri rp-scpill c-'+esc(e.colour)+'">'+esc(e.label)+'</span>'+
     '<button type="button" class="rp-scwhen" data-sc="goto" data-day="'+e.start+'"><span>'+whenDay(e.start)+(e.start_time?' '+e.start_time:'')+'</span> <span class="rp-scar">→</span> <span>'+whenDay(e.end)+(e.end_time?' '+e.end_time:'')+'</span></button>'+
